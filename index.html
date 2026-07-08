@@ -1,0 +1,3033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bolas Stock Suite — 3-in-1 Tool</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap');
+:root {
+  --bg:#0d0f14; --surface:#161920; --surface2:#1e222c; --border:#2a2f3d;
+  --text:#e8eaf0; --muted:#6b7280;
+  --t1:#4ecdc4; /* Cashew Kernels teal */
+  --t2:#e8c547; /* Stock Report gold */
+  --t3:#f59e0b; /* Stock Audit amber */
+  --accent3:#ff6b6b;
+  --c50:#ffd166; --c100:#a29bfe; --c200:#06d6a0; --c250:#fd79a8; --c500:#74b9ff; --c1k:#e17055;
+  --r25:#ffd166; --r50:#06d6a0; --r200:#118ab2;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(78,205,196,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(78,205,196,.025) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+
+/* ── HEADER ── */
+.suite-header{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:36px 24px 0}
+.suite-logo{display:flex;align-items:center;gap:16px;margin-bottom:28px}
+.suite-icon{width:52px;height:52px;background:linear-gradient(135deg,var(--t1),var(--t2));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.suite-title h1{font-size:26px;font-weight:800;letter-spacing:-.5px}
+.suite-title h1 span{background:linear-gradient(90deg,var(--t1),var(--t2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.suite-title p{color:var(--muted);font-size:13px;font-family:'DM Mono',monospace;margin-top:4px}
+
+/* ── TABS ── */
+.tab-bar{display:flex;gap:4px;background:var(--surface);border-radius:14px;padding:6px;border:1px solid var(--border);margin-bottom:0}
+.tab{flex:1;padding:10px 16px;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:8px}
+.tab:hover{color:var(--text)}
+.tab.active[data-tab="1"]{background:rgba(78,205,196,.12);color:var(--t1);box-shadow:0 0 0 1px rgba(78,205,196,.3)}
+.tab.active[data-tab="2"]{background:rgba(232,197,71,.12);color:var(--t2);box-shadow:0 0 0 1px rgba(232,197,71,.3)}
+.tab.active[data-tab="3"]{background:rgba(245,158,11,.12);color:var(--t3);box-shadow:0 0 0 1px rgba(245,158,11,.3)}
+.tab .tab-dot{width:8px;height:8px;border-radius:50%}
+.tab[data-tab="1"] .tab-dot{background:var(--t1)}
+.tab[data-tab="2"] .tab-dot{background:var(--t2)}
+.tab[data-tab="3"] .tab-dot{background:var(--t3)}
+
+/* ── PANELS ── */
+.container{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 24px 60px}
+.panel{display:none;padding-top:28px}
+.panel.active{display:block}
+
+/* ── SHARED UI COMPONENTS ── */
+.upload-zone{border:2px dashed var(--border);border-radius:16px;padding:44px 32px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface);position:relative;overflow:hidden}
+.upload-zone::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(78,205,196,.05) 0%,transparent 70%);opacity:0;transition:opacity .3s}
+.upload-zone.gold::before{background:radial-gradient(ellipse at center,rgba(232,197,71,.05) 0%,transparent 70%)}
+.upload-zone.amber::before{background:radial-gradient(ellipse at center,rgba(245,158,11,.05) 0%,transparent 70%)}
+.upload-zone:hover::before,.upload-zone.drag-over::before{opacity:1}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--t1);transform:translateY(-2px)}
+.upload-zone.gold:hover,.upload-zone.gold.drag-over{border-color:var(--t2)}
+.upload-zone.amber:hover,.upload-zone.amber.drag-over{border-color:var(--t3)}
+.upload-zone.filled{border-style:solid;border-color:var(--t1);background:rgba(78,205,196,.06)}
+.upload-zone.gold.filled{border-color:var(--t2);background:rgba(232,197,71,.06)}
+.upload-zone.amber.filled{border-color:var(--t3);background:rgba(245,158,11,.06)}
+.upload-zone.filled h2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.upload-icon{width:58px;height:58px;margin:0 auto 14px;background:var(--surface2);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;border:1px solid var(--border)}
+.upload-zone h2{font-size:17px;font-weight:700;margin-bottom:6px}
+.upload-zone p{color:var(--muted);font-size:13px;font-family:'DM Mono',monospace}
+.upload-zone p span.hl1{color:var(--t1)}.upload-zone p span.hl2{color:var(--t2)}.upload-zone p span.hl3{color:var(--t3)}
+
+.file-info{display:none;margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;align-items:center;gap:12px}
+.file-info.visible{display:flex}
+.file-icon{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.file-icon.c1{background:rgba(78,205,196,.15)}.file-icon.c2{background:rgba(232,197,71,.15)}.file-icon.c3{background:rgba(245,158,11,.15)}
+.file-details{flex:1}
+.file-details .name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-details .size{color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;margin-top:2px}
+.remove-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:17px;padding:4px;transition:color .2s}
+.remove-btn:hover{color:var(--accent3)}
+
+.process-btn{display:none;width:100%;margin-top:20px;padding:15px;border:none;border-radius:12px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px;transition:all .2s;position:relative;overflow:hidden}
+.process-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);transform:translateX(-100%);transition:transform .5s}
+.process-btn:hover::after{transform:translateX(100%)}
+.process-btn.visible{display:block}
+.process-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-c1{background:var(--t1);color:#0d0f14}.btn-c1:hover:not(:disabled){background:#5eede4;transform:translateY(-1px);box-shadow:0 8px 24px rgba(78,205,196,.3)}
+.btn-c2{background:var(--t2);color:#0d0f14}.btn-c2:hover:not(:disabled){background:#f0d050;transform:translateY(-1px);box-shadow:0 8px 24px rgba(232,197,71,.3)}
+.btn-c3{background:linear-gradient(135deg,var(--t3),#d97706);color:#000}.btn-c3:hover:not(:disabled){opacity:.9;transform:translateY(-1px)}
+
+.progress-section{display:none;margin-top:28px}
+.progress-section.visible{display:block}
+.progress-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.progress-label{font-size:12px;font-weight:600;color:var(--muted);font-family:'DM Mono',monospace}
+.progress-pct{font-size:12px;font-family:'DM Mono',monospace}
+.pct-c1{color:var(--t1)}.pct-c2{color:var(--t2)}.pct-c3{color:var(--t3)}
+.progress-bar{height:5px;background:var(--surface2);border-radius:99px;overflow:hidden}
+.progress-fill{height:100%;border-radius:99px;width:0%;transition:width .3s ease}
+.fill-c1{background:linear-gradient(90deg,var(--t1),var(--t2))}.fill-c2{background:linear-gradient(90deg,var(--t2),var(--t1))}.fill-c3{background:linear-gradient(90deg,var(--t3),#d97706)}
+.progress-log{margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;max-height:140px;overflow-y:auto;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);line-height:1.8}
+.log-line.ok{color:#4ecdc4}.log-line.info{color:#e8c547}.log-line.warn{color:#ff6b6b}
+
+.results-section{display:none;margin-top:28px}
+.results-section.visible{display:block}
+.results-title{font-size:17px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.badge{border-radius:6px;font-size:11px;padding:2px 8px;font-family:'DM Mono',monospace;font-weight:400}
+.badge-c1{background:rgba(78,205,196,.15);color:var(--t1);border:1px solid var(--t1)}
+.badge-c2{background:rgba(232,197,71,.15);color:var(--t2);border:1px solid var(--t2)}
+.badge-c3{background:rgba(245,158,11,.15);color:var(--t3);border:1px solid var(--t3)}
+
+.error-box{display:none;margin-top:16px;background:rgba(255,107,107,.1);border:1px solid var(--accent3);border-radius:12px;padding:14px 18px;color:var(--accent3);font-size:13px;font-family:'DM Mono',monospace}
+.error-box.visible{display:block}
+
+.download-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px;background:var(--surface);border-radius:12px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.3px}
+.dl-c1{border:2px solid var(--t1);color:var(--t1)}.dl-c1:hover{background:rgba(78,205,196,.1);transform:translateY(-2px);box-shadow:0 8px 24px rgba(78,205,196,.2)}
+.dl-c2{border:2px solid var(--t2);color:var(--t2)}.dl-c2:hover{background:rgba(232,197,71,.1);transform:translateY(-2px);box-shadow:0 8px 24px rgba(232,197,71,.2)}
+.dl-c3{border:2px solid #10b981;color:#10b981}.dl-c3:not(:disabled):hover{background:rgba(16,185,129,.1);transform:translateY(-2px);box-shadow:0 8px 24px rgba(16,185,129,.2)}
+.dl-c3:disabled{opacity:.33;cursor:not-allowed;transform:none!important}
+
+.note-strip{margin-top:14px;border-radius:10px;padding:11px 14px;font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;line-height:1.7}
+.note-strip strong{color:var(--t1)}
+.note-c1{background:rgba(78,205,196,.07);border:1px solid rgba(78,205,196,.2)}
+.note-c2{background:rgba(232,197,71,.07);border:1px solid rgba(232,197,71,.2)}.note-c2 strong{color:var(--t2)}
+.note-c3{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2)}.note-c3 strong{color:var(--t3)}
+
+/* ── CARDS ── */
+.cards{display:grid;gap:11px;margin-bottom:24px}
+.cards-6{grid-template-columns:repeat(6,1fr)}
+.cards-3{grid-template-columns:repeat(3,1fr)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.card.c50::before{background:var(--c50)}.card.c100::before{background:var(--c100)}
+.card.c200::before{background:var(--c200)}.card.c250::before{background:var(--c250)}
+.card.c500::before{background:var(--c500)}.card.c1k::before{background:var(--c1k)}
+.card.r25::before{background:var(--r25)}.card.r50::before{background:var(--r50)}.card.rr200::before{background:var(--r200)}
+.card-label{font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);margin-bottom:7px;letter-spacing:1px;text-transform:uppercase}
+.card-val{font-size:26px;font-weight:800;line-height:1;margin-bottom:3px}
+.c50 .card-val{color:var(--c50)}.c100 .card-val{color:var(--c100)}.c200 .card-val{color:var(--c200)}
+.c250 .card-val{color:var(--c250)}.c500 .card-val{color:var(--c500)}.c1k .card-val{color:var(--c1k)}
+.r25 .card-val{color:var(--r25)}.r50 .card-val{color:var(--r50)}.rr200 .card-val{color:var(--r200)}
+.card-sub{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px}
+
+/* ── TABLE ── */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px}
+.table-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead tr:first-child th{background:var(--surface2);padding:9px 9px;font-weight:700;font-size:10px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)}
+thead tr:first-child th.h-date{text-align:left}
+thead tr:first-child th.h-50{color:var(--c50)}thead tr:first-child th.h-100{color:var(--c100)}
+thead tr:first-child th.h-200{color:var(--c200)}thead tr:first-child th.h-250{color:var(--c250)}
+thead tr:first-child th.h-500{color:var(--c500)}thead tr:first-child th.h-1k{color:var(--c1k)}
+thead tr:first-child th.h-25{color:var(--r25)}thead tr:first-child th.h-50r{color:var(--r50)}thead tr:first-child th.h-200r{color:var(--r200)}
+thead tr.subhead th{background:var(--surface2);padding:6px 9px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);border-bottom:1px solid var(--border);font-weight:400}
+tbody tr{border-bottom:1px solid rgba(42,47,61,.6);transition:background .15s}
+tbody tr:hover{background:rgba(78,205,196,.03)}
+tbody tr:last-child{border-bottom:none}
+tbody tr.total-row{background:var(--surface2);border-top:2px solid var(--border)}
+tbody tr.total-row td{font-weight:700;color:var(--text)}
+td{padding:8px 9px;text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)}
+td.date-cell{text-align:left;color:var(--text);font-weight:500;white-space:nowrap}
+td.has-val{font-weight:600}
+td.val-50{color:var(--c50)}td.val-100{color:var(--c100)}td.val-200{color:var(--c200)}
+td.val-250{color:var(--c250)}td.val-500{color:var(--c500)}td.val-1k{color:var(--c1k)}
+td.val-25{color:var(--r25)}td.val-50r{color:var(--r50)}td.val-200r{color:var(--r200)}
+
+/* ── PANEL 1: CASHEW KERNELS ── */
+.products-panel{margin-top:20px;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.products-panel summary{padding:12px 18px;font-size:12px;font-weight:700;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;color:var(--muted)}
+.products-panel summary::-webkit-details-marker{display:none}
+.products-panel summary::before{content:'▶';font-size:9px;transition:transform .2s}
+.products-panel[open] summary::before{transform:rotate(90deg)}
+.products-grid{padding:14px 18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:6px}
+.prod-tag{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 11px;font-size:11px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:7px}
+.prod-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot-50{background:var(--c50)}.dot-100{background:var(--c100)}.dot-200{background:var(--c200)}
+.dot-250{background:var(--c250)}.dot-500{background:var(--c500)}.dot-1k{background:var(--c1k)}
+
+/* ── PANEL 3: AUDIT ── */
+.actions-row{display:flex;gap:10px;margin-top:20px}
+.btn-go,.btn-dl{flex:1;padding:12px 16px;border-radius:12px;border:none;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .2s}
+.btn-go:disabled,.btn-dl:disabled{opacity:.33;cursor:not-allowed;transform:none!important}
+.btn-go{background:linear-gradient(135deg,var(--t3),#d97706);color:#000;box-shadow:0 4px 18px rgba(245,158,11,.2)}
+.btn-go:not(:disabled):hover{opacity:.9;transform:translateY(-2px)}
+.btn-dl{background:linear-gradient(135deg,#10b981,#059669);color:#fff;box-shadow:0 4px 18px rgba(16,185,129,.2)}
+.btn-dl:not(:disabled):hover{opacity:.9;transform:translateY(-2px)}
+
+.loader{display:none;flex-direction:column;align-items:center;gap:12px;padding:32px;text-align:center}
+.loader.on{display:flex}
+.spin{width:38px;height:38px;border:3px solid var(--border);border-top-color:var(--t3);border-radius:50%;animation:spin .8s linear infinite}
+.ltxt{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)}
+
+.audit-stats{display:none;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:20px}
+.audit-stats.on{display:grid}
+.audit-stats.has-ring{grid-template-columns:repeat(4,1fr) 1.3fr}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 10px;text-align:center}
+.sv{font-size:22px;font-weight:800}
+.sv.a{color:var(--t3)}.sv.r{color:#ef4444}.sv.g{color:#10b981}.sv.b{color:#3b82f6}
+.sl{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-top:3px;letter-spacing:.07em;text-transform:uppercase}
+.ring-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;align-items:center;justify-content:center;gap:12px}
+.ring-card svg{transform:rotate(-90deg);flex-shrink:0}
+.ring-txt{text-align:left}
+.ring-txt .rv{font-size:19px;font-weight:800;color:var(--text);line-height:1.1}
+.ring-txt .rl{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-top:2px}
+
+.info-strip{display:none;background:rgba(27,42,107,.13);border:1px solid rgba(46,63,159,.27);border-radius:12px;padding:12px 16px;margin-top:14px}
+.info-strip.on{display:block}
+.info-strip p{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);line-height:1.8}
+.info-strip span{color:var(--t3);font-weight:700}
+
+.prev-wrap{display:none;margin-top:20px}
+.prev-wrap.on{display:block}
+.prev-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.prev-title{font-weight:700;font-size:12px}
+.prev-hint{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)}
+.tscroll{overflow-x:auto;border-radius:8px;border:1px solid rgba(46,63,159,.33)}
+.audit-table{width:100%;border-collapse:collapse;font-size:11px;background:#fff}
+.audit-table .title-row td{background:#1B2A6B;padding:12px;text-align:center;color:#fff;font-weight:800;font-size:12px;letter-spacing:.08em;font-family:'Syne',sans-serif}
+.audit-table .date-row td{background:#141A4A;padding:6px;text-align:center;color:#AAAACC;font-size:10px;font-style:italic;font-family:'DM Mono',monospace}
+.audit-table thead th{background:#2E3F9F;padding:9px 11px;text-align:center;font-weight:700;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#fff;white-space:nowrap;border:1px solid #C8CCE8}
+.audit-table thead th:nth-child(1),.audit-table thead th:nth-child(2){text-align:left}
+.audit-table tbody tr:nth-child(odd){background:#FFFFFF}
+.audit-table tbody tr:nth-child(even){background:#F0F3FF}
+.audit-table tbody td{padding:7px 11px;color:#1A1A2E;font-size:11px;font-family:'DM Mono',monospace;text-align:center;border:1px solid #C8CCE8;white-space:nowrap}
+.audit-table tbody td:nth-child(1){font-weight:700;text-align:left}
+.audit-table tbody td:nth-child(2){text-align:left;color:#444}
+.audit-table tbody td.manual{background:#FFFDE7}
+td.rk-excess{background:#E8F5E9!important;color:#1E8449!important;font-weight:700!important}
+td.rk-short{background:#FDECEA!important;color:#C0392B!important;font-weight:700!important}
+td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700!important}
+.summary-section{background:#fff;padding:12px 14px;border-top:2px solid #C8CCE8}
+.summary-boxes{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.sum-box{border-radius:5px;overflow:hidden;min-width:80px;text-align:center}
+.sum-box-lbl{padding:5px 12px;font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-family:'DM Mono',monospace}
+.sum-box-val{padding:6px 12px;font-size:18px;font-weight:800;font-family:'Syne',sans-serif}
+
+/* ── EDITABLE STORE/RACK COUNT INPUTS + LIVE STATUS PILLS (preview table) ── */
+.cnt-input{width:52px;padding:5px 4px;border:1px solid #E0B800;border-radius:5px;background:#FFFDE7;color:#1A1A2E;font-family:'DM Mono',monospace;font-size:11px;text-align:center;font-weight:700}
+.cnt-input:focus{outline:none;border-color:#2E3F9F;box-shadow:0 0 0 2px rgba(46,63,159,.15)}
+.cnt-input::-webkit-outer-spin-button,.cnt-input::-webkit-inner-spin-button{opacity:.4}
+.remark-pill{display:inline-block;padding:3px 9px;border-radius:5px;font-weight:700;font-size:10px}
+
+/* ── SEARCH + STATUS FILTER TOOLBAR (above the audit preview) ── */
+.audit-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 0;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.audit-search{flex:1;min-width:160px;display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:8px 12px}
+.audit-search input{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:'DM Mono',monospace;font-size:12px}
+.audit-search input::placeholder{color:var(--muted)}
+.filter-chip{border:1px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:20px;padding:7px 14px;font-family:'Syne',sans-serif;font-weight:700;font-size:11px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.filter-chip:hover{border-color:var(--t1);color:var(--t1)}
+.filter-chip.active{background:var(--text);border-color:var(--text);color:var(--bg)}
+.filter-chip.active.f-short{background:#ef4444;border-color:#ef4444;color:#fff}
+.filter-chip.active.f-excess{background:#10b981;border-color:#10b981;color:#fff}
+.filter-chip.active.f-matched{background:#3b82f6;border-color:#3b82f6;color:#fff}
+.audit-table tbody tr.row-hidden{display:none}
+.sum-total{background:#2E3F9F;color:#fff}
+.sum-short-l,.sum-short-v{background:#C0392B;color:#fff}
+.sum-excess-l,.sum-excess-v{background:#1E8449;color:#fff}
+.sum-match-l,.sum-match-v{background:#1A5276;color:#fff}
+.foot-note{background:#fff;padding:7px 14px;border-top:1px solid #E8ECF8;font-family:'DM Mono',monospace;font-size:9px;color:#7777AA;font-style:italic}
+
+/* ── SECTION DIVIDER ── */
+.section-head{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+.section-head .dot{width:10px;height:10px;border-radius:50%}
+.section-head h2{font-size:20px;font-weight:800}
+.section-head p{font-size:13px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:4px}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:768px){.cards-6{grid-template-columns:repeat(3,1fr)}.cards-3{grid-template-columns:1fr 1fr 1fr}}
+@media(max-width:560px){
+  .cards-6{grid-template-columns:repeat(2,1fr)}
+  .cards-3{grid-template-columns:1fr}
+  .tab span.tab-label{display:none}
+  .audit-stats{grid-template-columns:repeat(2,1fr)}
+  .actions-row{flex-direction:column}
+  /* Audit preview table: shrink font and padding so it fits on small screens */
+  .audit-table{font-size:9px}
+  .audit-table thead th{padding:5px 4px;font-size:8px;white-space:normal}
+  .audit-table tbody td{padding:4px 5px;font-size:9px;white-space:normal}
+  .audit-table .title-row td{font-size:10px;padding:8px}
+  .audit-table .date-row td{font-size:9px}
+  .cnt-input{width:38px;padding:4px 2px;font-size:10px}
+  .audit-toolbar{padding:9px}
+  .filter-chip{padding:6px 10px;font-size:10px}
+  .ring-card{grid-column:span 2}
+  .tscroll{-webkit-overflow-scrolling:touch} /* smooth momentum scroll on iOS */
+  .user-chip{position:static;margin:14px 0 0;justify-content:flex-end}
+}
+
+/* ── ITEM SELECTOR MODAL ── */
+#p3ItemModal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px}
+#p3ItemModal.open{display:flex}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;max-width:560px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.6)}
+.modal-hdr{padding:20px 24px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-shrink:0}
+.modal-hdr-text h3{font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px}
+.modal-hdr-text p{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace}
+.modal-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;padding:2px;transition:color .2s;flex-shrink:0}
+.modal-close:hover{color:var(--accent3)}
+.modal-body{padding:16px 24px;overflow-y:auto;flex:1}
+.modal-section-lbl{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin:14px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+.modal-section-lbl:first-child{margin-top:0}
+.modal-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;transition:background .15s;cursor:pointer;border:1px solid transparent;margin-bottom:5px}
+.modal-item:hover{background:var(--surface2);border-color:var(--border)}
+.modal-item input[type=checkbox]{width:17px;height:17px;accent-color:var(--t3);cursor:pointer;flex-shrink:0}
+.modal-item-label{flex:1;font-size:13px;color:var(--text);cursor:pointer;line-height:1.4}
+.modal-item-sub{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px}
+.modal-ftr{padding:14px 24px 20px;border-top:1px solid var(--border);display:flex;gap:10px;flex-shrink:0}
+.modal-btn{flex:1;padding:12px;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s}
+.modal-btn-cancel{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+.modal-btn-cancel:hover{color:var(--text)}
+.modal-btn-dl{background:linear-gradient(135deg,#10b981,#059669);color:#fff;box-shadow:0 4px 18px rgba(16,185,129,.2)}
+.modal-btn-dl:hover{opacity:.9;transform:translateY(-1px)}
+.modal-select-all{display:flex;gap:8px;margin-bottom:6px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.modal-select-all button{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;padding:4px 10px;cursor:pointer;transition:all .15s}
+.modal-select-all button:hover{border-color:var(--t3);color:var(--t3)}
+
+/* ── OWNER LOGIN / AUTH GATE ── */
+#authGate{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:24px}
+.auth-card{position:relative;z-index:1;max-width:380px;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:40px 32px;text-align:center}
+.auth-card .suite-icon{width:52px;height:52px;background:linear-gradient(135deg,var(--t1),var(--t2));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 18px}
+.auth-card h1{font-size:23px;font-weight:800;letter-spacing:-.5px;margin-bottom:10px}
+.auth-card h1 span{background:linear-gradient(90deg,var(--t1),var(--t2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.auth-sub{color:var(--muted);font-size:13px;font-family:'DM Mono',monospace;line-height:1.6;margin-bottom:26px}
+.google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;background:#fff;color:#1f1f1f;border:none;border-radius:12px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s}
+.google-btn:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(0,0,0,.3)}
+.google-btn:disabled{opacity:.6;cursor:wait}
+.auth-error{color:#ef4444;font-size:11px;font-family:'DM Mono',monospace;margin-top:14px;min-height:14px}
+#appShell{display:none}
+
+/* ── USER CHIP (top-right, shown to everyone once signed in) ── */
+.user-chip{position:absolute;top:36px;right:24px;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:30px;padding:6px 8px 6px 6px;font-size:12px;z-index:2}
+.user-chip img{width:26px;height:26px;border-radius:50%;display:block}
+.user-chip .uc-name{color:var(--text);font-weight:700;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-chip button{background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:20px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;transition:all .15s}
+.user-chip button:hover{color:var(--accent3);border-color:var(--accent3)}
+
+/* ── OWNER TAB / DASHBOARD (only ever added to the DOM for the owner account) ── */
+.tab.active[data-tab="4"]{background:rgba(255,107,107,.12);color:var(--accent3);box-shadow:0 0 0 1px rgba(255,107,107,.3)}
+.tab[data-tab="4"] .tab-dot{background:var(--accent3)}
+.dash-stat-label{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.dash-stat-val{font-size:26px;font-weight:800}
+
+/* ── APPROVAL GATE (shown to signed-in users who aren't approved yet) ── */
+#pendingGate{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:var(--bg);padding:24px}
+
+/* ── STATUS PILLS + APPROVE/DENY BUTTONS (owner dashboard) ── */
+.pill{border-radius:20px;padding:3px 10px;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;display:inline-block;white-space:nowrap}
+.pill-pending{background:rgba(245,158,11,.15);color:var(--t3)}
+.pill-approved{background:rgba(16,185,129,.15);color:#10b981}
+.pill-blocked{background:rgba(239,68,68,.15);color:#ef4444}
+.mini-btn{border-radius:8px;padding:5px 11px;font-size:11px;cursor:pointer;background:none;font-family:'DM Mono',monospace;font-weight:700;transition:all .15s;margin-right:4px}
+.mini-btn-ok{border:1px solid #10b981;color:#10b981}
+.mini-btn-ok:hover{background:rgba(16,185,129,.1)}
+.mini-btn-no{border:1px solid #ef4444;color:#ef4444}
+.mini-btn-no:hover{background:rgba(239,68,68,.1)}
+</style>
+</head>
+<body>
+
+<!-- ══ OWNER LOGIN GATE — shown until someone signs in with Google ══ -->
+<div id="authGate">
+  <div class="auth-card">
+    <div class="suite-icon">🥜</div>
+    <h1>Bolas <span>Stock Suite</span></h1>
+    <p class="auth-sub">Sign in with Google to continue.<br>Sign-ins are logged for the store owner's records.</p>
+    <button id="googleSignInBtn" class="google-btn">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.94v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.94A9 9 0 0 0 0 9c0 1.45.35 2.83.94 4.03l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .94 4.97L3.95 7.3C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
+      Continue with Google
+    </button>
+    <div class="auth-error" id="authError"></div>
+  </div>
+</div>
+
+<!-- ══ APPROVAL GATE — shown to signed-in users who aren't approved yet ══ -->
+<div id="pendingGate">
+  <div class="auth-card">
+    <div class="suite-icon" id="pgIcon">⏳</div>
+    <h1 id="pgTitle">Waiting for <span>Approval</span></h1>
+    <p class="auth-sub" id="pgSub">Your sign-in request has been sent to the store owner. You'll get access automatically as soon as they approve you — no need to refresh this page.</p>
+    <button id="pgSignOutBtn" class="google-btn" style="background:var(--surface2);color:var(--text)">Sign out</button>
+  </div>
+</div>
+
+<div id="appShell">
+<div class="suite-header">
+  <div class="suite-logo">
+    <div class="suite-icon">🥜</div>
+    <div class="suite-title">
+      <h1>Bolas <span>Stock Suite</span></h1>
+      <p>3-in-1 Tool · Kernels Report · Flavoured Report · Stock Audit</p>
+    </div>
+  </div>
+  <div id="userChip" class="user-chip"></div>
+  <div class="tab-bar">
+    <button class="tab active" data-tab="1" onclick="switchTab(1)">
+      <span class="tab-dot"></span> <span class="tab-label">Cashew Kernels</span><span class="tab-emoji">🥜</span>
+    </button>
+    <button class="tab" data-tab="2" onclick="switchTab(2)">
+      <span class="tab-dot"></span> <span class="tab-label">Stock Report</span><span class="tab-emoji">📊</span>
+    </button>
+    <button class="tab" data-tab="3" onclick="switchTab(3)">
+      <span class="tab-dot"></span> <span class="tab-label">Stock Audit</span><span class="tab-emoji">📋</span>
+    </button>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ══════════════════════════════════════════════════════
+     PANEL 1 — CASHEW KERNELS
+══════════════════════════════════════════════════════ -->
+<div class="panel active" id="panel1">
+  <div class="section-head">
+    <span class="dot" style="background:var(--t1)"></span>
+    <div>
+      <h2>Cashew Kernels Stock Tool</h2>
+      <p>Upload Stock_Report XLS → Auto-detects all SKUs & weight buckets (including cartons)</p>
+    </div>
+  </div>
+
+  <div class="upload-zone" id="p1UploadZone">
+    <div class="upload-icon" id="p1ZoneIcon">📊</div>
+    <h2 id="p1ZoneTitle">Drop your Stock Report here</h2>
+    <p id="p1ZoneSub">Drag & drop or <span class="hl1">click to browse</span> · Supports .xls and .xlsx</p>
+    <input type="file" id="p1FileInput" accept=".xls,.xlsx" style="display:none">
+  </div>
+  <div class="file-info" id="p1FileInfo">
+    <div class="file-icon c1">📄</div>
+    <div class="file-details"><div class="name" id="p1FileName"></div><div class="size" id="p1FileSize"></div></div>
+    <button class="remove-btn" id="p1RemoveBtn" aria-label="Remove file">✕</button>
+  </div>
+  <div class="error-box" id="p1ErrorBox"></div>
+  <button class="process-btn btn-c1" id="p1ProcessBtn">⚡ Process & Generate Excel</button>
+
+  <details class="products-panel">
+    <summary id="p1ProductsSummary">📦 View mapped products (auto-detected after processing)</summary>
+    <div class="products-grid" id="p1ProductsGrid"></div>
+  </details>
+
+  <div class="progress-section" id="p1ProgressSection">
+    <div class="progress-header">
+      <span class="progress-label" id="p1ProgressLabel">PROCESSING…</span>
+      <span class="progress-pct pct-c1" id="p1ProgressPct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill fill-c1" id="p1ProgressFill"></div></div>
+    <div class="progress-log" id="p1ProgressLog"></div>
+  </div>
+
+  <div class="results-section" id="p1ResultsSection">
+    <div class="results-title">Summary <span class="badge badge-c1" id="p1PeriodBadge">—</span></div>
+    <div id="p1CardsArea" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:11px;margin-bottom:24px"></div>
+    <div class="table-wrap"><div class="table-scroll"><table>
+      <thead id="p1TableHead"></thead>
+      <tbody id="p1TableBody"></tbody>
+    </table></div></div>
+    <button class="download-btn dl-c1" id="p1DownloadBtn"><span>⬇</span> Download Cashew_Kernels_Stock.xlsx</button>
+    <div class="note-strip note-c1"><strong>Note:</strong> All SKUs auto-detected from file. Grouped by weight bucket. Carton SKUs show both carton count and pack equivalent. Zeros left blank for clean copy-paste.</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PANEL 2 — STOCK REPORT (CASHEW FLAVOURED)
+══════════════════════════════════════════════════════ -->
+<div class="panel" id="panel2">
+  <div class="section-head">
+    <span class="dot" style="background:var(--t2)"></span>
+    <div>
+      <h2>Cashew Flavoured Stock Report</h2>
+      <p>Upload Stock_Report XLS → Get Cashew Flavoured filled Excel (25g / 50g / 200g)</p>
+    </div>
+  </div>
+
+  <div class="upload-zone gold" id="p2UploadZone">
+    <div class="upload-icon" id="p2ZoneIcon">📊</div>
+    <h2 id="p2ZoneTitle">Drop your Stock Report here</h2>
+    <p id="p2ZoneSub">Drag & drop or <span class="hl2">click to browse</span> · Supports .xls and .xlsx</p>
+    <input type="file" id="p2FileInput" accept=".xls,.xlsx" style="display:none">
+  </div>
+  <div class="file-info" id="p2FileInfo">
+    <div class="file-icon c2">📄</div>
+    <div class="file-details"><div class="name" id="p2FileName"></div><div class="size" id="p2FileSize"></div></div>
+    <button class="remove-btn" id="p2RemoveBtn" aria-label="Remove file">✕</button>
+  </div>
+  <div class="error-box" id="p2ErrorBox"></div>
+  <button class="process-btn btn-c2" id="p2ProcessBtn">⚡ Process & Generate Excel</button>
+
+  <div class="progress-section" id="p2ProgressSection">
+    <div class="progress-header">
+      <span class="progress-label" id="p2ProgressLabel">PROCESSING…</span>
+      <span class="progress-pct pct-c2" id="p2ProgressPct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill fill-c2" id="p2ProgressFill"></div></div>
+    <div class="progress-log" id="p2ProgressLog"></div>
+  </div>
+
+  <div class="results-section" id="p2ResultsSection">
+    <div class="results-title">Summary <span class="badge badge-c2" id="p2PeriodBadge">—</span></div>
+    <!-- Cards are built dynamically in p2RenderSummary() based on auto-detected size categories -->
+    <div id="p2CardsArea" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:11px;margin-bottom:24px"></div>
+    <div class="table-wrap"><div class="table-scroll"><table>
+      <thead id="p2TableHead"></thead>
+      <tbody id="p2TableBody"></tbody>
+    </table></div></div>
+    <button class="download-btn dl-c2" id="p2DownloadBtn"><span>⬇</span> Download Cashew_Flavoured.xlsx</button>
+    <div class="note-strip note-c2"><strong>Note:</strong> All Cashew Flavoured SKUs auto-detected from file. Combo packs (e.g. 200gm(50gmx4)) are expanded to their inner pack count. Zeros left blank for clean copy-paste.</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PANEL 3 — STOCK AUDIT
+══════════════════════════════════════════════════════ -->
+<div class="panel" id="panel3">
+  <div class="section-head">
+    <span class="dot" style="background:var(--t3)"></span>
+    <div>
+      <h2>Stock Audit Generator</h2>
+      <p>Upload Stock Report → Get colour-coded Audit Sheet with physical pack count</p>
+    </div>
+  </div>
+
+  <div class="upload-zone amber" id="p3dz">
+    <div class="upload-icon" id="p3ZoneIcon">📦</div>
+    <h2 id="p3ZoneTitle">Drop your Stock Report here</h2>
+    <p id="p3ZoneSub">Drag & drop or <span class="hl3">click to browse</span> · Supports .xls and .xlsx</p>
+    <input type="file" id="p3FileInput" style="display:none">
+  </div>
+
+  <div class="file-info" id="p3FileBar">
+    <div class="file-icon c3">📊</div>
+    <div class="file-details"><div class="name" id="p3FbName">—</div><div class="size" id="p3FbSize">—</div></div>
+    <button class="remove-btn" id="p3FbX" aria-label="Remove file">✕</button>
+  </div>
+
+  <!-- Outlet Name Input -->
+  <div style="margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;">
+    <label style="display:block;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;">🏪 Outlet Name <span style="color:var(--t3)">*</span></label>
+    <input type="text" id="p3OutletName" placeholder="e.g. 053 Bangalore Vijayanagar"
+      style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:13px;color:var(--text);outline:none;transition:border-color .2s;"
+      oninput="p3UpdateOutletPreview()"
+      onfocus="this.style.borderColor='var(--t3)'"
+      onblur="this.style.borderColor='var(--border)'"
+    >
+    <div id="p3OutletPreview" style="margin-top:8px;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);display:none;">
+      📋 Sheet title will read: <span id="p3OutletPreviewText" style="color:var(--t3);font-weight:700;"></span>
+    </div>
+  </div>
+
+  <!-- PDF Rate Upload Section -->
+  <div id="p3RateSection" style="margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <label style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;">
+        📄 Upload Rate PDF <span style="color:var(--muted);font-weight:400;">(optional — auto-fills billing &amp; selling prices)</span>
+      </label>
+      <button id="p3RatePdfToggle" onclick="p3ToggleRatePdf()" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:8px;color:var(--t3);font-family:'DM Mono',monospace;font-size:11px;padding:4px 12px;cursor:pointer;">+ Upload PDF</button>
+    </div>
+    <div id="p3RatePdfArea" style="display:none;">
+      <div class="upload-zone amber" id="p3RatePdfZone" style="padding:20px 16px;" onclick="document.getElementById('p3RatePdfInput').click()">
+        <div style="font-size:13px;font-weight:700;margin-bottom:4px;">Drop Rate PDF here</div>
+        <p style="font-size:12px;color:var(--muted);">Upload your latest price list PDF — Claude AI will extract billing &amp; selling prices automatically</p>
+        <input type="file" id="p3RatePdfInput" accept=".pdf" style="display:none" onchange="p3HandleRatePdf(this.files[0])">
+      </div>
+      <div id="p3RatePdfStatus" style="display:none;margin-top:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);"></div>
+      <div id="p3RatePdfLoading" style="display:none;margin-top:8px;text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:var(--t3);">⏳ Extracting prices from PDF using AI…</div>
+    </div>
+  </div>
+
+  <div class="error-box" id="p3ErrBox"></div>
+
+  <div class="actions-row">
+    <button class="btn-go" id="p3BtnGo" disabled onclick="p3ProcessFile()">⚙️ Generate Audit Sheet</button>
+    <button class="btn-dl" id="p3BtnDl" disabled onclick="p3OpenModal()">⬇️ Download Excel</button>
+  </div>
+
+  <div class="loader" id="p3Loader"><div class="spin"></div><div class="ltxt" id="p3LTxt">Reading file…</div></div>
+
+  <div class="audit-stats has-ring" id="p3Stats">
+    <div class="sc"><div class="sv a" id="p3STot">—</div><div class="sl">Total Products</div></div>
+    <div class="sc"><div class="sv r" id="p3SShort">—</div><div class="sl">SHORT (after fill)</div></div>
+    <div class="sc"><div class="sv g" id="p3SExcess">—</div><div class="sl">EXCESS (after fill)</div></div>
+    <div class="sc"><div class="sv b" id="p3SMatch">—</div><div class="sl">MATCHED (after fill)</div></div>
+    <div class="ring-card">
+      <svg width="52" height="52" viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r="22" fill="none" stroke="var(--border)" stroke-width="6"/>
+        <circle id="p3RingArc" cx="26" cy="26" r="22" fill="none" stroke="#10b981" stroke-width="6" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="138.2"/>
+      </svg>
+      <div class="ring-txt"><div class="rv" id="p3RingPct">0%</div><div class="rl">Accuracy</div></div>
+    </div>
+  </div>
+
+  <div class="info-strip" id="p3InfoStrip">
+    <p>
+      <span>✓ Full colours in Excel</span> — blue header, alternating rows, coloured Remark cells.<br>
+      <span>✓ Physical (Packs)</span> — whole number pack count from closing stock weight.<br>
+      <span>✓ Fill counts right here</span> — type Store &amp; Rack Count below, Total/Difference/Remark update instantly and the download already has them filled in.<br>
+      <span>✓ Sheet 2 auto-populates</span> — SHORT/EXCESS items appear there automatically, no extra step.<br>
+      <span>✓ Still editable in Excel</span> — every formula stays live if you tweak a count after downloading.
+    </p>
+  </div>
+
+  <div class="prev-wrap" id="p3PrevWrap">
+    <div class="prev-hdr">
+      <div class="prev-title">Audit Preview — fill counts, download when ready</div>
+      <div class="prev-hint">Store &amp; Rack Count are editable below</div>
+    </div>
+    <div class="audit-toolbar" id="p3Toolbar">
+      <div class="audit-search">🔍 <input type="text" id="p3SearchBox" placeholder="Search item or package…" oninput="p3ApplyFilter()"></div>
+      <button class="filter-chip active" data-filter="all" onclick="p3SetFilter('all')">All</button>
+      <button class="filter-chip" data-filter="matched" onclick="p3SetFilter('matched')">Matched</button>
+      <button class="filter-chip" data-filter="short" onclick="p3SetFilter('short')">Short</button>
+      <button class="filter-chip" data-filter="excess" onclick="p3SetFilter('excess')">Excess</button>
+    </div>
+    <!-- Sheet tabs -->
+    <div style="display:flex;gap:0;margin-bottom:0;border-bottom:2px solid #C8CCE8;">
+      <button id="p3Tab1Btn" onclick="p3SwitchPreviewTab(1)"
+        style="padding:7px 18px;border:1px solid #C8CCE8;border-bottom:none;border-radius:6px 6px 0 0;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer;background:#2E3F9F;color:#fff;margin-right:4px;">
+        📋 Stock Audit
+      </button>
+      <button id="p3Tab2Btn" onclick="p3SwitchPreviewTab(2)"
+        style="padding:7px 18px;border:1px solid #C8CCE8;border-bottom:none;border-radius:6px 6px 0 0;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer;background:#f0f0f0;color:#555;margin-right:4px;">
+        💰 Short &amp; Excess Pricing
+      </button>
+    </div>
+    <div id="p3PrevSheet1" class="tscroll"><table class="audit-table" id="p3PrevTbl"></table></div>
+    <div id="p3PrevSheet2" class="tscroll" style="display:none;"><table class="audit-table" id="p3PrevTbl2"></table></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PANEL 4 — OWNER DASHBOARD (tab only ever created for the owner account)
+══════════════════════════════════════════════════════ -->
+<div class="panel" id="panel4">
+  <div class="section-head">
+    <span class="dot" style="background:var(--accent3)"></span>
+    <div>
+      <h2>Owner Dashboard</h2>
+      <p>Who has signed in, and what they've used — visible only to the owner account</p>
+    </div>
+  </div>
+  <button class="download-btn" id="ownerRefreshBtn" style="margin-bottom:20px;max-width:220px;border:2px solid var(--accent3);color:var(--accent3)">↻ Refresh Data</button>
+  <div id="ownerPendingWrap" style="margin-bottom:28px"></div>
+  <div id="ownerDashWrap"></div>
+</div>
+
+</div><!-- /container -->
+</div><!-- /appShell -->
+
+<!-- ══ ITEM SELECTOR MODAL (Panel 3 — Stock Audit) ══ -->
+<div id="p3ItemModal" role="dialog" aria-modal="true" aria-labelledby="p3ModalTitle">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <div class="modal-hdr-text">
+        <h3 id="p3ModalTitle">⚙️ Choose Items to Include</h3>
+        <p>Tick the optional item groups you want in the Excel. Untick to remove them.</p>
+      </div>
+      <button class="modal-close" onclick="p3CloseModal()" aria-label="Close modal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-select-all">
+        <button onclick="p3SelectAll(true)">✓ Select All</button>
+        <button onclick="p3SelectAll(false)">✗ Deselect All</button>
+      </div>
+
+      <div class="modal-section-lbl">📦 Delivery Services</div>
+      <label class="modal-item">
+        <input type="checkbox" id="chk_delivery_nec1" checked>
+        <div><div class="modal-item-label">Other Delivery Services N.E.C</div><div class="modal-item-sub">All delivery service items</div></div>
+      </label>
+
+      <div class="modal-section-lbl">🛍️ Cloth Carry Bags</div>
+      <label class="modal-item">
+        <input type="checkbox" id="chk_cloth_small" checked>
+        <div><div class="modal-item-label">Cloth Carry Bag — Small</div><div class="modal-item-sub">Small-size cloth bags</div></div>
+      </label>
+      <label class="modal-item">
+        <input type="checkbox" id="chk_cloth_large" checked>
+        <div><div class="modal-item-label">Cloth Carry Bag — Large</div><div class="modal-item-sub">Large-size cloth bags</div></div>
+      </label>
+
+      <div class="modal-section-lbl">🛍️ Bolas Cloth Carry Bags</div>
+      <label class="modal-item">
+        <input type="checkbox" id="chk_bolas_small" checked>
+        <div><div class="modal-item-label">Bolas Cloth Carry Bag — Small</div><div class="modal-item-sub">Bolas brand, small size</div></div>
+      </label>
+      <label class="modal-item">
+        <input type="checkbox" id="chk_bolas_large" checked>
+        <div><div class="modal-item-label">Bolas Cloth Carry Bag — Large</div><div class="modal-item-sub">Bolas brand, large size</div></div>
+      </label>
+      <label class="modal-item">
+        <input type="checkbox" id="chk_bolas_medium" checked>
+        <div><div class="modal-item-label">Bolas Cloth Carry Bag — Medium</div><div class="modal-item-sub">Bolas brand, medium size</div></div>
+      </label>
+
+      <div class="modal-section-lbl">🧴 Roto Cotton Carry Bags</div>
+      <label class="modal-item">
+        <input type="checkbox" id="chk_roto_big" checked>
+        <div><div class="modal-item-label">Roto Cotton Carry Bag — Big</div><div class="modal-item-sub">Roto brand, big size</div></div>
+      </label>
+      <label class="modal-item">
+        <input type="checkbox" id="chk_roto_small" checked>
+        <div><div class="modal-item-label">Roto Cotton Carry Bag — Small</div><div class="modal-item-sub">Roto brand, small size</div></div>
+      </label>
+
+      <div class="modal-section-lbl">🗒️ White Paper Carry Bags</div>
+      <label class="modal-item">
+        <input type="checkbox" id="chk_paper_small" checked>
+        <div><div class="modal-item-label">White Paper Carry Bag — Small</div><div class="modal-item-sub">White paper bag, small size</div></div>
+      </label>
+      <label class="modal-item">
+        <input type="checkbox" id="chk_paper_medium" checked>
+        <div><div class="modal-item-label">White Paper Carry Bag — Medium</div><div class="modal-item-sub">White paper bag, medium size</div></div>
+      </label>
+    </div>
+    <div class="modal-ftr">
+      <button class="modal-btn modal-btn-cancel" onclick="p3CloseModal()">Cancel</button>
+      <button class="modal-btn modal-btn-dl" onclick="p3ConfirmDownload()">⬇️ Download Excel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ══════════════════════════════════════════════════════════════
+function switchTab(n) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`.tab[data-tab="${n}"]`).classList.add('active');
+  document.getElementById(`panel${n}`).classList.add('active');
+}
+
+// ══════════════════════════════════════════════════════════════
+// PANEL 1 — CASHEW KERNELS  (FULLY DYNAMIC — auto-detects all SKUs)
+// ══════════════════════════════════════════════════════════════
+
+// ── Palette for dynamic buckets (cycles if >10 buckets) ──────
+const P1_PALETTE = [
+  {css:'var(--c50)',   hex:'ffd166', dot:'dot-50'},
+  {css:'var(--c100)',  hex:'a29bfe', dot:'dot-100'},
+  {css:'var(--c200)',  hex:'06d6a0', dot:'dot-200'},
+  {css:'var(--c250)',  hex:'fd79a8', dot:'dot-250'},
+  {css:'var(--c500)',  hex:'74b9ff', dot:'dot-500'},
+  {css:'var(--c1k)',   hex:'e17055', dot:'dot-1k'},
+  {css:'var(--t1)',    hex:'4ecdc4', dot:'dot-50'},
+  {css:'var(--t2)',    hex:'e8c547', dot:'dot-100'},
+  {css:'var(--t3)',    hex:'f59e0b', dot:'dot-200'},
+  {css:'var(--accent3)',hex:'ff6b6b',dot:'dot-250'},
+];
+
+let p1File = null, p1Workbook = null, p1Period = '';
+// Dynamically-built bucket info after processing
+let p1Buckets = []; // [{key, label, isCarton, cartonKg, packKg, color, hex}]
+
+const $1 = id => document.getElementById(id);
+
+$1('p1UploadZone').addEventListener('click', () => $1('p1FileInput').click());
+$1('p1UploadZone').addEventListener('dragover', e => { e.preventDefault(); $1('p1UploadZone').classList.add('drag-over'); });
+$1('p1UploadZone').addEventListener('dragleave', () => $1('p1UploadZone').classList.remove('drag-over'));
+$1('p1UploadZone').addEventListener('drop', e => { e.preventDefault(); $1('p1UploadZone').classList.remove('drag-over'); if(e.dataTransfer.files[0]) p1SetFile(e.dataTransfer.files[0]); });
+$1('p1FileInput').addEventListener('change', () => { if($1('p1FileInput').files[0]) p1SetFile($1('p1FileInput').files[0]); });
+$1('p1RemoveBtn').addEventListener('click', () => {
+  p1File=null; p1Period=''; $1('p1FileInfo').classList.remove('visible'); $1('p1ProcessBtn').classList.remove('visible'); p1ResetResults();
+  $1('p1FileInput').value = '';
+  $1('p1UploadZone').classList.remove('filled');
+  $1('p1ZoneIcon').textContent = '📊';
+  $1('p1ZoneTitle').textContent = 'Drop your Stock Report here';
+  $1('p1ZoneSub').innerHTML = 'Drag & drop or <span class="hl1">click to browse</span> · Supports .xls and .xlsx';
+});
+
+function p1SetFile(f) {
+  if (!/\.(xlsx|xls)$/i.test(f.name)) {
+    p1ShowError('⚠ Please upload an Excel file (.xlsx or .xls only).');
+    return;
+  }
+  p1File = f;
+  $1('p1FileName').textContent = f.name;
+  $1('p1FileSize').textContent = (f.size/1024).toFixed(1)+' KB';
+  $1('p1FileInfo').classList.add('visible');
+  $1('p1ProcessBtn').classList.add('visible');
+  $1('p1UploadZone').classList.add('filled');
+  $1('p1ZoneIcon').textContent = '✅';
+  $1('p1ZoneTitle').textContent = f.name;
+  $1('p1ZoneSub').innerHTML = 'File selected — <span class="hl1">click to choose a different file</span>';
+  p1HideError();
+}
+function p1ResetResults() {
+  $1('p1ResultsSection').classList.remove('visible');
+  $1('p1ProgressSection').classList.remove('visible');
+  $1('p1ProgressLog').innerHTML = '';
+  p1Workbook = null; p1Buckets = [];
+}
+function p1SetProgress(pct, label) {
+  $1('p1ProgressFill').style.width = pct+'%';
+  $1('p1ProgressPct').textContent = pct+'%';
+  $1('p1ProgressLabel').textContent = label.toUpperCase();
+}
+function p1Log(type, msg) {
+  const d = document.createElement('div');
+  d.className = 'log-line '+type; d.textContent = msg;
+  $1('p1ProgressLog').appendChild(d);
+  $1('p1ProgressLog').scrollTop = $1('p1ProgressLog').scrollHeight;
+}
+function p1ShowError(m) { $1('p1ErrorBox').textContent = m; $1('p1ErrorBox').classList.add('visible'); }
+function p1HideError() { $1('p1ErrorBox').classList.remove('visible'); }
+
+// ── Weight / carton parser ────────────────────────────────────
+// Returns { type:'weight'|'carton'|'numbers'|'unknown', kg, cartonKg, packKg }
+// Carton: "Carton of 12 KG × 60" → cartonKg=12, packKg=12/60=0.2
+function p1ParseWeight(name) {
+  const s = (name||'').trim();
+  const sl = s.toLowerCase();
+  // Carton patterns: "carton of 12 kg 60" / "12kg x 60" / "12 kg × 60 pcs"
+  let m = sl.match(/carton[^0-9]*(\d+(?:\.\d+)?)\s*kg[^0-9]*(\d+)/i);
+  if (!m) m = sl.match(/(\d+(?:\.\d+)?)\s*kg\s*[x×*]\s*(\d+)/i);
+  if (!m) m = sl.match(/(\d+(?:\.\d+)?)\s*kg.*?(\d+)\s*(?:pcs?|packs?|nos?|units?)/i);
+  if (m) {
+    const cartonKg = parseFloat(m[1]), qty = parseFloat(m[2]);
+    if (!isNaN(cartonKg) && !isNaN(qty) && qty > 0) {
+      const packKg = parseFloat((cartonKg / qty).toFixed(6));
+      return { type:'carton', kg:cartonKg, cartonKg, packKg };
+    }
+  }
+  // Bulk kg (single number)
+  m = s.match(/(\d+(?:\.\d+)?)\s*kg/i);
+  if (m) return { type:'weight', kg:parseFloat(m[1]) };
+  // Grams
+  m = s.match(/(\d+(?:\.\d+)?)\s*g(?:m(?:s)?|ram(?:s)?)?(?:\b|$)/i);
+  if (m) { const g=parseFloat(m[1]); if(g>=1) return { type:'weight', kg:g/1000 }; }
+  // ml
+  m = sl.match(/(\d+(?:\.\d+)?)\s*ml\b/);
+  if (m) return { type:'weight', kg:parseFloat((parseFloat(m[1])*0.001).toFixed(4)) };
+  // "in numbers" / counted items
+  if (/\bin\s+numbers?\b|\bnos\b|\bpcs\b/i.test(s)) return { type:'numbers', kg:null };
+  return { type:'unknown', kg:null };
+}
+
+// ── Bucket key from parsed weight ─────────────────────────────
+// Normalises: 0.05→'50g', 1→'1kg', 12kg carton→'carton_12kg_60pcs'
+function p1BucketKey(parsed, name) {
+  if (parsed.type === 'carton') {
+    // Key encodes both total kg and pack size
+    const pGrams = Math.round(parsed.packKg * 1000);
+    return `carton_${parsed.cartonKg}kg_${pGrams}g`;
+  }
+  if (parsed.type === 'numbers') return 'numbers';
+  if (parsed.type === 'unknown') return 'unknown';
+  const kg = parsed.kg;
+  if (kg >= 1) {
+    const k = parseFloat(kg.toFixed(3));
+    return `${k}kg`;
+  }
+  const g = Math.round(kg * 1000);
+  return `${g}g`;
+}
+
+// ── Human-readable label for a bucket key ────────────────────
+function p1BucketLabel(key, parsed) {
+  if (parsed.type === 'carton') {
+    const pGrams = Math.round(parsed.packKg * 1000);
+    const pLabel = pGrams >= 1000 ? `${pGrams/1000} Kg` : `${pGrams} gm`;
+    return `${parsed.cartonKg} Kg Carton (${pLabel}/pack)`;
+  }
+  if (parsed.type === 'numbers') return 'Units (Count)';
+  if (parsed.type === 'unknown') return 'Unknown Size';
+  const kg = parsed.kg;
+  if (kg >= 1) return `${parseFloat(kg.toFixed(3))} Kg`;
+  return `${Math.round(kg*1000)} gm`;
+}
+
+// ── Sort buckets: grams asc → kg asc → cartons → units → unknown ─
+function p1SortBuckets(buckets) {
+  const order = b => {
+    if (b.type === 'unknown') return 9998;
+    if (b.type === 'numbers') return 9999;
+    if (b.type === 'carton')  return 1000 + b.cartonKg;
+    return b.kg * 1000; // grams asc
+  };
+  return [...buckets].sort((a,b) => order(a) - order(b));
+}
+
+$1('p1ProcessBtn').addEventListener('click', async () => {
+  if(!p1File) return;
+  p1HideError(); p1ResetResults();
+  $1('p1ProcessBtn').disabled = true;
+  $1('p1ProgressSection').classList.add('visible');
+  p1SetProgress(10, 'Reading file…');
+  try {
+    const data = await p1ReadFile(p1File);
+    p1SetProgress(25, 'Parsing rows…');
+    const wb = XLSX.read(data, {type:'array',cellDates:false});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, {header:1,defval:null});
+    p1Log('ok', `✓ Parsed ${rows.length} rows from sheet "${wb.SheetNames[0]}"`);
+    p1SetProgress(40, 'Detecting dates…');
+    const {dates, period} = p1BuildDateList(rows);
+    p1Period = period;
+    p1Log('info', `📅 ${dates.length} dates · Period: ${period}`);
+    p1SetProgress(55, 'Auto-detecting SKUs…');
+    const {products, bucketMap} = p1DiscoverProducts(rows);
+    p1Log('ok', `🔍 Found ${products.length} SKUs across ${Object.keys(bucketMap).length} weight buckets`);
+    p1SetProgress(70, 'Aggregating data…');
+    const {result, buckets} = p1AggregateData(rows, dates, products, bucketMap);
+    p1Buckets = buckets;
+    p1SetProgress(88, 'Building Excel…');
+    p1Workbook = p1BuildOutputExcel(result, dates, period, buckets);
+    p1SetProgress(100, 'Done!');
+    p1RenderSummary(result, dates, period, buckets);
+    p1RefreshProductsPanel(products, bucketMap);
+    $1('p1ResultsSection').classList.add('visible');
+  } catch(e) {
+    p1ShowError(e.message || 'Processing failed.');
+  }
+  $1('p1ProcessBtn').disabled = false;
+});
+
+function p1ReadFile(f) {
+  return new Promise((res,rej)=>{ const r=new FileReader(); r.onerror=()=>rej(new Error('File read failed.')); r.onload=e=>res(e.target.result); r.readAsArrayBuffer(f); });
+}
+
+function p1BuildDateList(rows) {
+  let period = '';
+  if(rows[1]){ const a=String(rows[1][6]||'').trim(),b=String(rows[1][7]||'').trim(); period=(a+b).replace(/\s+/g,' ').trim(); }
+  const dateSet=new Set(), dateRe=/^\d{2}-\d{2}-\d{4}$/;
+  for(let i=0;i<rows.length;i++){const v=String(rows[i]&&rows[i][0]||'').trim();if(dateRe.test(v))dateSet.add(v);}
+  const dates=Array.from(dateSet).sort((a,b)=>{const[da,ma,ya]=a.split('-').map(Number),[db,mb,yb]=b.split('-').map(Number);return new Date(ya,ma-1,da)-new Date(yb,mb-1,db);});
+  if(!dates.length) throw new Error('No date rows found. Is this the correct Stock Report?');
+  return {dates,period};
+}
+
+// Auto-discover all "Group Name" SKUs and assign them to weight buckets
+function p1DiscoverProducts(rows) {
+  const products = [];
+  const bucketMap = {}; // key → {key, label, type, kg, cartonKg, packKg}
+  const seen = new Set();
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i]; if (!row) continue;
+    const col0 = String(row[0]||'').trim();
+    const col1 = String(row[1]||'').trim();
+    if (col0 !== 'Group Name' || !col1) continue;
+    const name = col1.trim();
+    if (seen.has(name.toLowerCase())) continue;
+    seen.add(name.toLowerCase());
+    const parsed = p1ParseWeight(name);
+    const key = p1BucketKey(parsed, name);
+    if (!bucketMap[key]) {
+      bucketMap[key] = { key, label: p1BucketLabel(key, parsed), type: parsed.type,
+        kg: parsed.kg||null, cartonKg: parsed.cartonKg||null, packKg: parsed.packKg||null };
+    }
+    products.push({ name, key, parsed });
+  }
+  if (!products.length) throw new Error('No products found. Check the file has "Group Name" rows.');
+  return { products, bucketMap };
+}
+
+function p1AggregateData(rows, dates, products, bucketMap) {
+  const dateRe = /^\d{2}-\d{2}-\d{4}$/;
+  // Build sorted buckets with colour assigned
+  const sortedBuckets = p1SortBuckets(Object.values(bucketMap));
+  sortedBuckets.forEach((b, i) => {
+    const pal = P1_PALETTE[i % P1_PALETTE.length];
+    b.color = pal.css; b.hex = pal.hex; b.dot = pal.dot;
+  });
+
+  // Initialise result: each date gets s/i/o per bucket key
+  const result = {};
+  dates.forEach(d => {
+    result[d] = {};
+    sortedBuckets.forEach(b => { result[d][`s_${b.key}`]=0; result[d][`i_${b.key}`]=0; result[d][`o_${b.key}`]=0; });
+  });
+
+  for (const prod of products) {
+    let blockStart = -1;
+    for (let i = 0; i < rows.length; i++) {
+      const c0=String(rows[i]&&rows[i][0]||'').trim(), c1=String(rows[i]&&rows[i][1]||'').trim();
+      if (c0==='Group Name' && c1.toLowerCase()===prod.name.toLowerCase()) { blockStart=i+1; break; }
+    }
+    if (blockStart===-1) { p1Log('warn',`⚠ No data block: ${prod.name.slice(0,55)}`); continue; }
+    const bkt = bucketMap[prod.key];
+    p1Log('ok', `✓ [${bkt.label}] ${prod.name.slice(0,50)}`);
+    for (let i=blockStart; i<rows.length; i++) {
+      const row=rows[i]; if(!row) break;
+      const col0=String(row[0]||'').trim();
+      if(!dateRe.test(col0)) break;
+      if(!result[col0]) continue;
+      const s=p1Pn(row[3]), ti=p1Pn(row[4]), to=p1Pn(row[5]);
+      result[col0][`s_${prod.key}`]+=s;
+      result[col0][`i_${prod.key}`]+=ti;
+      result[col0][`o_${prod.key}`]+=to;
+    }
+  }
+  return { result, buckets: sortedBuckets };
+}
+
+function p1Pn(v){if(v===null||v===undefined||v==='')return 0;const n=parseFloat(String(v));return isNaN(n)?0:n;}
+function p1Fmt(n){return Number.isInteger(n)?n:parseFloat(n.toFixed(3));}
+function p1Fv(val,colorVar){if(!val||val===0)return`<td>—</td>`;return`<td class="has-val" style="color:${colorVar}">${p1Fmt(val)}</td>`;}
+
+// ── Dynamic summary cards + table ────────────────────────────
+function p1RenderSummary(result, dates, period, buckets) {
+  // Cards
+  const cardsEl = $1('p1CardsArea');
+  cardsEl.innerHTML = '';
+  const totals = {};
+  buckets.forEach(b => { totals[b.key]={s:0,i:0,o:0}; });
+  dates.forEach(date => {
+    const v=result[date];
+    buckets.forEach(b => { totals[b.key].s+=v[`s_${b.key}`]; totals[b.key].i+=v[`i_${b.key}`]; totals[b.key].o+=v[`o_${b.key}`]; });
+  });
+  buckets.forEach(b => {
+    const t=totals[b.key];
+    const card=document.createElement('div');
+    card.className='card'; card.style.cssText='background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;position:relative;overflow:hidden';
+    card.innerHTML=`<div style="position:absolute;top:0;left:0;right:0;height:3px;background:${b.color}"></div>
+      <div class="card-label">${b.label} Sales</div>
+      <div class="card-val" style="color:${b.color}">${p1Fmt(t.s)}</div>
+      <div class="card-sub">In: ${p1Fmt(t.i)} · Out: ${p1Fmt(t.o)}</div>
+      ${b.type==='carton'?`<div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:4px">≈ ${p1Fmt(t.s * b.cartonKg)} kg total · ${p1Fmt(t.s * (b.cartonKg/b.packKg))} packs</div>`:''}`;
+    cardsEl.appendChild(card);
+  });
+
+  // Table header (dynamic)
+  const thead = $1('p1TableHead');
+  let row1 = `<tr><th class="h-date" rowspan="2">Date</th>`;
+  let row2 = `<tr class="subhead">`;
+  buckets.forEach(b => {
+    row1 += `<th colspan="3" style="color:${b.color}">${b.label}</th>`;
+    row2 += `<th>Sales</th><th>Trans In</th><th>Trans Out</th>`;
+  });
+  thead.innerHTML = row1+'</tr>'+row2+'</tr>';
+
+  // Table body
+  $1('p1TableBody').innerHTML='';
+  dates.forEach(date => {
+    const v=result[date];
+    const tr=document.createElement('tr');
+    let html=`<td class="date-cell">${date}</td>`;
+    buckets.forEach(b=>{ html+=p1Fv(v[`s_${b.key}`],b.color)+p1Fv(v[`i_${b.key}`],b.color)+p1Fv(v[`o_${b.key}`],b.color); });
+    tr.innerHTML=html;
+    $1('p1TableBody').appendChild(tr);
+  });
+  const ttr=document.createElement('tr'); ttr.className='total-row';
+  let thtml=`<td class="date-cell">TOTAL</td>`;
+  buckets.forEach(b=>{ thtml+=p1Fv(totals[b.key].s,b.color)+p1Fv(totals[b.key].i,b.color)+p1Fv(totals[b.key].o,b.color); });
+  ttr.innerHTML=thtml;
+  $1('p1TableBody').appendChild(ttr);
+
+  $1('p1PeriodBadge').textContent=period||'—';
+  $1('p1DownloadBtn').innerHTML=`<span>⬇</span> Download Cashew_Kernels_${(period||'Stock').replace(/[^a-z0-9]/gi,'_')}.xlsx`;
+}
+
+// ── Refresh the "View mapped products" collapsible after processing ─
+function p1RefreshProductsPanel(products, bucketMap) {
+  const grid = $1('p1ProductsGrid');
+  grid.innerHTML = '';
+  // Update the summary count
+  const summary = $1('p1ProductsSummary');
+  if (summary) summary.textContent = `📦 View detected products (${products.length} SKUs across ${Object.keys(bucketMap).length} weight buckets)`;
+  // Sort products by bucket key label
+  const sorted = [...products].sort((a,b)=>bucketMap[a.key].label.localeCompare(bucketMap[b.key].label));
+  sorted.forEach((p,idx) => {
+    const bkt = bucketMap[p.key];
+    const pal = P1_PALETTE[Object.keys(bucketMap).indexOf(p.key) % P1_PALETTE.length];
+    const div = document.createElement('div');
+    div.className = 'prod-tag';
+    let extra = '';
+    if (p.parsed.type === 'carton') {
+      const packG = Math.round(p.parsed.packKg * 1000);
+      extra = ` <span style="color:var(--accent3);font-size:10px">[carton: ${p.parsed.cartonKg}kg → ${packG}g/pack]</span>`;
+    }
+    div.innerHTML = `<span class="prod-dot" style="background:${bkt.color||pal.css}"></span><span>${p.name} <span style="color:${bkt.color||pal.css};margin-left:4px">[${bkt.label}]</span>${extra}</span>`;
+    grid.appendChild(div);
+  });
+}
+
+// ── Dynamic Excel output ──────────────────────────────────────
+function p1BuildOutputExcel(result, dates, period, buckets) {
+  const wb=XLSX.utils.book_new(), ws={};
+  const FONT={name:'Palatino Linotype',sz:8,color:{rgb:'333333'}};
+  const BThin={style:'thin',color:{rgb:'000000'}},BMed={style:'medium',color:{rgb:'000000'}},BNone={style:'none'};
+  const bdr=code=>code===2?BMed:code===1?BThin:BNone;
+  function S({bg,L=0,R=0,T=0,B=0,hz='center',wrap=false,bold=false}={}){
+    const f={...FONT}; if(bold)f.bold=true;
+    const s={font:f,alignment:{horizontal:hz,vertical:'center',wrapText:wrap}};
+    if(bg)s.fill={fgColor:{rgb:bg},patternType:'solid'};
+    s.border={left:bdr(L),right:bdr(R),top:bdr(T),bottom:bdr(B)}; return s;
+  }
+  function setCell(r,c,v,style){
+    const ref=XLSX.utils.encode_cell({r,c});
+    if(v===null||v===undefined) ws[ref]={t:'z',s:style};
+    else if(typeof v==='number') ws[ref]={t:'n',v,s:style};
+    else ws[ref]={t:'s',v:String(v),s:style};
+  }
+
+  const nBuckets = buckets.length;
+  // Layout: col0=blank, col1=Date, then 3 cols per bucket (Sales/In/Out), then 3 tail cols
+  const DATA_START = 2;
+  const TOTAL_COLS = DATA_START + nBuckets * 3 + 3;
+  const lastDataCol = DATA_START + nBuckets * 3 - 1;
+
+  // Info rows 0-3
+  function infoRow(r,val){
+    setCell(r,0,val,S({bg:'C0C0C0',L:2,R:1,T:r===0?2:1,B:r===3?0:1,hz:'left',wrap:true}));
+    for(let c=1;c<TOTAL_COLS;c++) setCell(r,c,null,S({bg:'C0C0C0'}));
+  }
+  infoRow(0,'BOLAS AGRO PRIVATE LIMITED, Karkala');
+  infoRow(1,'Stock Register - Master');
+  infoRow(2,`Period : ${period}`);
+  infoRow(3,'Product Name: Cashew Kernels (Auto-Detected)');
+  setCell(3,7,'Warehouse Name: ',S({bg:'C0C0C0',L:1,R:1,T:1,B:0,hz:'left'}));
+
+  // Row 4: section headers
+  setCell(4,0,null,S({bg:'FFFF00',L:2,R:0,T:2,B:1}));
+  setCell(4,1,'Date',S({bg:'FFFF00',L:2,R:2,T:2,B:1}));
+  buckets.forEach((b,bi) => {
+    const col = DATA_START + bi * 3;
+    setCell(4,col,b.label,S({bg:'FFFF00',L:2,R:1,T:2,B:0,wrap:true}));
+    setCell(4,col+1,null,S({bg:'FFFF00',L:1,R:1,T:2,B:0}));
+    setCell(4,col+2,null,S({bg:'FFFF00',L:1,R:2,T:2,B:0}));
+  });
+  for(let c=lastDataCol+1;c<TOTAL_COLS;c++) setCell(4,c,null,S());
+
+  // Row 5: sub-headers Sales / Trans In / Trans Out
+  setCell(5,0,null,S({bg:'FFFF00',L:2,R:0,T:2,B:2}));
+  setCell(5,1,'Date',S({bg:'FFFF00',L:2,R:2,T:2,B:2}));
+  buckets.forEach((b,bi) => {
+    const col = DATA_START + bi * 3;
+    setCell(5,col,'Sales',S({bg:'FFFF00',L:2,R:1,T:2,B:2,wrap:true}));
+    setCell(5,col+1,'Trans In',S({bg:'FFFF00',L:1,R:1,T:2,B:2,wrap:true}));
+    const isl = bi===nBuckets-1;
+    setCell(5,col+2,'Trans Out',S({bg:'FFFF00',L:1,R:isl?2:2,T:2,B:2,wrap:true}));
+  });
+  for(let c=lastDataCol+1;c<TOTAL_COLS;c++) setCell(5,c,null,S());
+
+  // Totals accumulator
+  const tot={};
+  buckets.forEach(b=>{tot[`s_${b.key}`]=0;tot[`i_${b.key}`]=0;tot[`o_${b.key}`]=0;});
+  dates.forEach(date=>{const v=result[date];buckets.forEach(b=>{tot[`s_${b.key}`]+=v[`s_${b.key}`];tot[`i_${b.key}`]+=v[`i_${b.key}`];tot[`o_${b.key}`]+=v[`o_${b.key}`];});});
+
+  // Data rows
+  const nv=val=>(val!==0&&!isNaN(val))?val:null;
+  dates.forEach((date,idx)=>{
+    const r=6+idx, v=result[date];
+    setCell(r,0,null,S({L:2,R:0,T:0,B:1}));
+    setCell(r,1,date,S({L:2,R:2,T:0,B:1,hz:'left'}));
+    buckets.forEach((b,bi)=>{
+      const col=DATA_START+bi*3;
+      setCell(r,col,nv(v[`s_${b.key}`]),S({L:2,R:1,T:0,B:1}));
+      setCell(r,col+1,nv(v[`i_${b.key}`]),S({L:1,R:1,T:0,B:1}));
+      setCell(r,col+2,nv(v[`o_${b.key}`]),S({L:1,R:2,T:0,B:1}));
+    });
+    for(let c=lastDataCol+1;c<TOTAL_COLS;c++) setCell(r,c,null,S());
+  });
+
+  // Total row
+  const TR=6+dates.length;
+  const TS=(opts={})=>S({...opts,bold:true,bg:'E8E8E8'});
+  const nv2=val=>(val!==0&&!isNaN(val))?val:null;
+  setCell(TR,0,null,TS({L:2,R:0,T:2,B:2}));
+  setCell(TR,1,'Total',TS({L:2,R:2,T:2,B:2,hz:'left'}));
+  buckets.forEach((b,bi)=>{
+    const col=DATA_START+bi*3;
+    setCell(TR,col,nv2(tot[`s_${b.key}`]),TS({L:2,R:1,T:2,B:2}));
+    setCell(TR,col+1,nv2(tot[`i_${b.key}`]),TS({L:1,R:1,T:2,B:2}));
+    setCell(TR,col+2,nv2(tot[`o_${b.key}`]),TS({L:1,R:2,T:2,B:2}));
+  });
+  for(let c=lastDataCol+1;c<TOTAL_COLS;c++) setCell(TR,c,null,TS());
+
+  // Carton conversion helper rows (after totals) — one row per carton bucket
+  let extraRow = TR+1;
+  buckets.filter(b=>b.type==='carton').forEach(b=>{
+    const label = `${b.label}: 1 carton = ${b.cartonKg} kg = ${Math.round(b.cartonKg/b.packKg)} packs of ${Math.round(b.packKg*1000)} gm`;
+    setCell(extraRow,0,null,S({bg:'FFF3CD'}));
+    setCell(extraRow,1,label,S({bg:'FFF3CD',hz:'left',wrap:true}));
+    for(let c=2;c<TOTAL_COLS;c++) setCell(extraRow,c,null,S({bg:'FFF3CD'}));
+    extraRow++;
+  });
+
+  // Merges: row 0-3 full width, row 4-5 per-bucket groups
+  const merges=[
+    {s:{r:0,c:0},e:{r:0,c:TOTAL_COLS-1}},
+    {s:{r:1,c:0},e:{r:1,c:TOTAL_COLS-1}},
+    {s:{r:2,c:0},e:{r:2,c:TOTAL_COLS-1}},
+    {s:{r:3,c:0},e:{r:3,c:TOTAL_COLS-1}},
+    {s:{r:4,c:0},e:{r:5,c:0}},
+    {s:{r:4,c:1},e:{r:5,c:1}},
+  ];
+  buckets.forEach((b,bi)=>{
+    const col=DATA_START+bi*3;
+    merges.push({s:{r:4,c:col},e:{r:4,c:col+2}});
+  });
+  ws['!merges']=merges;
+  ws['!cols']=[{wch:1.5},{wch:9.5},...buckets.flatMap(()=>[{wch:6},{wch:6},{wch:6}]),...Array(3).fill({wch:8})];
+  ws['!rows']=[{hpx:20},{hpx:20},{hpx:20},{hpx:20},{hpx:28},{hpx:20},...dates.map(()=>({hpx:18})),{hpx:22}];
+  ws['!ref']=XLSX.utils.encode_range({r:0,c:0},{r:extraRow-1,c:TOTAL_COLS-1});
+  const MONTHS={'01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'May','06':'Jun','07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec'};
+  let sheetName='Sheet1'; if(dates.length){const mm=dates[0].split('-')[1];sheetName=MONTHS[mm]||'Sheet1';}
+  XLSX.utils.book_append_sheet(wb,ws,sheetName);
+  return wb;
+}
+
+$1('p1DownloadBtn').addEventListener('click', () => {
+  if(!p1Workbook) return;
+  const period = p1Period.replace(/[^a-z0-9]/gi,'_');
+  XLSX.writeFile(p1Workbook, `Cashew_Kernels_${period}.xlsx`, {cellStyles:true});
+});
+
+// ══════════════════════════════════════════════════════════════
+// PANEL 2 — STOCK REPORT (CASHEW FLAVOURED)
+// Dynamic: auto-detects all cashew-flavoured / packed SKUs from
+// the file instead of relying on a hardcoded product list.
+// ══════════════════════════════════════════════════════════════
+
+let p2File = null, p2Workbook = null, p2Period = '';
+const $2 = id => document.getElementById(id);
+
+// ── Weight parser (reused from P1 logic, scoped to P2) ────────
+// Returns { type:'weight'|'numbers'|'unknown', kg }
+function p2ParseWeight(name) {
+  const s = (name || '').trim();
+  const sl = s.toLowerCase();
+  // "Honey Roasted Cashew Pack Of 200gm(50gmx4)" style: inner pack multiplier
+  // Detect sub-pack pattern: NNgm(MMgxQQ) → each unit is really QQ packs of MM g
+  const subm = sl.match(/(\d+(?:\.\d+)?)gm?\s*\((\d+(?:\.\d+)?)g\s*[x×*]\s*(\d+)\)/i)
+             || sl.match(/(\d+(?:\.\d+)?)\s*g(?:m)?\s*\(\s*(\d+(?:\.\d+)?)\s*g\s*[x×*]\s*(\d+)\s*\)/i);
+  if (subm) {
+    // outer is subm[1] g, inner pack is subm[2] g × subm[3] units
+    const innerG = parseFloat(subm[2]), qty = parseFloat(subm[3]);
+    if (!isNaN(innerG) && !isNaN(qty) && qty > 0) {
+      return { type: 'weight', kg: innerG / 1000, multiplier: qty };
+    }
+  }
+  // ml
+  let m = sl.match(/(\d+(?:\.\d+)?)\s*ml\b/);
+  if (m) return { type: 'weight', kg: parseFloat((parseFloat(m[1]) * 0.001).toFixed(4)), multiplier: 1 };
+  // kg
+  m = s.match(/(\d+(?:\.\d+)?)\s*kg/i);
+  if (m) return { type: 'weight', kg: parseFloat(m[1]), multiplier: 1 };
+  // grams
+  m = s.match(/(\d+(?:\.\d+)?)\s*g(?:m(?:s)?|ram(?:s)?)?(?:\b|$)/i);
+  if (m) { const g = parseFloat(m[1]); if (g >= 1) return { type: 'weight', kg: g / 1000, multiplier: 1 }; }
+  // counted items
+  if (/\bin\s+numbers?\b|\bnos\b|\bpcs\b/i.test(s)) return { type: 'numbers', kg: null, multiplier: 1 };
+  return { type: 'unknown', kg: null, multiplier: 1 };
+}
+
+// ── Classify a product into a size bucket (25g, 50g, 200g, 250g, 500g, 1kg …) ─
+// Returns { cat: '25'|'50'|'200'|…, mult: number }
+// mult > 1 for combo packs (e.g. 200gm(50gx4) → cat='50', mult=4)
+function p2Classify(name) {
+  const parsed = p2ParseWeight(name);
+  if (parsed.type !== 'weight' || !parsed.kg) return null; // skip non-weight items
+  const mult = parsed.multiplier || 1;
+  // If a sub-pack multiplier was found, the category is the INNER pack size
+  const catKg = parsed.kg; // already set to inner pack size when multiplier > 1
+  const grams = Math.round(catKg * 1000);
+  if (grams >= 1000) return { cat: `${catKg}kg`, mult };
+  return { cat: String(grams) + 'g', mult };
+}
+
+// ── Auto-discover all unique cashew-packed SKUs from the file rows ─
+function p2DiscoverProducts(rows) {
+  const products = [];
+  const seen = new Set();
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i]; if (!row) continue;
+    const col0 = String(row[0] || '').trim();
+    const col1 = String(row[1] || '').trim();
+    if (col0 !== 'Group Name' || !col1) continue;
+    const name = col1.trim();
+    if (seen.has(name.toLowerCase())) continue;
+    seen.add(name.toLowerCase());
+    const cls = p2Classify(name);
+    if (!cls) continue; // skip non-weight / unrecognised items
+    products.push({ name, cat: cls.cat, mult: cls.mult });
+  }
+  return products;
+}
+
+// ── Upload zone event listeners ───────────────────────────────
+$2('p2UploadZone').addEventListener('click', () => $2('p2FileInput').click());
+$2('p2UploadZone').addEventListener('dragover', e => { e.preventDefault(); $2('p2UploadZone').classList.add('drag-over'); });
+$2('p2UploadZone').addEventListener('dragleave', () => $2('p2UploadZone').classList.remove('drag-over'));
+$2('p2UploadZone').addEventListener('drop', e => {
+  e.preventDefault(); $2('p2UploadZone').classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) p2SetFile(e.dataTransfer.files[0]);
+});
+$2('p2FileInput').addEventListener('change', () => {
+  if ($2('p2FileInput').files[0]) p2SetFile($2('p2FileInput').files[0]);
+});
+$2('p2RemoveBtn').addEventListener('click', () => {
+  p2File = null; p2Period = '';
+  $2('p2FileInfo').classList.remove('visible');
+  $2('p2ProcessBtn').classList.remove('visible');
+  p2ResetResults();
+  $2('p2FileInput').value = '';
+  $2('p2UploadZone').classList.remove('filled');
+  $2('p2ZoneIcon').textContent = '📊';
+  $2('p2ZoneTitle').textContent = 'Drop your Stock Report here';
+  $2('p2ZoneSub').innerHTML = 'Drag & drop or <span class="hl2">click to browse</span> · Supports .xls and .xlsx';
+});
+
+// ── File set / reset helpers ──────────────────────────────────
+function p2SetFile(f) {
+  if (!/\.(xlsx|xls)$/i.test(f.name)) {
+    p2ShowError('⚠ Please upload an Excel file (.xlsx or .xls only).');
+    return;
+  }
+  p2File = f;
+  $2('p2FileName').textContent = f.name;
+  $2('p2FileSize').textContent = (f.size / 1024).toFixed(1) + ' KB';
+  $2('p2FileInfo').classList.add('visible');
+  $2('p2ProcessBtn').classList.add('visible');
+  $2('p2UploadZone').classList.add('filled');
+  $2('p2ZoneIcon').textContent = '✅';
+  $2('p2ZoneTitle').textContent = f.name;
+  $2('p2ZoneSub').innerHTML = 'File selected — <span class="hl2">click to choose a different file</span>';
+  p2HideError();
+}
+function p2ResetResults() {
+  $2('p2ResultsSection').classList.remove('visible');
+  $2('p2ProgressSection').classList.remove('visible');
+  $2('p2ProgressLog').innerHTML = '';
+  p2Workbook = null;
+  p2Period = '';
+}
+function p2SetProgress(pct, label) {
+  $2('p2ProgressFill').style.width = pct + '%';
+  $2('p2ProgressPct').textContent = pct + '%';
+  $2('p2ProgressLabel').textContent = label.toUpperCase();
+}
+function p2Log(type, msg) {
+  const d = document.createElement('div');
+  d.className = 'log-line ' + type;
+  d.textContent = msg;
+  $2('p2ProgressLog').appendChild(d);
+  $2('p2ProgressLog').scrollTop = $2('p2ProgressLog').scrollHeight;
+}
+function p2ShowError(m) { $2('p2ErrorBox').textContent = m; $2('p2ErrorBox').classList.add('visible'); }
+function p2HideError() { $2('p2ErrorBox').classList.remove('visible'); }
+
+// ── Process button ────────────────────────────────────────────
+$2('p2ProcessBtn').addEventListener('click', async () => {
+  if (!p2File) return;
+  p2HideError(); p2ResetResults(); $2('p2ProcessBtn').disabled = true;
+  $2('p2ProgressSection').classList.add('visible');
+  p2SetProgress(10, 'Reading file…');
+  try {
+    const data = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onerror = () => rej(new Error('File read failed.'));
+      r.onload = e => res(e.target.result);
+      r.readAsArrayBuffer(p2File);
+    });
+    p2SetProgress(30, 'Parsing rows…');
+    const wb = XLSX.read(data, { type: 'array', cellDates: false });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+    p2Log('ok', `✓ Parsed ${rows.length} rows`);
+
+    p2SetProgress(45, 'Detecting dates & period…');
+    // Extract period string from info rows (same logic as Panel 1)
+    let period = '';
+    if (rows[1]) {
+      const a = String(rows[1][6] || '').trim(), b = String(rows[1][7] || '').trim();
+      period = (a + b).replace(/\s+/g, ' ').trim();
+    }
+    // Fallback: build period from first/last date in the data
+    const dateRe = /^\d{2}-\d{2}-\d{4}$/;
+    const allDates = [];
+    for (let i = 0; i < rows.length; i++) {
+      const v = String(rows[i] && rows[i][0] || '').trim();
+      if (dateRe.test(v) && !allDates.includes(v)) allDates.push(v);
+    }
+    allDates.sort((a, b) => {
+      const [da, ma, ya] = a.split('-').map(Number);
+      const [db, mb, yb] = b.split('-').map(Number);
+      return new Date(ya, ma - 1, da) - new Date(yb, mb - 1, db);
+    });
+    if (!allDates.length) throw new Error('No date rows found. Is this the correct Stock Report file?');
+    if (!period) period = `${allDates[0]} to ${allDates[allDates.length - 1]}`;
+    p2Period = period;
+    p2Log('info', `📅 ${allDates.length} dates · Period: ${period}`);
+
+    p2SetProgress(60, 'Auto-detecting SKUs…');
+    const products = p2DiscoverProducts(rows);
+    if (!products.length) throw new Error('No cashew-flavoured packed SKUs found. Check the file.');
+    // Build unique size categories found in the file
+    const catSet = new Set(products.map(p => p.cat));
+    const cats = Array.from(catSet).sort((a, b) => {
+      // Sort numerically: 25g < 50g < 200g < 250g < 500g < 1kg …
+      const toG = c => c.endsWith('kg') ? parseFloat(c) * 1000 : parseFloat(c);
+      return toG(a) - toG(b);
+    });
+    p2Log('ok', `🔍 Found ${products.length} SKUs across ${cats.length} size bucket(s): ${cats.join(', ')}`);
+    products.forEach(p => p2Log('ok', `  ✓ [${p.cat}×${p.mult}] ${p.name.slice(0, 55)}`));
+
+    p2SetProgress(75, 'Aggregating data…');
+    const result = p2AggregateData(rows, allDates, products, cats);
+
+    p2SetProgress(90, 'Building Excel…');
+    p2Workbook = p2BuildOutputExcel(result, allDates, period, cats);
+
+    p2SetProgress(100, 'Done!');
+    p2RenderSummary(result, allDates, period, cats);
+    $2('p2ResultsSection').classList.add('visible');
+  } catch (e) {
+    p2ShowError(e.message || 'Processing failed.');
+  }
+  $2('p2ProcessBtn').disabled = false;
+});
+
+// ── Data aggregation (fully dynamic — uses discovered products & cats) ─
+function p2AggregateData(rows, dates, products, cats) {
+  // Initialise result keyed by date → cat → { s, i, o }
+  const result = {};
+  dates.forEach(d => {
+    result[d] = {};
+    cats.forEach(c => { result[d][c] = { s: 0, i: 0, o: 0 }; });
+  });
+
+  for (const prod of products) {
+    // Find the data block for this product (same as P1)
+    let blockStart = -1;
+    for (let i = 0; i < rows.length; i++) {
+      const c0 = String(rows[i] && rows[i][0] || '').trim();
+      const c1 = String(rows[i] && rows[i][1] || '').trim();
+      if (c0 === 'Group Name' && c1.toLowerCase() === prod.name.toLowerCase()) {
+        blockStart = i + 1; break;
+      }
+    }
+    if (blockStart === -1) {
+      p2Log('warn', `⚠ Block not found: ${prod.name.slice(0, 50)}`);
+      continue;
+    }
+    const dateRe = /^\d{2}-\d{2}-\d{4}$/;
+    for (let i = blockStart; i < rows.length; i++) {
+      const row = rows[i]; if (!row) break;
+      const col0 = String(row[0] || '').trim();
+      if (!dateRe.test(col0)) break;
+      if (!result[col0] || !result[col0][prod.cat]) continue;
+      const s = p2Pn(row[3]), ti = p2Pn(row[4]), to = p2Pn(row[5]);
+      result[col0][prod.cat].s += s * prod.mult;
+      result[col0][prod.cat].i += ti * prod.mult;
+      result[col0][prod.cat].o += to * prod.mult;
+    }
+  }
+  return result;
+}
+
+// ── Number parse helper ───────────────────────────────────────
+function p2Pn(v) {
+  if (v === null || v === undefined || v === '') return 0;
+  const n = parseFloat(String(v));
+  return isNaN(n) ? 0 : n;
+}
+
+// ── Render summary cards + table (dynamic cats) ───────────────
+function p2RenderSummary(result, dates, period, cats) {
+  // Totals per cat
+  const totals = {};
+  cats.forEach(c => { totals[c] = { s: 0, i: 0, o: 0 }; });
+  dates.forEach(date => {
+    cats.forEach(c => {
+      totals[c].s += result[date][c].s;
+      totals[c].i += result[date][c].i;
+      totals[c].o += result[date][c].o;
+    });
+  });
+
+  // Cards: rebuild the cards-3 area dynamically
+  const cardsEl = $2('p2CardsArea');
+  if (cardsEl) {
+    cardsEl.innerHTML = '';
+    // Use the 3 colour variables cycling for however many cats exist
+    const catColors = ['var(--r25)', 'var(--r50)', 'var(--rr200)', 'var(--c50)', 'var(--c100)', 'var(--c200)'];
+    cats.forEach((c, i) => {
+      const col = catColors[i % catColors.length];
+      const div = document.createElement('div');
+      div.className = 'card';
+      div.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;position:relative;overflow:hidden';
+      div.innerHTML = `<div style="position:absolute;top:0;left:0;right:0;height:3px;background:${col}"></div>
+        <div class="card-label">${c} Sales</div>
+        <div class="card-val" style="color:${col}" id="p2total_${c}">${totals[c].s || '—'}</div>
+        <div class="card-sub" id="p2sub_${c}">In: ${totals[c].i} · Out: ${totals[c].o}</div>`;
+      cardsEl.appendChild(div);
+    });
+  } else {
+    // Fallback: update the legacy hardcoded card IDs if they exist
+    ['25', '50', '200'].forEach(sz => {
+      const cat = sz + 'g';
+      if (totals[cat] !== undefined) {
+        const el = $2('p2total' + sz); if (el) el.textContent = totals[cat].s;
+        const sub = $2('p2sub' + sz); if (sub) sub.textContent = `In: ${totals[cat].i} · Out: ${totals[cat].o}`;
+      }
+    });
+  }
+
+  // Table body
+  $2('p2TableBody').innerHTML = '';
+  // Rebuild thead dynamically too
+  const thead = $2('p2TableHead');
+  if (thead) {
+    const catColors = ['var(--r25)', 'var(--r50)', 'var(--rr200)', 'var(--c50)', 'var(--c100)', 'var(--c200)'];
+    let row1 = `<tr><th class="h-date" rowspan="2">Date</th>`;
+    let row2 = `<tr class="subhead">`;
+    cats.forEach((c, i) => {
+      const col = catColors[i % catColors.length];
+      row1 += `<th colspan="3" style="color:${col}">${c}</th>`;
+      row2 += `<th>Sales</th><th>Trans In</th><th>Trans Out</th>`;
+    });
+    thead.innerHTML = row1 + '</tr>' + row2 + '</tr>';
+  }
+
+  dates.forEach(date => {
+    const tr = document.createElement('tr');
+    let html = `<td class="date-cell">${date}</td>`;
+    cats.forEach(c => {
+      const v = result[date][c];
+      html += p2Fv(v.s) + p2Fv(v.i) + p2Fv(v.o);
+    });
+    tr.innerHTML = html;
+    $2('p2TableBody').appendChild(tr);
+  });
+
+  // Totals row
+  const ttr = document.createElement('tr');
+  ttr.className = 'total-row';
+  let thtml = `<td class="date-cell">TOTAL</td>`;
+  cats.forEach(c => { thtml += p2Fv(totals[c].s) + p2Fv(totals[c].i) + p2Fv(totals[c].o); });
+  ttr.innerHTML = thtml;
+  $2('p2TableBody').appendChild(ttr);
+
+  // Period badge — now shows the real period extracted from the file
+  $2('p2PeriodBadge').textContent = period || '—';
+
+  // Update download button label
+  const dlBtn = $2('p2DownloadBtn');
+  if (dlBtn) {
+    const safePeriod = (period || 'Stock').replace(/[^a-z0-9]/gi, '_');
+    dlBtn.innerHTML = `<span>⬇</span> Download Cashew_Flavoured_${safePeriod}.xlsx`;
+  }
+}
+
+// Helper: table cell with value or dash
+function p2Fv(val) {
+  if (!val || val === 0) return `<td>—</td>`;
+  return `<td class="has-val">${val}</td>`;
+}
+
+// ── Excel output (dynamic: adapts to whatever cats were found) ─
+// Note: The Excel layout preserves the original multi-section format
+// with Opening/Purchase/Transfer In/Sales/Transfer Out/Closing columns.
+// For dynamic cats we write a simpler but fully correct sheet.
+function p2BuildOutputExcel(result, dates, period, cats) {
+  const wb = XLSX.utils.book_new(), ws = {};
+  const FONT = { name: 'Palatino Linotype', sz: 8, color: { rgb: '333333' } };
+  const BNone = { style: 'none' }, BThin = { style: 'thin', color: { rgb: '000000' } }, BMed = { style: 'medium', color: { rgb: '000000' } };
+  function bdr(code) { return code === 2 ? BMed : code === 1 ? BThin : BNone; }
+  function S({ bg, L = 0, R = 0, T = 0, B = 0, hz = 'center', wrap = false, bold = false } = {}) {
+    const f = { ...FONT }; if (bold) f.bold = true;
+    const s = { font: f, alignment: { horizontal: hz, vertical: 'center', wrapText: wrap } };
+    if (bg) s.fill = { fgColor: { rgb: bg }, patternType: 'solid' };
+    s.border = { left: bdr(L), right: bdr(R), top: bdr(T), bottom: bdr(B) };
+    return s;
+  }
+  function setCell(r, c, v, style) {
+    const ref = XLSX.utils.encode_cell({ r, c });
+    if (v === null || v === undefined) ws[ref] = { t: 'z', s: style };
+    else if (typeof v === 'number') ws[ref] = { t: 'n', v, s: style };
+    else ws[ref] = { t: 's', v: String(v), s: style };
+  }
+
+  // Layout: col0 = Date, then per cat: Sales / Trans In / Trans Out (3 cols each)
+  const nCats = cats.length;
+  const TOTAL_COLS = 1 + nCats * 3;
+
+  // Info rows 0-3
+  function infoRow(r, val) {
+    setCell(r, 0, val, S({ bg: 'C0C0C0', L: 2, R: 1, T: r === 0 ? 2 : 1, B: 1, hz: 'left' }));
+    for (let c = 1; c < TOTAL_COLS; c++) setCell(r, c, null, S({ bg: 'C0C0C0' }));
+  }
+  infoRow(0, 'BOLAS AGRO PRIVATE LIMITED, Karkala');
+  infoRow(1, 'Stock Register - Master');
+  infoRow(2, `Period : ${period}`);
+  infoRow(3, 'Product Name: Cashew Flavoured Packed (Auto-Detected)');
+
+  // Row 4: section header per cat
+  setCell(4, 0, null, S({ bg: 'FFFF00', L: 2, R: 0, T: 2, B: 1 }));
+  setCell(4, 0, 'Date', S({ bg: 'FFFF00', L: 2, R: 2, T: 2, B: 1 }));
+  cats.forEach((c, ci) => {
+    const col = 1 + ci * 3;
+    setCell(4, col, c, S({ bg: 'FFFF00', L: 2, R: 1, T: 2, B: 0, wrap: true }));
+    setCell(4, col + 1, null, S({ bg: 'FFFF00', L: 1, R: 1, T: 2, B: 0 }));
+    setCell(4, col + 2, null, S({ bg: 'FFFF00', L: 1, R: 2, T: 2, B: 0 }));
+  });
+
+  // Row 5: sub-headers
+  setCell(5, 0, null, S({ bg: 'FFFF00', L: 2, R: 2, T: 2, B: 2 }));
+  cats.forEach((c, ci) => {
+    const col = 1 + ci * 3;
+    setCell(5, col,     'Sales',    S({ bg: 'FFFF00', L: 2, R: 1, T: 2, B: 2, wrap: true }));
+    setCell(5, col + 1, 'Trans In', S({ bg: 'FFFF00', L: 1, R: 1, T: 2, B: 2, wrap: true }));
+    setCell(5, col + 2, 'Trans Out',S({ bg: 'FFFF00', L: 1, R: 2, T: 2, B: 2, wrap: true }));
+  });
+
+  // Accumulate totals
+  const tot = {};
+  cats.forEach(c => { tot[c] = { s: 0, i: 0, o: 0 }; });
+  dates.forEach(date => {
+    cats.forEach(c => {
+      tot[c].s += result[date][c].s;
+      tot[c].i += result[date][c].i;
+      tot[c].o += result[date][c].o;
+    });
+  });
+
+  // Data rows
+  const nv = val => (val !== 0 && !isNaN(val)) ? val : null;
+  dates.forEach((date, idx) => {
+    const r = 6 + idx, v = result[date];
+    setCell(r, 0, date, S({ L: 2, R: 2, T: 0, B: 1, hz: 'left' }));
+    cats.forEach((c, ci) => {
+      const col = 1 + ci * 3;
+      setCell(r, col,     nv(v[c].s), S({ L: 2, R: 1, T: 0, B: 1 }));
+      setCell(r, col + 1, nv(v[c].i), S({ L: 1, R: 1, T: 0, B: 1 }));
+      setCell(r, col + 2, nv(v[c].o), S({ L: 1, R: 2, T: 0, B: 1 }));
+    });
+  });
+
+  // Total row
+  const TR = 6 + dates.length;
+  const TS = (opts = {}) => S({ ...opts, bold: true, bg: 'E8E8E8' });
+  setCell(TR, 0, 'Total', TS({ L: 2, R: 2, T: 2, B: 2, hz: 'left' }));
+  cats.forEach((c, ci) => {
+    const col = 1 + ci * 3;
+    setCell(TR, col,     (tot[c].s || null), TS({ L: 2, R: 1, T: 2, B: 2 }));
+    setCell(TR, col + 1, (tot[c].i || null), TS({ L: 1, R: 1, T: 2, B: 2 }));
+    setCell(TR, col + 2, (tot[c].o || null), TS({ L: 1, R: 2, T: 2, B: 2 }));
+  });
+
+  // Merges
+  const merges = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: TOTAL_COLS - 1 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: TOTAL_COLS - 1 } },
+    { s: { r: 2, c: 0 }, e: { r: 2, c: TOTAL_COLS - 1 } },
+    { s: { r: 3, c: 0 }, e: { r: 3, c: TOTAL_COLS - 1 } },
+    { s: { r: 4, c: 0 }, e: { r: 5, c: 0 } },
+  ];
+  cats.forEach((c, ci) => {
+    const col = 1 + ci * 3;
+    merges.push({ s: { r: 4, c: col }, e: { r: 4, c: col + 2 } });
+  });
+  ws['!merges'] = merges;
+  ws['!cols'] = [{ wch: 10 }, ...cats.flatMap(() => [{ wch: 7 }, { wch: 8 }, { wch: 8 }])];
+  ws['!rows'] = [{ hpx: 20 }, { hpx: 20 }, { hpx: 20 }, { hpx: 20 }, { hpx: 28 }, { hpx: 20 }, ...dates.map(() => ({ hpx: 18 })), { hpx: 22 }];
+  ws['!ref'] = XLSX.utils.encode_range({ r: 0, c: 0 }, { r: TR, c: TOTAL_COLS - 1 });
+
+  const MONTHS = { '01': 'Jan', '02': 'Feb', '03': 'Mar', '04': 'Apr', '05': 'May', '06': 'Jun', '07': 'Jul', '08': 'Aug', '09': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec' };
+  let sheetName = 'Stock Report';
+  if (dates.length) { const mm = dates[0].split('-')[1]; sheetName = MONTHS[mm] || 'Stock Report'; }
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  return wb;
+}
+
+$2('p2DownloadBtn').addEventListener('click', () => {
+  if (!p2Workbook) return;
+  const safePeriod = (p2Period || 'Report').replace(/[^a-z0-9]/gi, '_');
+  XLSX.writeFile(p2Workbook, `Cashew_Flavoured_${safePeriod}.xlsx`, { cellStyles: true });
+});
+
+// ══════════════════════════════════════════════════════════════
+// PANEL 3 — STOCK AUDIT
+// Reads a Stock Report file, calculates physical pack counts
+// from closing stock ÷ pack weight, and exports a colour-coded
+// audit sheet via ExcelJS with formulas for Store/Rack/Difference.
+// ══════════════════════════════════════════════════════════════
+let p3FileData = null, p3AuditRows = [], p3XlBlob = null;
+const $3 = id => document.getElementById(id);
+
+// Toggle helper: adds/removes the 'on' class used to show/hide sections
+const p3On  = el => el.classList.add('on');
+const p3Off = el => el.classList.remove('on');
+
+// Loader text + visibility helpers
+const p3Msg  = m => { $3('p3LTxt').textContent = m; p3On($3('p3Loader')); };
+const p3Done = ()  => p3Off($3('p3Loader'));
+
+// File size formatter (B / KB / MB)
+const p3FmtSz = b => b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(1) + ' KB' : (b / 1048576).toFixed(2) + ' MB';
+
+// HTML-escape helper for safe innerHTML injection
+const p3Esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// Returns today as DD-MM-YYYY
+const p3TodayStr = () => {
+  const d = new Date();
+  return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+};
+
+const p3Dz=$3('p3dz');
+p3Dz.addEventListener('click',()=>$3('p3FileInput').click());
+['dragenter','dragover'].forEach(e=>p3Dz.addEventListener(e,ev=>{ev.preventDefault();p3Dz.classList.add('drag-over');}));
+['dragleave','drop'].forEach(e=>p3Dz.addEventListener(e,ev=>{ev.preventDefault();p3Dz.classList.remove('drag-over');}));
+p3Dz.addEventListener('drop',ev=>p3LoadFile(ev.dataTransfer.files[0]));
+$3('p3FileInput').addEventListener('change',function(){if(this.files&&this.files[0])p3LoadFile(this.files[0]);});
+$3('p3FbX').addEventListener('click',p3ResetAll);
+
+function p3LoadFile(file){
+  if(!file)return;
+  if(!/\.(xlsx|xls)$/i.test(file.name)){
+    $3('p3ErrBox').textContent='⚠ Please upload an Excel file (.xlsx or .xls only).';
+    p3On($3('p3ErrBox'));
+    return;
+  }
+  const rd=new FileReader();
+  rd.onerror=()=>{$3('p3ErrBox').textContent='⚠  Could not read file.';p3On($3('p3ErrBox'));};
+  rd.onload=e=>{
+    p3FileData=e.target.result;$3('p3FbName').textContent=file.name||'Stock Report';$3('p3FbSize').textContent=p3FmtSz(file.size);
+    p3On($3('p3FileBar'));$3('p3BtnGo').disabled=false;$3('p3BtnDl').disabled=true;
+    p3AuditRows=[];p3XlBlob=null;p3Off($3('p3Stats'));p3Off($3('p3PrevWrap'));p3Off($3('p3InfoStrip'));p3Off($3('p3ErrBox'));
+    $3('p3dz').classList.add('filled');
+    $3('p3ZoneIcon').textContent='✅';
+    $3('p3ZoneTitle').textContent=file.name||'Stock Report';
+    $3('p3ZoneSub').innerHTML='File selected — <span class="hl3">click to choose a different file</span>';
+  };
+  rd.readAsArrayBuffer(file);
+}
+function p3ResetAll(){
+  p3FileData=null;p3AuditRows=[];p3XlBlob=null;$3('p3FileInput').value='';
+  p3Off($3('p3FileBar'));p3Off($3('p3Stats'));p3Off($3('p3PrevWrap'));p3Off($3('p3InfoStrip'));p3Off($3('p3ErrBox'));
+  p3Done();$3('p3BtnGo').disabled=true;$3('p3BtnDl').disabled=true;
+  $3('p3dz').classList.remove('filled');
+  $3('p3ZoneIcon').textContent='📦';
+  $3('p3ZoneTitle').textContent='Drop your Stock Report here';
+  $3('p3ZoneSub').innerHTML='Drag & drop or <span class="hl3">click to browse</span> · Supports .xls and .xlsx';
+}
+
+function p3ParsePkg(raw){
+  const s=(raw||'').trim(),sl=s.toLowerCase();
+  if(/\bin\s+numbers?\b/i.test(s)||/\bnos\b/i.test(s)||/sandook/i.test(s)||/yatra/i.test(s)||/dhamaka/i.test(s)||/stuffed\s*dates/i.test(s)||/gift\s*(box|pack|set|hamper)/i.test(s)||/combo\s*\d+\s*g/i.test(s)||/festival\s*of\s*joy/i.test(s)||/best\s*wishes/i.test(s))return{type:'numbers'};
+  // Saffron 1g — physical = closing / 1 (count as individual units)
+  if(/saffron/i.test(s)&&/(?<!\d)1\s*g(?:ram)?s?(?!\d)/i.test(s))return{type:'numbers'};
+  // Oil density: edible oils ~0.910 kg/litre (not 1.0 like water)
+  // Matches: coconut oil, sunflower oil, rice bran oil, mustard oil, olive oil, etc.
+  const isOil=/\boil\b/i.test(s);
+  const OIL_DENSITY=0.910;
+  // Half litre: oil=0.455 kg, water/juice=0.500 kg
+  if(/half\s*(litr?e?|ltr)/i.test(sl))return{type:'weight',kg:isOil?0.455:0.500};
+  // ml: oil=0.910g/ml, others=1.0g/ml (water)
+  let m=sl.match(/(\d+(?:\.\d+)?)\s*ml\b/);
+  if(m){const ml=parseFloat(m[1]);return{type:'weight',kg:parseFloat((ml*(isOil?OIL_DENSITY/1000:0.001)).toFixed(4))};}
+  // litres: oil=0.910 kg/L, others=1.0 kg/L
+  m=sl.match(/(\d+(?:\.\d+)?)\s*l(?:it(?:re?|er)?|itre?|tr?)?\b(?![a-z])/);
+  if(m){const lt=parseFloat(m[1]);return{type:'weight',kg:parseFloat((lt*(isOil?OIL_DENSITY:1.0)).toFixed(4))};}
+  m=s.match(/(\d+(?:\.\d+)?)\s*kg/i);if(m)return{type:'weight',kg:parseFloat(m[1])};
+  m=s.match(/(\d+(?:\.\d+)?)\s*g(?:m(?:s)?|ram(?:s)?)?(?:\b|$)/i);
+  if(m){const g=parseFloat(m[1]);if(g>=1)return{type:'weight',kg:g/1000};}
+  return{type:'unknown'};
+}
+
+function p3ProcessFile(){
+  if(!p3FileData)return;
+  // Validate outlet name
+  const outletVal = $3('p3OutletName') ? $3('p3OutletName').value.trim() : '';
+  if(!outletVal){
+    $3('p3ErrBox').textContent = '⚠ Please enter the Outlet Name before generating the audit sheet.';
+    p3On($3('p3ErrBox'));
+    $3('p3OutletName').focus();
+    $3('p3OutletName').style.borderColor = '#ef4444';
+    setTimeout(()=>{ if($3('p3OutletName')) $3('p3OutletName').style.borderColor='var(--border)'; }, 2000);
+    return;
+  }
+  p3Off($3('p3ErrBox'));p3Msg('Reading Excel file…');$3('p3BtnGo').disabled=true;
+  setTimeout(()=>{
+    try{
+      const srcWb=XLSX.read(new Uint8Array(p3FileData),{type:'array',raw:false,cellDates:false});
+      const ws=srcWb.Sheets[srcWb.SheetNames[0]];
+      const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      p3Msg('Finding header row…');
+      let hIdx=-1;
+      for(let i=0;i<Math.min(raw.length,15);i++){const r=raw[i].map(c=>String(c).toLowerCase());if(r.some(c=>c.includes('package'))&&r.some(c=>c.includes('closing'))){hIdx=i;break;}}
+      if(hIdx<0)throw new Error('Header row not found. Make sure file has "Package Number" and "Closing Stock" columns.');
+      const hdrs=raw[hIdx].map(c=>String(c).trim().toLowerCase());
+      const cPkg=hdrs.findIndex(h=>h.includes('package')),cCls=hdrs.findIndex(h=>h.includes('closing')),cItm=hdrs.findIndex(h=>h.includes('item'));
+      if(cPkg<0)throw new Error('"Package Number" column not found.');
+      if(cCls<0)throw new Error('"Closing Stock" column not found.');
+      p3Msg('Calculating physical stock…');
+      p3AuditRows=[];
+      for(let i=hIdx+1;i<raw.length;i++){
+        const row=raw[i];
+        if(!row||row.every(c=>c===''||c===null||c===undefined))continue;
+        const pkgRaw=String(row[cPkg]||'').trim(),clsRaw=row[cCls];
+        const itmRaw=cItm>=0?String(row[cItm]||'').trim():String(row[2]||'').trim();
+        if(!pkgRaw||/^package\s*number$/i.test(pkgRaw))continue;
+        if(/^total$/i.test(String(row[0]||'').trim()))continue;
+        if(clsRaw===''||clsRaw===null||clsRaw===undefined)continue;
+        const closing=typeof clsRaw==='number'?clsRaw:parseFloat(String(clsRaw).replace(/,/g,''));
+        if(isNaN(closing))continue;
+        const pack=p3ParsePkg(pkgRaw);
+        let physical=null,physKg=null;
+        if(pack.type==='numbers'){physical=closing;}
+        else if(pack.type==='weight'&&pack.kg>0){physical=Math.round(closing/pack.kg*1000)/1000;physKg=pack.kg;}
+        p3AuditRows.push({shortCode:itmRaw||'—',pkgName:pkgRaw.replace(/^in\s+/i,'').trim(),closing,physical,physKg,packType:pack.type,hasNegative:closing<0,storeCount:null,rackCount:null});
+      }
+      if(!p3AuditRows.length)throw new Error('No product rows found. Please check the file format.');
+      p3Msg('Building coloured Excel…');
+      p3RebuildExcel().then(()=>{
+        $3('p3STot').textContent=p3AuditRows.length;$3('p3SShort').textContent='—';$3('p3SExcess').textContent='—';$3('p3SMatch').textContent='—';
+        p3On($3('p3Stats'));p3On($3('p3InfoStrip'));
+        p3On($3('p3PrevWrap'));
+        p3Done();$3('p3BtnGo').disabled=false;$3('p3BtnDl').disabled=false;
+      }).catch(e=>{p3Done();$3('p3BtnGo').disabled=false;$3('p3ErrBox').textContent='Excel build failed: '+e.message;p3On($3('p3ErrBox'));});
+    }catch(e){p3Done();$3('p3BtnGo').disabled=false;$3('p3ErrBox').textContent=e.message||'Processing failed.';p3On($3('p3ErrBox'));}
+  },60);
+}
+
+// Rebuilds the Excel + on-screen preview from the current p3AuditRows.
+// Called after the initial "Generate Audit Sheet" click AND again, silently,
+// whenever a Rate PDF finishes loading — so prices apply immediately even if
+// the PDF is uploaded after the sheet was already generated once.
+function p3RebuildExcel(){
+  if(!p3AuditRows.length) return Promise.resolve();
+  return p3BuildExcelJS(p3AuditRows).then(blob=>{
+    p3XlBlob=blob;
+    p3BuildPreview(p3AuditRows);
+    $3('p3BtnDl').disabled=false;
+  });
+}
+
+// ── Outlet name helpers ───────────────────────────────────────
+function p3GetOutletName() {
+  const val = ($3('p3OutletName') ? $3('p3OutletName').value.trim() : '');
+  return val || "MOLSI'S";
+}
+function p3GetSheetTitle() {
+  return p3GetOutletName().toUpperCase() + ' — PHYSICAL STOCK AUDIT SHEET';
+}
+function p3GetFileName() {
+  const safe = p3GetOutletName().replace(/[^a-zA-Z0-9_\-\s]/g,'').trim().replace(/\s+/g,'_');
+  return `${safe}_Stock_Audit_${p3TodayStr()}.xlsx`;
+}
+function p3UpdateOutletPreview() {
+  const el = $3('p3OutletPreview'), tx = $3('p3OutletPreviewText');
+  const name = $3('p3OutletName').value.trim();
+  if (name) {
+    tx.textContent = name.toUpperCase() + ' — PHYSICAL STOCK AUDIT SHEET';
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+async function p3BuildExcelJS(rows){
+  const wb=new ExcelJS.Workbook();wb.creator="SHARATH'S SYSTEM";wb.created=new Date();
+  const ws=wb.addWorksheet('Stock Audit',{views:[{state:'frozen',xSplit:3,ySplit:3}],pageSetup:{orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0}});
+  const C={TITLE:'1B2A6B',DATE:'141A4A',HDR:'2E3F9F',ODD:'FFFFFF',EVEN:'F0F3FF',MAN:'FFFDE7',NEG:'FFF3CD',UNK:'F8F8F8',SBG:'FDECEA',SFG:'C0392B',EBG:'E8F5E9',EFG:'1E8449',MBG:'E3F2FD',MFG:'1A5276',STOT:'2E3F9F',SSHORT:'C0392B',SEXCESS:'1E8449',SMATCH:'1A5276',DARK:'1A1A2E',WHITE:'FFFFFF',DFGG:'AAAACC',FOOT:'7777AA',BRD:'C8CCE8',MUTED:'888888',NEGFG:'856404'};
+  const FL=h=>({type:'pattern',pattern:'solid',fgColor:{argb:'FF'+h}});
+  const FN=(h,bold=false,sz=10,italic=false)=>({name:'Calibri',size:sz,bold,italic,color:{argb:'FF'+h}});
+  const BD=()=>({top:{style:'thin',color:{argb:'FFC8CCE8'}},bottom:{style:'thin',color:{argb:'FFC8CCE8'}},left:{style:'thin',color:{argb:'FFC8CCE8'}},right:{style:'thin',color:{argb:'FFC8CCE8'}}});
+  const AL=(h='center',v='middle',w=false)=>({horizontal:h,vertical:v,wrapText:w});
+  // Look up rate from PDF-parsed map (moved up so Sheet 1 can store it per-row,
+  // which lets Sheet 2 pull the correct price even after rows get re-grouped).
+  function getRate2(pkgName, field) {
+    if(!window.p3RateMap||!window.p3RateMap.size)return '';
+    // Strip ALL whitespace (not just collapse) so "250g" matches "250 G",
+    // "PackOf" matches "Pack Of", etc. — real-world Stock Report text and
+    // PDF SKU text are rarely spaced identically around units/numbers.
+    const key=String(pkgName||'').toLowerCase().replace(/\s+/g,'');
+    // A pkgName can overlap with more than one PDF entry (e.g. "250 G" vs
+    // "500 G" variants of a similar name). Don't just take whichever the
+    // Map happens to iterate first — score every candidate and keep the
+    // most specific (longest matching name) match; if two are equally
+    // specific, prefer whichever has the most recent Effective From date.
+    let best=null;
+    for(const [k,v] of window.p3RateMap){
+      if(key.includes(k)||k.includes(key)){
+        if(!best || k.length>best.k.length || (k.length===best.k.length && (v.effDateSort||0)>(best.v.effDateSort||0))){
+          best={k,v};
+        }
+      }
+    }
+    return best ? (best.v[field]||'') : '';
+  }
+  ws.columns=[{width:5},{width:16},{width:44},{width:13},{width:15},{width:13},{width:13},{width:10},{width:13},{width:12},{width:14,hidden:true},{width:14,hidden:true},{width:10,hidden:true},{width:10,hidden:true}];
+  const dateStr=p3TodayStr(),DS=4,DE=rows.length+3;
+  ws.mergeCells('A1:J1');ws.getRow(1).height=30;
+  const t1=ws.getCell('A1');t1.value=p3GetSheetTitle();t1.font=FN(C.WHITE,true,14);t1.fill=FL(C.TITLE);t1.alignment=AL('center');t1.border=BD();
+  'BCDEFGHIJ'.split('').forEach(col=>{const c=ws.getCell(col+'1');c.fill=FL(C.TITLE);c.border=BD();});
+  ws.mergeCells('A2:J2');ws.getRow(2).height=16;
+  const t2c=ws.getCell('A2');t2c.value=`Audit Date: ${dateStr}     |     Generated by SHARATH'S SYSTEM     |     CONFIDENTIAL`;
+  t2c.font=FN(C.DFGG,false,9,true);t2c.fill=FL(C.DATE);t2c.alignment=AL('center');t2c.border=BD();
+  'BCDEFGHIJ'.split('').forEach(col=>{const c=ws.getCell(col+'2');c.fill=FL(C.DATE);c.border=BD();});
+  ws.getRow(3).height=34;
+  [['A','Sr No','center'],['B','Item Name','left'],['C','Package Name','left'],['D','Closing Stock','center'],['E','Physical (Packs)','center'],['F','Store Count','center'],['G','Rack Count','center'],['H','Total','center'],['I','Difference','center'],['J','Remark','center']
+  ].forEach(([col,label,align])=>{const c=ws.getCell(col+'3');c.value=label;c.font=FN(C.WHITE,true,10);c.fill=FL(C.HDR);c.alignment=AL(align,'middle',true);c.border=BD();});
+  ws.autoFilter={from:{row:3,column:1},to:{row:3,column:10}};
+  rows.forEach((r,ri)=>{
+    const er=ri+DS,bg=r.hasNegative?C.NEG:(ri%2===0?C.ODD:C.EVEN);
+    ws.getRow(er).height=18;
+    const set=(col,val,fg,bold,fillHex,align)=>{const c=ws.getCell(col+er);c.value=val;c.font=FN(fg||C.DARK,bold||false,10);c.fill=FL(fillHex||bg);c.alignment=AL(align||'center','middle');c.border=BD();};
+    set('A',ri+1,C.MUTED,false,bg,'center');set('B',r.shortCode,C.DARK,true,bg,'left');set('C',r.pkgName,C.DARK,false,bg,'left');
+    set('D',r.closing,r.hasNegative?C.NEGFG:C.DARK,r.hasNegative,bg,'right');
+    {const c=ws.getCell('E'+er);
+     if(r.physKg!==null&&r.physKg!==undefined){c.value={formula:`D${er}/${parseFloat(r.physKg.toFixed(6))}`,result:r.physical??0};c.font=FN(C.DARK,false,10);c.fill=FL(bg);c.alignment=AL('center','middle');c.border=BD();}
+     else if(r.packType==='numbers'){
+       // For items counted as units (divide by 1), show formula =D/1 so it's traceable
+       c.value={formula:`D${er}/1`,result:r.physical??0};
+       c.font=FN(C.DARK,false,10);c.fill=FL(bg);c.alignment=AL('center','middle');c.border=BD();}
+     else{c.value='?';c.font=FN(C.MUTED,false,9,true);c.fill=FL(C.UNK);c.alignment=AL('center','middle');c.border=BD();}}
+    set('F',r.storeCount===null||r.storeCount===undefined?'':r.storeCount,C.DARK,false,C.MAN,'center');set('G',r.rackCount===null||r.rackCount===undefined?'':r.rackCount,C.DARK,false,C.MAN,'center');
+    {const c=ws.getCell('H'+er);c.value={formula:`IF(AND(F${er}="",G${er}=""),"",IF(F${er}="",0,F${er})+IF(G${er}="",0,G${er}))`,result:''};c.font=FN(C.DARK,false,10);c.fill=FL(bg);c.alignment=AL('center','middle');c.border=BD();}
+    {const c=ws.getCell('I'+er);c.value={formula:`IF(OR(H${er}="",E${er}=""),"",ROUND(H${er}-E${er},4))`,result:''};c.font=FN(C.DARK,false,10);c.fill=FL(bg);c.alignment=AL('center','middle');c.border=BD();}
+    {const c=ws.getCell('J'+er);c.value={formula:`IF(I${er}="","",IF(I${er}<0,"SHORT",IF(I${er}>0,"EXCESS","MATCHED")))`,result:''};c.font=FN(C.DARK,true,10);c.fill=FL(bg);c.alignment=AL('center','middle');c.border=BD();}
+    const bp=getRate2(r.pkgName,'billing'),sp=getRate2(r.pkgName,'selling');
+    ws.getCell('K'+er).value = bp!=='' ? Number(bp) : '';
+    ws.getCell('L'+er).value = sp!=='' ? Number(sp) : '';
+    // Running rank among SHORT items so far / among EXCESS items so far (blank otherwise).
+    // Sheet 2 finds "the row whose rank = k" with a plain MATCH — no array formulas, no AGGREGATE.
+    ws.getCell('M'+er).value = {formula:`IF($J${er}="SHORT",COUNTIF($J$${DS}:J${er},"SHORT"),"")`,result:''};
+    ws.getCell('N'+er).value = {formula:`IF($J${er}="EXCESS",COUNTIF($J$${DS}:J${er},"EXCESS"),"")`,result:''};
+  });
+  ws.addConditionalFormatting({ref:`J${DS}:J${DE}`,rules:[
+    {type:'containsText',operator:'containsText',text:'SHORT',priority:1,style:{fill:{type:'pattern',pattern:'solid',bgColor:{argb:'FFFDECEA'},fgColor:{argb:'FFFDECEA'}},font:{bold:true,color:{argb:'FFC0392B'}}}},
+    {type:'containsText',operator:'containsText',text:'EXCESS',priority:2,style:{fill:{type:'pattern',pattern:'solid',bgColor:{argb:'FFE8F5E9'},fgColor:{argb:'FFE8F5E9'}},font:{bold:true,color:{argb:'FF1E8449'}}}},
+    {type:'containsText',operator:'containsText',text:'MATCHED',priority:3,style:{fill:{type:'pattern',pattern:'solid',bgColor:{argb:'FFE3F2FD'},fgColor:{argb:'FFE3F2FD'}},font:{bold:true,color:{argb:'FF1A5276'}}}},
+  ]});
+  const sgr=DE+1,slr=DE+2,svr=DE+3,fgr=DE+4,fr=DE+5;
+  ws.getRow(sgr).height=8;ws.getRow(fgr).height=8;
+  const SUMS=[{cols:['A','B'],lbl:'TOTAL PRODUCTS',f:`COUNTA(B${DS}:B${DE})`,bg:C.STOT},{cols:['C','D'],lbl:'SHORT ITEMS',f:`COUNTIF(J${DS}:J${DE},"SHORT")`,bg:C.SSHORT},{cols:['E','F'],lbl:'EXCESS ITEMS',f:`COUNTIF(J${DS}:J${DE},"EXCESS")`,bg:C.SEXCESS},{cols:['G','H'],lbl:'MATCHED ITEMS',f:`COUNTIF(J${DS}:J${DE},"MATCHED")`,bg:C.SMATCH}];
+  ['I','J'].forEach(col=>[slr,svr].forEach(rn=>{const c=ws.getCell(col+rn);c.fill=FL(C.ODD);c.border=BD();}));
+  SUMS.forEach((s,si)=>{
+    ws.mergeCells(`${s.cols[0]}${slr}:${s.cols[1]}${slr}`);ws.mergeCells(`${s.cols[0]}${svr}:${s.cols[1]}${svr}`);
+    const lc=ws.getCell(s.cols[0]+slr);lc.value=s.lbl;lc.font=FN(C.WHITE,true,9);lc.fill=FL(s.bg);lc.alignment=AL('center','middle');lc.border=BD();
+    ws.getCell(s.cols[1]+slr).fill=FL(s.bg);ws.getCell(s.cols[1]+slr).border=BD();
+    const vc=ws.getCell(s.cols[0]+svr);vc.value={formula:s.f,result:si===0?rows.length:0};vc.font=FN(C.WHITE,true,20);vc.fill=FL(s.bg);vc.alignment=AL('center','middle');vc.border=BD();
+    ws.getCell(s.cols[1]+svr).fill=FL(s.bg);ws.getCell(s.cols[1]+svr).border=BD();
+  });
+  ws.getRow(slr).height=22;ws.getRow(svr).height=36;
+  ws.mergeCells(`A${fr}:J${fr}`);
+  const fc=ws.getCell('A'+fr);fc.value=`  ★  Cols A+B+C FROZEN  |  Ivory cells = fill manually  |  Amber rows = negative closing  |  ? = unknown pack size  |  Confidential — ${dateStr}`;
+  fc.font=FN(C.FOOT,false,9,true);fc.fill=FL(C.ODD);fc.alignment=AL('left','middle');fc.border=BD();
+  ws.getRow(fr).height=16;ws.pageSetup.printTitlesRow='1:3';
+
+  // ══ SHEET 2: SHORT & EXCESS — SELF-GROUPING, FORMULA-ONLY ══
+  // No macro, no manual filtering. Each block (SHORT, then EXCESS) pulls its
+  // own rows live out of 'Stock Audit' column J using AGGREGATE (Excel
+  // 2010+, no Ctrl+Shift+Enter needed) and lists them top-to-bottom in the
+  // order they appear on Sheet 1. Fill Store/Rack Count on Sheet 1 and both
+  // lists populate + re-sort themselves automatically — exactly one 3-row
+  // gap separates the two groups, matching the on-screen preview.
+  const ws2=wb.addWorksheet('Short & Excess Pricing',{pageSetup:{orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0}});
+  ws2.columns=[{width:6},{width:18},{width:44},{width:12},{width:15},{width:15},{width:16},{width:16},{width:11},{width:8,hidden:true}];
+
+  const set2=(rowNum,col,val,fg,bold,fillHex,align,italic)=>{
+    const c=ws2.getCell(col+rowNum);
+    c.value=val; c.font=FN(fg||C.DARK,bold||false,10,italic||false);
+    c.fill=FL(fillHex||C.ODD); c.alignment=AL(align||'center','middle'); c.border=BD();
+  };
+  const setF2=(rowNum,col,formula,result,fg,bold,fillHex,align)=>{
+    const c=ws2.getCell(col+rowNum);
+    c.value={formula,result:result===undefined?'':result};
+    c.font=FN(fg||C.DARK,bold||false,10);
+    c.fill=FL(fillHex||C.ODD); c.alignment=AL(align||'center','middle'); c.border=BD();
+  };
+  const SA = "'Stock Audit'"; // sheet name reference for cross-sheet formulas
+  const N2 = rows.length;
+
+  // Title row
+  ws2.mergeCells('A1:I1'); ws2.getRow(1).height=30;
+  const u1=ws2.getCell('A1');
+  u1.value=p3GetOutletName().toUpperCase()+' \u2014 SHORT / EXCESS BILLING & SELLING PRICE';
+  u1.font=FN(C.WHITE,true,14);u1.fill=FL(C.TITLE);u1.alignment=AL('center');u1.border=BD();
+  'BCDEFGHI'.split('').forEach(col=>{const c=ws2.getCell(col+'1');c.fill=FL(C.TITLE);c.border=BD();});
+
+  // Subtitle row
+  ws2.mergeCells('A2:I2'); ws2.getRow(2).height=16;
+  const u2=ws2.getCell('A2');
+  u2.value='Billing & Selling Price as on: '+dateStr+'     |     Generated by SHARATH\'S SYSTEM     |     CONFIDENTIAL';
+  u2.font=FN(C.DFGG,false,9,true);u2.fill=FL(C.DATE);u2.alignment=AL('center');u2.border=BD();
+  'BCDEFGHI'.split('').forEach(col=>{const c=ws2.getCell(col+'2');c.fill=FL(C.DATE);c.border=BD();});
+
+  // Instruction banner
+  ws2.mergeCells('A3:I3'); ws2.getRow(3).height=20;
+  const ib=ws2.getCell('A3');
+  ib.value='\u2713 Self-grouping \u2014 fill Store & Rack Count in Sheet 1 and the SHORT / EXCESS lists below populate and re-sort automatically. Nothing to click, no macro needed.';
+  ib.font=FN(C.WHITE,true,9,true); ib.fill=FL('2E3F9F'); ib.alignment=AL('center','middle',true); ib.border=BD();
+  'BCDEFGHI'.split('').forEach(col=>{const c=ws2.getCell(col+'3');c.fill=FL('2E3F9F');c.border=BD();});
+
+  const COLS2=[['A','Sr No','center'],['B','Item Name','left'],['C','Package Name','left'],['D','Qty (Packs)','center'],['E','Billing Price (\u20b9)','center'],['F','Selling Price (\u20b9)','center'],['G','Billing Value (\u20b9)','center'],['H','Selling Value (\u20b9)','center'],['I','Status','center']];
+
+  // Builds one self-grouping block (SHORT or EXCESS) starting at row `start`.
+  // Capacity is N2 rows (worst case every item lands in this group) — any
+  // rows beyond the real count simply stay blank, since their pointer
+  // formula (col J) resolves to "" once AGGREGATE runs out of matches.
+  function buildGroupBlock(start, label, statusWord, themeBg, rankCol, tableName){
+    const hdrRow=start, colRow=start+1, ds=start+2;
+    ws2.mergeCells(`A${hdrRow}:I${hdrRow}`); ws2.getRow(hdrRow).height=24;
+    const hc=ws2.getCell('A'+hdrRow);
+    hc.value=label; hc.font=FN(C.WHITE,true,11); hc.fill=FL(themeBg); hc.alignment=AL('center','middle'); hc.border=BD();
+    'BCDEFGHI'.split('').forEach(col=>{const c=ws2.getCell(col+hdrRow);c.fill=FL(themeBg);c.border=BD();});
+
+    ws2.getRow(colRow).height=26;
+    COLS2.forEach(([col,lbl,align])=>{
+      const c=ws2.getCell(col+colRow);
+      c.value=lbl; c.font=FN(C.WHITE,true,10);
+      c.fill=FL(themeBg); c.alignment=AL(align,'middle',true); c.border=BD();
+    });
+
+    let de;
+    if (N2===0){
+      de=ds;
+      ws2.mergeCells(`A${ds}:I${ds}`);
+      const nc=ws2.getCell('A'+ds);
+      nc.value='\u2014 No Items Found \u2014';
+      nc.font=FN(C.MUTED,false,10,true); nc.fill=FL(C.ODD); nc.alignment=AL('center','middle'); nc.border=BD();
+      ws2.getRow(ds).height=18;
+    } else {
+      de=ds+N2-1;
+      for (let k=1;k<=N2;k++){
+        const r2=ds+k-1;
+        ws2.getRow(r2).height=18;
+        const bg=(k%2===0)?C.ODD:'F0F3FF';
+        // Hidden pointer: the Sheet1 row whose running rank (col M for SHORT, N for EXCESS) equals k.
+        setF2(r2,'J',`IFERROR(MATCH(${k},${SA}!$${rankCol}:$${rankCol},0),"")`,'',C.MUTED,false,bg,'center');
+        set2(r2,'A',k,C.MUTED,false,bg,'center');
+        setF2(r2,'B',`IF($J${r2}="","",INDEX(${SA}!$B:$B,$J${r2}))`,'',C.DARK,true,bg,'left');
+        setF2(r2,'C',`IF($J${r2}="","",INDEX(${SA}!$C:$C,$J${r2}))`,'',C.DARK,false,bg,'left');
+        setF2(r2,'D',`IF($J${r2}="","",ABS(ROUND(INDEX(${SA}!$I:$I,$J${r2}),0)))`,'',C.DARK,true,bg,'center');
+        setF2(r2,'E',`IF($J${r2}="","",IF(INDEX(${SA}!$K:$K,$J${r2})="","",INDEX(${SA}!$K:$K,$J${r2})))`,'',C.DARK,false,C.MAN,'center');
+        setF2(r2,'F',`IF($J${r2}="","",IF(INDEX(${SA}!$L:$L,$J${r2})="","",INDEX(${SA}!$L:$L,$J${r2})))`,'',C.DARK,false,C.MAN,'center');
+        setF2(r2,'G',`IF(OR(D${r2}="",E${r2}=""),0,D${r2}*E${r2})`,0,C.DARK,false,bg,'right');
+        setF2(r2,'H',`IF(OR(D${r2}="",F${r2}=""),0,D${r2}*F${r2})`,0,C.DARK,false,bg,'right');
+        setF2(r2,'I',`IF($J${r2}="","",INDEX(${SA}!$J:$J,$J${r2}))`,'',C.DARK,true,bg,'center');
+      }
+      // Wrap header + data rows as a real Excel Table. Excel allows several
+      // Tables on one sheet (unlike the single per-sheet AutoFilter), so each
+      // block gets its own independent filter-dropdown + sort on every
+      // column, including Status — exactly the "filter on SHORT" /
+      // "filter on EXCESS" the user asked for. No values change: we just
+      // re-read what was already written into each cell above and hand it
+      // back to addTable, and we don't pass a table style, so none of the
+      // existing colours/fonts/borders are touched.
+      const tCols='ABCDEFGHI'.split('');
+      const tRows=[];
+      for(let r2=ds;r2<=de;r2++){ tRows.push(tCols.map(c=>ws2.getCell(c+r2).value)); }
+      ws2.addTable({
+        name: tableName,
+        ref: 'A'+colRow,
+        headerRow: true,
+        totalsRow: false,
+        style: { theme: null, showFirstColumn:false, showLastColumn:false, showRowStripes:false, showColumnStripes:false },
+        columns: COLS2.map(([col,lbl])=>({name:lbl, filterButton:true})),
+        rows: tRows
+      });
+    }
+
+    const totRow=de+1;
+    ws2.getRow(totRow).height=22;
+    ws2.mergeCells(`A${totRow}:F${totRow}`);
+    const tl=ws2.getCell('A'+totRow);
+    if (N2>0){
+      tl.value={formula:`"TOTAL \u2014 ${statusWord} ITEMS ("&COUNTIF(I${ds}:I${de},"${statusWord}")&" item(s)) (\u20b9)"`,result:`TOTAL \u2014 ${statusWord} ITEMS (\u20b9)`};
+    } else {
+      tl.value=`TOTAL \u2014 ${statusWord} ITEMS (\u20b9)`;
+    }
+    tl.font=FN(C.WHITE,true,11); tl.fill=FL(themeBg); tl.alignment=AL('right','middle'); tl.border=BD();
+    'BCDEF'.split('').forEach(col=>{const c=ws2.getCell(col+totRow);c.fill=FL(themeBg);c.border=BD();});
+    if (N2>0){
+      setF2(totRow,'G',`SUM(G${ds}:G${de})`,0,C.WHITE,true,themeBg,'right');
+      setF2(totRow,'H',`SUM(H${ds}:H${de})`,0,C.WHITE,true,themeBg,'right');
+    } else {
+      set2(totRow,'G',0,C.WHITE,true,themeBg,'right');
+      set2(totRow,'H',0,C.WHITE,true,themeBg,'right');
+    }
+    ws2.getCell('I'+totRow).fill=FL(themeBg); ws2.getCell('I'+totRow).border=BD();
+
+    return {ds, de, totRow, nextRow: totRow+1};
+  }
+
+  const shortBlock = buildGroupBlock(4, 'SHORT ITEMS', 'SHORT', 'C0392B', 'M', 'ShortItemsTbl');
+  const gapStart = shortBlock.nextRow;
+  for (let g=0; g<3; g++){ ws2.getRow(gapStart+g).height=8; }
+  const excessBlock = buildGroupBlock(gapStart+3, 'EXCESS ITEMS', 'EXCESS', '1E8449', 'N', 'ExcessItemsTbl');
+
+  // GRAND TOTAL — on its own clearly separated line (blank row above it),
+  // showing the NET value: EXCESS value minus SHORT value.
+  const gtGap = excessBlock.nextRow;
+  ws2.getRow(gtGap).height = 8;
+  const gtr2 = gtGap + 1;
+  ws2.getRow(gtr2).height = 24;
+  ws2.mergeCells('A' + gtr2 + ':F' + gtr2);
+  const gtl = ws2.getCell('A' + gtr2);
+  gtl.value = 'GRAND TOTAL \u2014 EXCESS \u2212 SHORT (\u20b9)';
+  gtl.font = FN(C.WHITE, true, 12); gtl.fill = FL(C.STOT); gtl.alignment = AL('right', 'middle'); gtl.border = BD();
+  'BCDEF'.split('').forEach(col => { const c = ws2.getCell(col + gtr2); c.fill = FL(C.STOT); c.border = BD(); });
+  setF2(gtr2, 'G', `G${excessBlock.totRow}-G${shortBlock.totRow}`, 0, C.WHITE, true, C.STOT, 'right');
+  setF2(gtr2, 'H', `H${excessBlock.totRow}-H${shortBlock.totRow}`, 0, C.WHITE, true, C.STOT, 'right');
+  ws2.getCell('I'+gtr2).fill = FL(C.STOT); ws2.getCell('I'+gtr2).border = BD();
+
+  // Footer
+  const fr2 = gtr2 + 2;
+  ws2.mergeCells('A' + fr2 + ':I' + fr2);
+  const fc2 = ws2.getCell('A' + fr2);
+  const rateNote2 = (window.p3RateMap && window.p3RateMap.size > 0) ? '  |  Rates from PDF (' + window.p3RateMap.size + ' items)' : '  |  Billing/Selling Price blank = fill in manually';
+  fc2.value = '  \u2605  Use the dropdown arrows on each block\u2019s header row to filter/sort that block  |  Qty (Packs) = whole-number pack difference from Sheet 1' + rateNote2 + '  |  Confidential \u2014 ' + dateStr;
+  fc2.font = FN(C.FOOT, false, 9, true); fc2.fill = FL(C.ODD); fc2.alignment = AL('left', 'middle'); fc2.border = BD();
+  ws2.getRow(fr2).height = 16; ws2.pageSetup.printTitlesRow = '1:3';
+
+  const buf=await wb.xlsx.writeBuffer();
+  return new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+
+// ── OPTIONAL ITEM GROUPS ──────────────────────────────────────
+// Each entry: { id: checkbox-id, keywords: [...] }
+// A row is considered part of a group if its pkgName (lowercased) matches ANY keyword
+const P3_OPTIONAL_GROUPS = [
+  { id:'chk_delivery_nec1', keywords:['other delivery services n.e.c','other delivery services nec','delivery services n.e.c','delivery services nec'], label:'Other Delivery Services N.E.C' },
+  { id:'chk_cloth_small',   keywords:['cloth carry bag (small)','cloth carry bag small','cloth bag small','cloth carry bag- small','cloth carry bag -small'],  label:'Cloth Carry Bag Small' },
+  { id:'chk_cloth_large',   keywords:['cloth carry bag (large)','cloth carry bag large','cloth bag large','cloth carry bag- large','cloth carry bag -large'],  label:'Cloth Carry Bag Large' },
+  { id:'chk_bolas_small',   keywords:['bolas cloth carry bag (small)','bolas cloth carry bag small','bolas cloth bag small'], label:'Bolas Cloth Carry Bag Small' },
+  { id:'chk_bolas_large',   keywords:['bolas cloth carry bag (large)','bolas cloth carry bag large','bolas cloth bag large'], label:'Bolas Cloth Carry Bag Large' },
+  { id:'chk_bolas_medium',  keywords:['bolas cloth carry bag (medium)','bolas cloth carry bag medium','bolas cloth bag medium','bolas cloth carry bag meadium','bolas cloth carry bag (meadium)'], label:'Bolas Cloth Carry Bag Medium' },
+  { id:'chk_roto_big',      keywords:['roto cotton bag (big)','roto cotton carry bag (big)','roto cotton bag big','roto cotton carry bag big','roto cotton(big)'], label:'Roto Cotton Carry Bag Big' },
+  { id:'chk_roto_small',    keywords:['roto cotton bag (small)','roto cotton carry bag (small)','roto cotton bag small','roto cotton carry bag small','roto cotton(small)'], label:'Roto Cotton Carry Bag Small' },
+  { id:'chk_paper_small',   keywords:['white paper carry bag (small)','white paper carry bag small','white paper bag small','white paper bag (small)'], label:'White Paper Carry Bag Small' },
+  { id:'chk_paper_medium',  keywords:['white paper carry bag (medium)','white paper carry bag medium','white paper bag medium','white paper bag (medium)','white paper carry bag meadium','white paper carry bag (meadium)'], label:'White Paper Carry Bag Medium' },
+];
+
+function p3RowMatchesGroup(row, group) {
+  // Check both pkgName and shortCode (item name column)
+  const name = (row.pkgName || '').toLowerCase();
+  const code = (row.shortCode || '').toLowerCase();
+  return group.keywords.some(kw => {
+    const k = kw.toLowerCase();
+    return name.includes(k) || code.includes(k);
+  });
+}
+
+// Broader fuzzy match for Roto Cotton and Cloth Carry Bag rows
+// since item names in the source file may be truncated or worded differently
+function p3RowMatchesOptionalFuzzy(row) {
+  const name = (row.pkgName || '').toLowerCase();
+  const code = (row.shortCode || '').toLowerCase();
+  const combined = name + ' ' + code;
+  // Delivery services N.E.C
+  if (/other delivery services/i.test(combined) || /delivery services n\.?e\.?c/i.test(combined)) return true;
+  // Roto Cotton Carry Bag (big/small)
+  if (/roto cotton/i.test(combined)) return true;
+  // Cloth Carry Bag (any brand, small/large/medium)
+  if (/cloth carry bag/i.test(combined) || /cloth bag/i.test(combined)) return true;
+  // White Paper Carry Bag
+  if (/white paper carry bag/i.test(combined) || /white paper bag/i.test(combined)) return true;
+  return false;
+}
+
+// Find which optional group(s) a fuzzy-matched row belongs to
+function p3GetMatchingGroups(row) {
+  return P3_OPTIONAL_GROUPS.filter(g => p3RowMatchesGroup(row, g));
+}
+
+function p3RowIsOptional(row) {
+  // First try exact keyword match
+  if (P3_OPTIONAL_GROUPS.some(g => p3RowMatchesGroup(row, g))) return true;
+  // Then fuzzy match (catches truncated/variant names)
+  return p3RowMatchesOptionalFuzzy(row);
+}
+
+function p3FilterRows(rows) {
+  return rows.filter(row => {
+    // Non-optional rows always stay
+    if (!p3RowIsOptional(row)) return true;
+    // Find which groups this row belongs to (keyword match first)
+    let matchedGroups = p3GetMatchingGroups(row);
+    // If keyword match found any group, keep row only if at least one matched group is checked
+    if (matchedGroups.length > 0) {
+      return matchedGroups.some(g => {
+        const chk = document.getElementById(g.id);
+        return chk && chk.checked;
+      });
+    }
+    // Fuzzy match only — determine group by pattern in name/shortCode
+    const name = (row.pkgName || '').toLowerCase();
+    const code = (row.shortCode || '').toLowerCase();
+    const combined = name + ' ' + code;
+    // Delivery services
+    if (/other delivery services/i.test(combined) || /delivery services n\.?e\.?c/i.test(combined)) {
+      const chk1 = document.getElementById('chk_delivery_nec1');
+      return chk1 && chk1.checked;
+    }
+    // Roto Cotton big/small
+    if (/roto cotton/i.test(combined)) {
+      const isBig = /big/i.test(combined);
+      const isSmall = /small/i.test(combined);
+      if (isBig) { const chk = document.getElementById('chk_roto_big'); return chk && chk.checked; }
+      if (isSmall) { const chk = document.getElementById('chk_roto_small'); return chk && chk.checked; }
+      // Unknown size — keep if either roto checkbox is checked
+      const cb = document.getElementById('chk_roto_big'), cs = document.getElementById('chk_roto_small');
+      return (cb && cb.checked) || (cs && cs.checked);
+    }
+    // Cloth carry bag
+    if (/cloth carry bag|cloth bag/i.test(combined)) {
+      const isBolas = /bolas/i.test(combined);
+      const isBig = /big/i.test(combined);
+      const isSmall = /small/i.test(combined);
+      const isMedium = /medium|meadium/i.test(combined);
+      const isLarge = /large/i.test(combined);
+      if (isBolas) {
+        if (isSmall)  { const chk = document.getElementById('chk_bolas_small');  return chk && chk.checked; }
+        if (isLarge)  { const chk = document.getElementById('chk_bolas_large');  return chk && chk.checked; }
+        if (isMedium) { const chk = document.getElementById('chk_bolas_medium'); return chk && chk.checked; }
+        // Unknown size bolas — keep if any bolas checked
+        return ['chk_bolas_small','chk_bolas_large','chk_bolas_medium'].some(id=>{ const c=document.getElementById(id); return c&&c.checked; });
+      } else {
+        if (isSmall)  { const chk = document.getElementById('chk_cloth_small');  return chk && chk.checked; }
+        if (isLarge)  { const chk = document.getElementById('chk_cloth_large');  return chk && chk.checked; }
+        return ['chk_cloth_small','chk_cloth_large'].some(id=>{ const c=document.getElementById(id); return c&&c.checked; });
+      }
+    }
+    // White paper bag
+    if (/white paper carry bag|white paper bag/i.test(combined)) {
+      const isSmall  = /small/i.test(combined);
+      const isMedium = /medium|meadium/i.test(combined);
+      if (isSmall)  { const chk = document.getElementById('chk_paper_small');  return chk && chk.checked; }
+      if (isMedium) { const chk = document.getElementById('chk_paper_medium'); return chk && chk.checked; }
+      return ['chk_paper_small','chk_paper_medium'].some(id=>{ const c=document.getElementById(id); return c&&c.checked; });
+    }
+    // Fallback: keep the row
+    return true;
+  });
+}
+
+// Persist checkbox state between modal opens
+const P3_CHK_STATE = {};
+function p3SaveCheckboxState() {
+  P3_OPTIONAL_GROUPS.forEach(g => {
+    const el = document.getElementById(g.id);
+    if (el) P3_CHK_STATE[g.id] = el.checked;
+  });
+}
+function p3RestoreCheckboxState() {
+  P3_OPTIONAL_GROUPS.forEach(g => {
+    const el = document.getElementById(g.id);
+    if (el && g.id in P3_CHK_STATE) el.checked = P3_CHK_STATE[g.id];
+  });
+}
+
+// Show a brief inline toast message near the download button
+function p3Toast(msg, color='#f59e0b') {
+  let t = document.getElementById('p3Toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'p3Toast';
+    t.style.cssText = 'margin-top:10px;padding:10px 14px;border-radius:10px;font-family:"DM Mono",monospace;font-size:12px;text-align:center;transition:opacity .4s';
+    const actionsRow = document.getElementById('p3BtnDl').parentElement;
+    actionsRow.after(t);
+  }
+  t.style.background = color === '#f59e0b' ? 'rgba(245,158,11,.12)' : 'rgba(239,68,68,.12)';
+  t.style.border = `1px solid ${color}44`;
+  t.style.color = color;
+  t.style.opacity = '1';
+  t.textContent = msg;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 3000);
+}
+
+function p3OpenModal() {
+  if (!p3AuditRows.length) {
+    p3Toast('⚙️ Click "Generate Audit Sheet" first, then download.');
+    return;
+  }
+  p3RestoreCheckboxState();
+  const modal = document.getElementById('p3ItemModal');
+  modal.classList.add('open');
+
+  // ── Focus trap: keep keyboard focus inside the modal ─────────
+  // Store the element that had focus before the modal opened so we can restore it
+  modal._triggerEl = document.activeElement;
+
+  // Collect all focusable elements inside the modal
+  function getFocusable() {
+    return Array.from(modal.querySelectorAll(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    ));
+  }
+
+  // Move focus to the first focusable element inside the modal
+  const focusable = getFocusable();
+  if (focusable.length) focusable[0].focus();
+
+  // Trap Tab / Shift-Tab inside the modal; Escape closes it
+  function trapFocus(e) {
+    if (e.key === 'Escape') { p3CloseModal(); return; }
+    if (e.key !== 'Tab') return;
+    const items = getFocusable();
+    if (!items.length) { e.preventDefault(); return; }
+    const first = items[0], last = items[items.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }
+  modal._trapFocus = trapFocus;
+  modal.addEventListener('keydown', trapFocus);
+}
+
+function p3CloseModal() {
+  p3SaveCheckboxState();
+  const modal = document.getElementById('p3ItemModal');
+  modal.classList.remove('open');
+  // Remove focus trap listener and restore focus to the element that opened the modal
+  if (modal._trapFocus) {
+    modal.removeEventListener('keydown', modal._trapFocus);
+    modal._trapFocus = null;
+  }
+  if (modal._triggerEl) { modal._triggerEl.focus(); modal._triggerEl = null; }
+}
+
+function p3SelectAll(state) {
+  P3_OPTIONAL_GROUPS.forEach(g => {
+    const el = document.getElementById(g.id);
+    if (el) el.checked = state;
+  });
+}
+
+// Live preview update when checkboxes change inside modal
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('p3ItemModal').addEventListener('change', function(e) {
+    if (e.target.type === 'checkbox' && p3AuditRows.length) {
+      const filtered = p3FilterRows(p3AuditRows);
+      p3BuildPreview(filtered);
+      const tot = document.getElementById('p3STot');
+      if (tot) tot.textContent = filtered.length;
+    }
+  });
+
+  // Close modal when clicking the backdrop
+  document.getElementById('p3ItemModal').addEventListener('click', function(e) {
+    if (e.target === this) p3CloseModal();
+  });
+});
+
+async function p3ConfirmDownload() {
+  p3CloseModal();
+  if (!p3AuditRows.length) return;
+  // Re-build excel with filtered rows
+  const filtered = p3FilterRows(p3AuditRows);
+  if (!filtered.length) {
+    p3Toast('⚠ No rows to download — all items are unticked. Please tick at least some items.', '#ef4444');
+    return;
+  }
+  // Show loader briefly
+  p3Msg('Building filtered Excel…');
+  try {
+    const blob = await p3BuildExcelJS(filtered);
+    const url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = p3GetFileName();
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  } catch(e) {
+    $3('p3ErrBox').textContent = 'Excel build failed: ' + e.message;
+    p3On($3('p3ErrBox'));
+  }
+  p3Done();
+}
+
+function p3SwitchPreviewTab(n) {
+  const s1 = $3('p3PrevSheet1'), s2 = $3('p3PrevSheet2');
+  const b1 = $3('p3Tab1Btn'), b2 = $3('p3Tab2Btn');
+  if (n === 1) {
+    s1.style.display = ''; s2.style.display = 'none';
+    b1.style.background = '#2E3F9F'; b1.style.color = '#fff';
+    b2.style.background = '#f0f0f0'; b2.style.color = '#555';
+  } else {
+    s1.style.display = 'none'; s2.style.display = '';
+    b2.style.background = '#1B2A6B'; b2.style.color = '#fff';
+    b1.style.background = '#f0f0f0'; b1.style.color = '#555';
+  }
+}
+
+function p3BuildPreview(rows){
+  const tbl=$3('p3PrevTbl'),dateStr=p3TodayStr();
+  let h=`<tr class="title-row"><td colspan="10">${p3GetSheetTitle()}</td></tr>`;
+  h+=`<tr class="date-row"><td colspan="10">Audit Date: ${dateStr} &nbsp;|&nbsp; Generated by SHARATH'S SYSTEM &nbsp;|&nbsp; CONFIDENTIAL</td></tr>`;
+  h+=`<thead><tr><th style="width:34px">Sr</th><th style="text-align:left">Item Name</th><th style="text-align:left">Package Name</th><th>Closing</th><th>Physical (Packs)</th><th>Store Count</th><th>Rack Count</th><th>Total</th><th>Difference</th><th>Remark</th></tr></thead><tbody>`;
+  rows.forEach((r,ri)=>{
+    let ps,psStyle='';
+    if(r.packType==='unknown'){ps='?';psStyle='color:#888;font-style:italic';}else if(r.physical!==null){ps=Math.round(r.physical*1000)/1000;}else{ps='—';psStyle='color:#888';}
+    const nm=p3Esc(r.pkgName.length>46?r.pkgName.slice(0,46)+'…':r.pkgName);
+    const rowBg=r.hasNegative?'background:#FFF3CD':'',clsStyle=r.hasNegative?'color:#856404;font-weight:700':'';
+    const searchKey=p3Esc((r.shortCode+' '+r.pkgName).toLowerCase());
+    h+=`<tr style="${rowBg}" data-idx="${ri}" data-status="pending" data-search="${searchKey}">`
+      +`<td style="color:#888;text-align:center;font-size:10px">${ri+1}</td><td>${p3Esc(r.shortCode)}</td><td title="${p3Esc(r.pkgName)}">${nm}</td>`
+      +`<td style="${clsStyle}">${r.closing}</td><td style="${psStyle}">${ps}</td>`
+      +`<td class="manual"><input type="number" inputmode="numeric" min="0" class="cnt-input" data-idx="${ri}" data-field="store" value=""></td>`
+      +`<td class="manual"><input type="number" inputmode="numeric" min="0" class="cnt-input" data-idx="${ri}" data-field="rack" value=""></td>`
+      +`<td id="p3Tot${ri}"></td><td id="p3Dif${ri}"></td><td id="p3Rem${ri}" style="color:#aaa;font-style:italic;font-size:10px">auto</td></tr>`;
+  });
+  const negCount=rows.filter(r=>r.hasNegative).length,unkCount=rows.filter(r=>r.packType==='unknown').length;
+  let warns='';
+  if(negCount>0)warns+=`<div style="background:#FFF3CD;border:1px solid #ffc107;border-radius:6px;padding:7px 12px;margin:5px 0;font-size:11px;color:#856404">⚠ <strong>${negCount} product(s)</strong> have negative closing stock — please check your source file.</div>`;
+  if(unkCount>0)warns+=`<div style="background:#f8f9fa;border:1px solid #dee2e6;border-radius:6px;padding:7px 12px;margin:5px 0;font-size:11px;color:#555">ℹ <strong>${unkCount} product(s)</strong> show "?" — pack size not recognised.</div>`;
+  h+=`</tbody><tfoot>${warns?`<tr><td colspan="10" style="padding:7px 4px;border:none;">${warns}</td></tr>`:''}<tr><td colspan="10" style="padding:0;border:none;"><div class="summary-section"><div class="summary-boxes"><div class="sum-box"><div class="sum-box-lbl sum-total">TOTAL PRODUCTS</div><div class="sum-box-val sum-total">${rows.length}</div></div><div class="sum-box"><div class="sum-box-lbl sum-short-l">SHORT</div><div class="sum-box-val sum-short-v" id="p3SumShort">0</div></div><div class="sum-box"><div class="sum-box-lbl sum-excess-l">EXCESS</div><div class="sum-box-val sum-excess-v" id="p3SumExcess">0</div></div><div class="sum-box"><div class="sum-box-lbl sum-match-l">MATCHED</div><div class="sum-box-val sum-match-v" id="p3SumMatch">0</div></div></div></div></td></tr><tr><td colspan="10" style="padding:0;border:none;"><div class="foot-note">★ Ivory = tap to fill Store/Rack Count | Amber = negative closing | ? = unknown pack | Confidential</div></td></tr></tfoot>`;
+  tbl.innerHTML=h;
+
+  // Wire up the editable count inputs
+  tbl.querySelectorAll('.cnt-input').forEach(inp=>{
+    inp.addEventListener('input', p3OnCountInput);
+  });
+
+  // Initial calc pass (all blank → zeros) so stats/ring start accurate, then apply current filter/search
+  p3RecalcSummary();
+
+  // Also build Sheet 2 preview
+  p3BuildPreviewSheet2(rows);
+}
+
+// ── Live recompute engine for the editable Store/Rack Count columns ──────
+// Mirrors the Excel formulas exactly (H=F+G, I=ROUND(H-E,4), J=SHORT/EXCESS/MATCHED)
+// so the on-screen preview always matches what the downloaded file will show.
+function p3RowCalc(r){
+  const sBlank=r.storeCount===null||r.storeCount===undefined, rBlank=r.rackCount===null||r.rackCount===undefined;
+  if(sBlank&&rBlank) return {total:null,diff:null,remark:null};
+  const total=(sBlank?0:r.storeCount)+(rBlank?0:r.rackCount);
+  if(r.physical===null||r.physical===undefined) return {total,diff:null,remark:null};
+  const diff=Math.round((total-r.physical)*10000)/10000;
+  const remark=diff<0?'SHORT':(diff>0?'EXCESS':'MATCHED');
+  return {total,diff,remark};
+}
+function p3OnCountInput(e){
+  const idx=parseInt(e.target.dataset.idx,10), field=e.target.dataset.field;
+  const raw=e.target.value;
+  const val=raw===''?null:Math.max(0,parseInt(raw,10)||0);
+  p3AuditRows[idx][field==='store'?'storeCount':'rackCount']=val;
+  p3RecalcRow(idx);
+  p3RecalcSummary();
+}
+function p3RecalcRow(idx){
+  const r=p3AuditRows[idx];
+  const {total,diff,remark}=p3RowCalc(r);
+  const totEl=document.getElementById(`p3Tot${idx}`), difEl=document.getElementById(`p3Dif${idx}`), remEl=document.getElementById(`p3Rem${idx}`);
+  if(totEl) totEl.textContent = total===null?'':total;
+  if(difEl) difEl.textContent = diff===null?'':(diff>0?'+':'')+diff;
+  if(remEl){
+    if(remark===null){ remEl.innerHTML=''; remEl.textContent='auto'; remEl.style.cssText='color:#aaa;font-style:italic;font-size:10px'; }
+    else{
+      const map={SHORT:['#FDECEA','#C0392B'],EXCESS:['#E8F5E9','#1E8449'],MATCHED:['#E3F2FD','#1A5276']};
+      const [bg,fg]=map[remark];
+      remEl.style.cssText='padding:0';
+      remEl.innerHTML=`<span class="remark-pill" style="background:${bg};color:${fg}">${remark}</span>`;
+    }
+  }
+  const tr=totEl?totEl.closest('tr'):null;
+  if(tr) tr.dataset.status = remark?remark.toLowerCase():'pending';
+}
+function p3RecalcSummary(){
+  let short=0,excess=0,matched=0,filled=0;
+  p3AuditRows.forEach((r,idx)=>{
+    const {remark}=p3RowCalc(r);
+    if(remark==='SHORT')short++; else if(remark==='EXCESS')excess++; else if(remark==='MATCHED')matched++;
+    if(remark)filled++;
+    p3RecalcRow(idx);
+  });
+  const total=p3AuditRows.length;
+  const setTxt=(id,v)=>{const el=document.getElementById(id); if(el) el.textContent=v;};
+  setTxt('p3STot',total); setTxt('p3SShort',short); setTxt('p3SExcess',excess); setTxt('p3SMatch',matched);
+  setTxt('p3SumShort',short); setTxt('p3SumExcess',excess); setTxt('p3SumMatch',matched);
+  p3UpdateAccuracyRing(filled?matched/filled:0);
+  p3ApplyFilter();
+}
+function p3UpdateAccuracyRing(frac){
+  const arc=document.getElementById('p3RingArc'), pct=document.getElementById('p3RingPct');
+  if(!arc||!pct) return;
+  const circumference=138.2, pctVal=Math.round(frac*100);
+  arc.setAttribute('stroke-dashoffset', String(circumference-(frac*circumference)));
+  arc.setAttribute('stroke', pctVal>=95?'#10b981':pctVal>=80?'#f59e0b':'#ef4444');
+  pct.textContent=pctVal+'%';
+}
+
+// ── Search + status filter for the preview table ─────────────────────────
+let p3CurrentFilter='all';
+function p3SetFilter(f){
+  p3CurrentFilter=f;
+  document.querySelectorAll('#p3Toolbar .filter-chip').forEach(b=>{
+    b.classList.toggle('active', b.dataset.filter===f);
+    b.classList.toggle('f-short', b.dataset.filter==='short');
+    b.classList.toggle('f-excess', b.dataset.filter==='excess');
+    b.classList.toggle('f-matched', b.dataset.filter==='matched');
+  });
+  p3ApplyFilter();
+}
+function p3ApplyFilter(){
+  const q=($3('p3SearchBox')?$3('p3SearchBox').value:'').trim().toLowerCase();
+  const tbl=$3('p3PrevTbl');
+  if(!tbl) return;
+  tbl.querySelectorAll('tbody tr[data-idx]').forEach(tr=>{
+    const matchesStatus = p3CurrentFilter==='all' || tr.dataset.status===p3CurrentFilter;
+    const matchesSearch = !q || (tr.dataset.search||'').includes(q);
+    tr.classList.toggle('row-hidden', !(matchesStatus&&matchesSearch));
+  });
+}
+
+function p3BuildPreviewSheet2(rows) {
+  const tbl = $3('p3PrevTbl2');
+  if (!tbl) return;
+  const dateStr = p3TodayStr();
+  const outletName = p3GetOutletName().toUpperCase();
+
+  // Gather SHORT and EXCESS candidates (at preview time we show all rows — auditor fills store/rack)
+  // We display all rows in both groups with Qty = "fill →" placeholder
+  let h = `<tr class="title-row"><td colspan="8">${outletName} — SHORT / EXCESS BILLING &amp; SELLING PRICE</td></tr>`;
+  h += `<tr class="date-row"><td colspan="8">Billing &amp; Selling Price as on: ${dateStr} &nbsp;|&nbsp; Generated by SHARATH'S SYSTEM &nbsp;|&nbsp; CONFIDENTIAL</td></tr>`;
+
+  const cols = ['Sr No', 'Item Name', 'Package Name', 'Qty (Packs)', 'Billing Price (₹)', 'Selling Price (₹)', 'Billing Value (₹)', 'Selling Value (₹)'];
+
+  // SHORT ITEMS
+  h += `<tr style="background:#C0392B"><td colspan="8" style="color:#fff;font-weight:800;font-size:12px;text-align:center;padding:10px;letter-spacing:.08em;">SHORT ITEMS</td></tr>`;
+  h += `<thead><tr style="background:#C0392B">` + cols.map((c,i)=>`<th style="color:#fff;text-align:${i<=2?'left':'center'}">${c}</th>`).join('') + `</tr></thead><tbody>`;
+  let shortCount = 0;
+  rows.forEach((r, ri) => {
+    shortCount++;
+    const bg = shortCount % 2 === 0 ? '#FFF5F5' : '#FFFFFF';
+    const nm = p3Esc(r.pkgName.length > 42 ? r.pkgName.slice(0,42)+'…' : r.pkgName);
+    h += `<tr style="background:${bg}">
+      <td style="color:#888;text-align:center">${shortCount}</td>
+      <td style="text-align:left;font-weight:700">${p3Esc(r.shortCode)}</td>
+      <td style="text-align:left" title="${p3Esc(r.pkgName)}">${nm}</td>
+      <td style="color:#aaa;font-style:italic;font-size:10px;text-align:center">auto ←Sheet1</td>
+      <td class="manual"></td><td class="manual"></td>
+      <td style="text-align:right">0</td><td style="text-align:right">0</td>
+    </tr>`;
+  });
+  h += `<tr style="background:#C0392B"><td colspan="6" style="color:#fff;font-weight:700;text-align:right;padding:8px;">TOTAL — SHORT ITEMS (₹)</td><td style="color:#fff;font-weight:700;text-align:right">—</td><td style="color:#fff;font-weight:700;text-align:right">—</td></tr>`;
+  h += `</tbody>`;
+
+  // 3-row gap
+  h += `<tbody><tr><td colspan="8" style="background:#F8F9FA;height:10px;border:1px solid #E8ECF8;"></td></tr>`;
+  h += `<tr><td colspan="8" style="background:#F8F9FA;height:10px;border:1px solid #E8ECF8;"></td></tr>`;
+  h += `<tr><td colspan="8" style="background:#F8F9FA;height:10px;border:1px solid #E8ECF8;"></td></tr></tbody>`;
+
+  // EXCESS ITEMS
+  h += `<tbody><tr style="background:#1E8449"><td colspan="8" style="color:#fff;font-weight:800;font-size:12px;text-align:center;padding:10px;letter-spacing:.08em;">EXCESS ITEMS</td></tr>`;
+  h += `<tr style="background:#1E8449">` + cols.map((c,i)=>`<th style="color:#fff;text-align:${i<=2?'left':'center'};background:#1E8449;padding:9px 11px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border:1px solid #C8CCE8">${c}</th>`).join('') + `</tr>`;
+  let excessCount = 0;
+  rows.forEach((r, ri) => {
+    excessCount++;
+    const bg = excessCount % 2 === 0 ? '#F0FFF4' : '#FFFFFF';
+    const nm = p3Esc(r.pkgName.length > 42 ? r.pkgName.slice(0,42)+'…' : r.pkgName);
+    h += `<tr style="background:${bg}">
+      <td style="color:#888;text-align:center">${excessCount}</td>
+      <td style="text-align:left;font-weight:700">${p3Esc(r.shortCode)}</td>
+      <td style="text-align:left" title="${p3Esc(r.pkgName)}">${nm}</td>
+      <td style="color:#aaa;font-style:italic;font-size:10px;text-align:center">auto ←Sheet1</td>
+      <td class="manual"></td><td class="manual"></td>
+      <td style="text-align:right">0</td><td style="text-align:right">0</td>
+    </tr>`;
+  });
+  h += `<tr style="background:#1E8449"><td colspan="6" style="color:#fff;font-weight:700;text-align:right;padding:8px;">TOTAL — EXCESS ITEMS (₹)</td><td style="color:#fff;font-weight:700;text-align:right">—</td><td style="color:#fff;font-weight:700;text-align:right">—</td></tr></tbody>`;
+
+  // Grand total
+  h += `<tfoot><tr style="background:#2E3F9F"><td colspan="6" style="color:#fff;font-weight:700;font-size:12px;text-align:right;padding:10px;">GRAND TOTAL — SHORT + EXCESS (₹)</td><td style="color:#fff;font-weight:700;text-align:right">—</td><td style="color:#fff;font-weight:700;text-align:right">—</td></tr>`;
+  h += `<tr><td colspan="8" style="padding:0;border:none;"><div class="foot-note">★ Qty (Packs) auto-fills from Sheet1 Difference when you enter Store &amp; Rack Count | Ivory = fill Billing/Selling Price manually | Confidential</div></td></tr></tfoot>`;
+
+  tbl.innerHTML = h;
+}
+
+// ══════════════════════════════════════════════════════════════
+// PANEL 3 — PDF RATE UPLOAD (LOCAL PARSING — no API needed)
+// Parses the Bolas retail rate PDF client-side using pdf.js
+// PDF columns: Sl No | SKU | Billing Price | Sug WS | WS Per Outlet | Retail Per Outlet | Sug Retail
+// We extract: Billing Price (col 3) and Retail Price As Per Outlet (col 6)
+// ══════════════════════════════════════════════════════════════
+
+window.p3RateMap = new Map();
+
+function p3ToggleRatePdf() {
+  const area = document.getElementById('p3RatePdfArea');
+  const btn = document.getElementById('p3RatePdfToggle');
+  if (area.style.display === 'none') {
+    area.style.display = 'block';
+    btn.textContent = '\u2715 Close';
+  } else {
+    area.style.display = 'none';
+    btn.textContent = '+ Upload PDF';
+  }
+}
+
+async function p3HandleRatePdf(file) {
+  if (!file) return;
+  const statusEl = document.getElementById('p3RatePdfStatus');
+  const loadEl = document.getElementById('p3RatePdfLoading');
+  statusEl.style.display = 'none';
+  loadEl.style.display = 'block';
+  loadEl.textContent = '\u23f3 Reading PDF...';
+
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    // Load pdf.js dynamically (CDN)
+    if (!window.pdfjsLib) {
+      await new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    loadEl.textContent = '\u23f3 Extracting text from PDF...';
+    const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let allLines = [];
+
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page = await pdf.getPage(p);
+      const tc = await page.getTextContent();
+      // Collect items with their x/y positions
+      const items = tc.items.map(i => ({
+        str: i.str.trim(),
+        x: Math.round(i.transform[4]),
+        y: Math.round(i.transform[5])
+      })).filter(i => i.str.length > 0);
+
+      // Group by y-position (same row = within 4px)
+      const rows = [];
+      items.forEach(item => {
+        const existing = rows.find(r => Math.abs(r.y - item.y) <= 4);
+        if (existing) { existing.items.push(item); }
+        else { rows.push({ y: item.y, items: [item] }); }
+      });
+      // Sort rows top-to-bottom (higher y = higher on page in PDF coords)
+      rows.sort((a, b) => b.y - a.y);
+      rows.forEach(row => {
+        row.items.sort((a, b) => a.x - b.x);
+        allLines.push(row.items.map(i => i.str));
+      });
+    }
+
+    // Parse lines into rate entries
+    // A data row looks like: ["1", "Bolas Cashew Nuts Pack Of 250 G", "20-06-2026", "225.000", "248.000", "248.000", "270.000", "270.000"]
+    // Columns: [slno] [sku...] [date dd-mm-yyyy] [billing] [sug_ws] [ws_outlet] [retail_outlet] [sug_retail]
+    //
+    // The SKU name sometimes wraps: the pack-size suffix ("200 G", "Pack 200 G")
+    // lands on its OWN line, positioned AFTER the line that already has
+    // [slno, partial-name, date, prices] (confirmed against this PDF's actual
+    // text layout — the date+price line is NOT held back waiting for it).
+    // So: any line WITH a date is a complete data row on its own (name may
+    // still be missing its suffix); any line WITHOUT a date is a trailing
+    // name fragment that belongs to whichever entry was just pushed.
+    const dateRe = /^\d{2}-\d{2}-\d{4}$/;
+    const numRe = /^\d+(\.\d+)?$/;
+    const priceRe = /^\d+\.\d{3}$/;
+
+    const dToNum = s => { // "DD-MM-YYYY" -> sortable YYYYMMDD integer
+      const m = /^(\d{2})-(\d{2})-(\d{4})$/.exec(s||'');
+      return m ? (Number(m[3])*10000 + Number(m[2])*100 + Number(m[1])) : 0;
+    };
+
+    const entries = [];
+    for (let li = 0; li < allLines.length; li++) {
+      const tokens = allLines[li].filter(t => t.length > 0);
+      if (!tokens.length) continue;
+
+      // Skip header / junk rows — including the page-break continuation of
+      // the column-header row ("Wholesale Price" / "As Per Outlet" / "Retail
+      // Price"), which would otherwise get appended to the previous page's
+      // last item as a stray fragment.
+      if (tokens.some(t => t === 'Sl No' || t === 'SKU' || t === 'Billing Price')) continue;
+      if (tokens.some(t => t.startsWith('053 Bolas') || t === 'Retail Rate List' || t.startsWith('Effective'))) continue;
+      if (tokens.some(t => t === 'To be continued...')) continue;
+      if (tokens.some(t => t === 'Wholesale Price' || t === 'As Per Outlet' || t === 'Retail Price')) continue;
+
+      const dateIdx = tokens.findIndex(t => dateRe.test(t));
+
+      if (dateIdx >= 0) {
+        // Primary data row: [slno?] [...name] [date] [prices...]. slno is
+        // the leading token only if it's purely numeric.
+        const hasSlno = /^\d+$/.test(tokens[0]);
+        const name = tokens.slice(hasSlno ? 1 : 0, dateIdx).join(' ').trim();
+        const effDate = tokens[dateIdx];
+        const prices = tokens.slice(dateIdx + 1).filter(t => priceRe.test(t));
+        if (name && prices.length >= 4) {
+          entries.push({ name, billing: parseFloat(prices[0]), selling: parseFloat(prices[3]), effDate, effDateSort: dToNum(effDate) });
+        } else if (name && prices.length === 3) {
+          entries.push({ name, billing: parseFloat(prices[0]), selling: parseFloat(prices[2]), effDate, effDateSort: dToNum(effDate) });
+        }
+      } else if (entries.length) {
+        // No date on this line -> wrapped-name fragment. Append it to the
+        // most recently pushed entry (the row it visually continues).
+        const frag = tokens.join(' ').trim();
+        if (frag) {
+          const last = entries[entries.length - 1];
+          last.name = (last.name + ' ' + frag).trim().replace(/\s+/g, ' ');
+        }
+      }
+    }
+
+    if (!entries.length) throw new Error('No price entries found. Check PDF format.');
+
+    // Build rate map — key = lowercase name with ALL whitespace stripped.
+    // Stock Report text and PDF SKU text are rarely spaced identically
+    // around numbers/units ("250g" vs "250 G", "PackOf" vs "Pack Of"), so
+    // matching is done on a fully space-stripped form on both sides.
+    const p3Norm = s => String(s||'').toLowerCase().replace(/\s+/g,'');
+    window.p3RateMap = new Map();
+    entries.forEach(e => {
+      if (!e.name) return;
+      const key = p3Norm(e.name);
+      const existing = window.p3RateMap.get(key);
+      // Same SKU name can legitimately appear more than once if it was
+      // re-priced (re-listed with a newer Effective From date). Keep
+      // whichever is most recent rather than just whichever came first.
+      if (!existing || (e.effDateSort||0) >= (existing.effDateSort||0)) {
+        window.p3RateMap.set(key, { billing: e.billing, selling: e.selling, name: e.name, effDate: e.effDate, effDateSort: e.effDateSort||0 });
+      }
+    });
+
+    // If the audit sheet was already generated once (e.g. PDF uploaded after
+    // clicking "Generate"), refresh it now so these rates apply right away —
+    // no need to click "Generate Audit Sheet" again.
+    let rebuildNote = '';
+    if (p3AuditRows.length) {
+      await p3RebuildExcel();
+      rebuildNote = '<br><span style="color:#10b981;font-size:11px;">✓ Your already-generated Excel was refreshed with these rates — just re-download it.</span>';
+    }
+
+    loadEl.style.display = 'none';
+    statusEl.style.display = 'block';
+    statusEl.innerHTML = `<span style="color:#10b981;font-weight:700;">\u2713 Rates loaded from PDF</span> \u2014 <strong>${window.p3RateMap.size}</strong> products found.<br>
+      <span style="color:var(--muted);font-size:11px;">These will auto-fill Billing &amp; Selling Price columns in the Excel when you download.</span>${rebuildNote}<br><br>
+      <details style="margin-top:6px;"><summary style="cursor:pointer;color:var(--t3);font-size:11px;">\u25b6 Preview loaded rates</summary>
+      <div style="margin-top:6px;max-height:200px;overflow-y:auto;">
+        ${entries.slice(0,40).map(e=>`<div style="padding:3px 0;border-bottom:1px solid var(--border);font-size:11px;display:flex;justify-content:space-between;gap:8px;"><span style="color:var(--text);flex:1">${e.name}</span><span style="color:#ef4444;white-space:nowrap">\u20b9${e.billing}</span><span style="color:#10b981;white-space:nowrap">\u20b9${e.selling}</span></div>`).join('')}
+        ${entries.length>40?`<div style="color:var(--muted);font-size:10px;padding-top:4px;">...and ${entries.length-40} more</div>`:''}
+        <div style="font-size:10px;color:var(--muted);margin-top:6px;">Red = Billing Price &nbsp; Green = Selling Price (Retail As Per Outlet)</div>
+      </div></details>`;
+
+    // Update zone
+    const zone = document.getElementById('p3RatePdfZone');
+    if (zone) zone.querySelector('div').textContent = '\u2713 ' + file.name + ' \u2014 ' + entries.length + ' rates loaded';
+
+  } catch(err) {
+    loadEl.style.display = 'none';
+    statusEl.style.display = 'block';
+    statusEl.innerHTML = `<span style="color:#ef4444;">\u2717 Error: ${err.message}</span><br><span style="color:var(--muted);font-size:11px;">Prices will remain blank (ivory cells) in the Excel \u2014 fill manually.</span>`;
+    console.error('PDF parse error:', err);
+  }
+}
+</script>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// OWNER LOGIN + USAGE TRACKING  (Firebase Auth + Firestore)
+// See the setup guide delivered with this file for the config steps.
+// ══════════════════════════════════════════════════════════════
+const OWNER_EMAIL = 'sharathkulal1919@gmail.com';
+
+// 1) PASTE YOUR FIREBASE CONFIG BELOW — see setup guide, Step 4
+const firebaseConfig = {
+  apiKey: "AIzaSyChcHGFwjLZGPpb9v_e2SVkl3kyEv6QKqI",
+  authDomain: "bolasxl.firebaseapp.com",
+  projectId: "bolasxl",
+  storageBucket: "bolasxl.firebasestorage.app",
+  messagingSenderId: "924756048399",
+  appId: "1:924756048399:web:e3887c6ba2a501cd8f017a"
+};
+
+firebase.initializeApp(firebaseConfig);
+const fbAuth = firebase.auth();
+const db = firebase.firestore();
+let currentUser = null;
+let isOwner = false;
+const PANEL_NAMES = {1:'Cashew Kernels',2:'Stock Report',3:'Stock Audit',4:'Owner Dashboard'};
+
+// ---- Sign-in ----
+document.getElementById('googleSignInBtn').addEventListener('click', () => {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  const btn = document.getElementById('googleSignInBtn');
+  const errEl = document.getElementById('authError');
+  errEl.textContent = '';
+  btn.disabled = true;
+  fbAuth.signInWithPopup(provider).catch(err => {
+    console.error('Sign-in error:', err);
+    errEl.textContent = (err.code === 'auth/unauthorized-domain')
+      ? 'This site\'s domain isn\'t authorized yet in Firebase — add it under Authentication → Settings → Authorized domains.'
+      : 'Sign-in failed: ' + err.message;
+  }).finally(() => { btn.disabled = false; });
+});
+
+// ---- Auth state: show/hide the app, gate non-approved users, tag the owner ----
+let userStatusUnsub = null;
+
+fbAuth.onAuthStateChanged(async (user) => {
+  if (userStatusUnsub) { userStatusUnsub(); userStatusUnsub = null; }
+
+  if (!user) {
+    currentUser = null; isOwner = false;
+    showScreen('authGate');
+    return;
+  }
+  currentUser = user;
+  isOwner = (user.email || '').toLowerCase() === OWNER_EMAIL.toLowerCase();
+
+  const chip = document.getElementById('userChip');
+  const firstName = (user.displayName || user.email || '').split(' ')[0];
+  chip.innerHTML = (user.photoURL ? `<img src="${user.photoURL}" referrerpolicy="no-referrer">` : '')
+    + `<span class="uc-name">${firstName}</span><button id="signOutBtn">Sign out</button>`;
+  document.getElementById('signOutBtn').addEventListener('click', () => fbAuth.signOut());
+
+  await touchUserDoc(user, isOwner);
+  logActivity('login', '-', isOwner ? 'owner' : 'user');
+
+  if (isOwner) {
+    addOwnerTab();
+    showScreen('app');
+    return;
+  }
+
+  // Non-owner: watch this user's own approval status in real time —
+  // the moment the owner approves them, they unlock automatically, no re-login needed.
+  userStatusUnsub = db.collection('users').doc(user.uid).onSnapshot(snap => {
+    const status = snap.exists ? (snap.data().status || 'pending') : 'pending';
+    if (status === 'approved') showScreen('app');
+    else showPendingGate(status);
+  }, err => {
+    console.warn('status listener failed:', err);
+    showPendingGate('pending');
+  });
+});
+
+// ---- Screen switching: authGate / pendingGate / app — always exactly one visible ----
+function showScreen(which) {
+  document.getElementById('authGate').style.display = which === 'authGate' ? 'flex' : 'none';
+  document.getElementById('pendingGate').style.display = 'none';
+  document.getElementById('appShell').style.display = which === 'app' ? 'block' : 'none';
+}
+function showPendingGate(status) {
+  document.getElementById('authGate').style.display = 'none';
+  document.getElementById('appShell').style.display = 'none';
+  document.getElementById('pendingGate').style.display = 'flex';
+  const icon = document.getElementById('pgIcon'), title = document.getElementById('pgTitle'), sub = document.getElementById('pgSub');
+  if (status === 'blocked') {
+    icon.textContent = '🚫';
+    title.innerHTML = 'Access <span>Turned Off</span>';
+    sub.textContent = "The owner has turned off your access to this tool. If you think that's a mistake, reach out to them directly.";
+  } else {
+    icon.textContent = '⏳';
+    title.innerHTML = 'Waiting for <span>Approval</span>';
+    sub.textContent = "Your sign-in request has been sent to the store owner. You'll get access automatically as soon as they approve you — no need to refresh this page.";
+  }
+}
+document.getElementById('pgSignOutBtn').addEventListener('click', () => fbAuth.signOut());
+
+// ---- Firestore: track each user's first/last seen + login count (never touches approval status after creation) ----
+async function touchUserDoc(user, ownerFlag) {
+  try {
+    const ref = db.collection('users').doc(user.uid);
+    const snap = await ref.get();
+    const now = firebase.firestore.FieldValue.serverTimestamp();
+    if (!snap.exists) {
+      await ref.set({
+        email: user.email, name: user.displayName || '', photoURL: user.photoURL || '',
+        firstLogin: now, lastLogin: now, loginCount: 1,
+        status: ownerFlag ? 'approved' : 'pending'
+      });
+    } else {
+      await ref.set({ email: user.email, name: user.displayName || '', photoURL: user.photoURL || '', lastLogin: now, loginCount: firebase.firestore.FieldValue.increment(1) }, { merge: true });
+    }
+  } catch (e) { console.warn('touchUserDoc failed:', e); }
+}
+
+// ---- Firestore: append one activity event ----
+function logActivity(action, panel, detail) {
+  if (!currentUser) return;
+  db.collection('activity').add({
+    uid: currentUser.uid, email: currentUser.email, name: currentUser.displayName || '',
+    action, panel: String(panel), detail: String(detail || '').slice(0, 200),
+    ts: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(e => console.warn('logActivity failed:', e));
+}
+
+// ---- Track tab switches (wraps the existing switchTab — doesn't change what it does) ----
+const _origSwitchTab = switchTab;
+switchTab = function(n) {
+  _origSwitchTab(n);
+  if (currentUser) logActivity('switch_tab', n, PANEL_NAMES[n] || n);
+  if (n === 4 && isOwner) loadOwnerDashboard();
+  else stopOwnerDashboard();
+};
+
+// ---- Track processing & downloads (adds listeners alongside the existing ones) ----
+function fileNameFor(n) {
+  const inp = document.getElementById(`p${n}FileInput`);
+  return (inp && inp.files && inp.files[0]) ? inp.files[0].name : '';
+}
+[1,2].forEach(n => {
+  const goBtn = document.getElementById(`p${n}ProcessBtn`);
+  if (goBtn) goBtn.addEventListener('click', () => logActivity('process_file', n, fileNameFor(n)));
+  const dlBtn = document.getElementById(`p${n}DownloadBtn`);
+  if (dlBtn) dlBtn.addEventListener('click', () => logActivity('download_file', n, fileNameFor(n)));
+});
+document.getElementById('p3BtnGo')?.addEventListener('click', () => logActivity('process_file', 3, fileNameFor(3)));
+document.querySelector('.modal-btn-dl')?.addEventListener('click', () => logActivity('download_file', 3, fileNameFor(3)));
+
+// ---- Owner tab: only ever created in the DOM for the owner account ----
+function addOwnerTab() {
+  if (document.querySelector('.tab[data-tab="4"]')) return;
+  const bar = document.querySelector('.tab-bar');
+  const btn = document.createElement('button');
+  btn.className = 'tab'; btn.dataset.tab = '4';
+  btn.setAttribute('onclick', 'switchTab(4)');
+  btn.innerHTML = `<span class="tab-dot"></span> <span class="tab-label">Owner Dashboard</span><span class="tab-emoji">🔒</span>`;
+  bar.appendChild(btn);
+}
+document.getElementById('ownerRefreshBtn')?.addEventListener('click', loadOwnerDashboard);
+
+// ---- Owner dashboard: live-updating usage + approval data ----
+let ownerUsersUnsub = null, ownerActUnsub = null;
+let ownerLatestUsers = null, ownerLatestActs = null;
+
+function stopOwnerDashboard() {
+  if (ownerUsersUnsub) { ownerUsersUnsub(); ownerUsersUnsub = null; }
+  if (ownerActUnsub) { ownerActUnsub(); ownerActUnsub = null; }
+  ownerLatestUsers = null; ownerLatestActs = null;
+}
+
+function loadOwnerDashboard() {
+  stopOwnerDashboard();
+  const pendWrap = document.getElementById('ownerPendingWrap');
+  const wrap = document.getElementById('ownerDashWrap');
+  if (!wrap) return;
+  const loadingMsg = '<p style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:12px;">Loading…</p>';
+  pendWrap.innerHTML = loadingMsg; wrap.innerHTML = loadingMsg;
+
+  ownerUsersUnsub = db.collection('users').orderBy('lastLogin', 'desc').limit(200)
+    .onSnapshot(snap => {
+      ownerLatestUsers = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+      renderOwnerDashboard();
+    }, err => {
+      console.error('users listener failed:', err);
+      wrap.innerHTML = `<p style="color:#ef4444;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load users: ${escHtml(err.message)}</p>`;
+    });
+
+  ownerActUnsub = db.collection('activity').orderBy('ts', 'desc').limit(150)
+    .onSnapshot(snap => {
+      ownerLatestActs = snap.docs.map(d => d.data());
+      renderOwnerDashboard();
+    }, err => console.warn('activity listener failed:', err));
+}
+
+// ---- Approve / deny / revoke / restore — only the owner's UI ever calls this ----
+async function setUserStatus(uid, newStatus) {
+  try {
+    await db.collection('users').doc(uid).update({
+      status: newStatus,
+      statusUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      statusUpdatedBy: currentUser.email
+    });
+    // live listeners pick up the change automatically — nothing else to do
+  } catch (e) {
+    alert("Couldn't update this user: " + e.message);
+  }
+}
+
+function renderOwnerDashboard() {
+  if (ownerLatestUsers === null || ownerLatestActs === null) return; // wait for both to load at least once
+  const pendWrap = document.getElementById('ownerPendingWrap');
+  const wrap = document.getElementById('ownerDashWrap');
+  const users = ownerLatestUsers.filter(u => (u.email || '').toLowerCase() !== OWNER_EMAIL.toLowerCase());
+  const acts = ownerLatestActs;
+  const pending = users.filter(u => (u.status || 'pending') === 'pending');
+  const others = users.filter(u => (u.status || 'pending') !== 'pending');
+
+  // ---- Pending requests ----
+  let pHtml = `<div class="results-title">⏳ Pending Requests${pending.length ? ` <span class="pill pill-pending">${pending.length}</span>` : ''}</div>`;
+  if (pending.length) {
+    pHtml += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Name</th><th style="text-align:left">Email</th><th>Requested</th><th>Action</th></tr></thead><tbody>`;
+    pending.forEach(u => {
+      pHtml += `<tr><td style="text-align:left">${escHtml(u.name || '—')}</td><td style="text-align:left">${escHtml(u.email || '—')}</td><td>${fmtTs(u.firstLogin)}</td><td>
+        <button class="mini-btn mini-btn-ok" data-act="approved" data-uid="${u.uid}">✓ Approve</button>
+        <button class="mini-btn mini-btn-no" data-act="blocked" data-uid="${u.uid}">✕ Deny</button>
+      </td></tr>`;
+    });
+    pHtml += `</tbody></table></div></div>`;
+  } else {
+    pHtml += `<div class="table-wrap" style="padding:18px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No pending requests right now</div>`;
+  }
+  pendWrap.innerHTML = pHtml;
+  pendWrap.querySelectorAll('.mini-btn').forEach(b => b.addEventListener('click', () => setUserStatus(b.dataset.uid, b.dataset.act)));
+
+  // ---- Stats + all users + activity ----
+  const totalFiles = acts.filter(a => a.action === 'process_file').length;
+  const totalDownloads = acts.filter(a => a.action === 'download_file').length;
+  const approvedCount = users.filter(u => u.status === 'approved').length;
+
+  let html = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:11px;margin-bottom:24px">`;
+  html += dashCard('Approved Users', approvedCount, 'var(--t1)');
+  html += dashCard('Pending Requests', pending.length, 'var(--t3)');
+  html += dashCard('Files Processed', totalFiles, 'var(--t2)');
+  html += dashCard('Downloads', totalDownloads, 'var(--accent3)');
+  html += `</div>`;
+
+  html += `<div class="results-title">All Users</div>`;
+  html += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Name</th><th style="text-align:left">Email</th><th>Status</th><th>Logins</th><th>Last Seen</th><th>Action</th></tr></thead><tbody>`;
+  others.forEach(u => {
+    const pill = u.status === 'approved' ? '<span class="pill pill-approved">Approved</span>' : '<span class="pill pill-blocked">Blocked</span>';
+    const actionBtn = u.status === 'approved'
+      ? `<button class="mini-btn mini-btn-no" data-act="blocked" data-uid="${u.uid}">Revoke</button>`
+      : `<button class="mini-btn mini-btn-ok" data-act="approved" data-uid="${u.uid}">Restore</button>`;
+    html += `<tr><td style="text-align:left">${escHtml(u.name || '—')}</td><td style="text-align:left">${escHtml(u.email || '—')}</td><td>${pill}</td><td style="text-align:center">${u.loginCount || 1}</td><td>${fmtTs(u.lastLogin)}</td><td>${actionBtn}</td></tr>`;
+  });
+  if (!others.length) html += `<tr><td colspan="6" style="text-align:center;color:var(--muted)">No approved or blocked users yet</td></tr>`;
+  html += `</tbody></table></div></div>`;
+
+  html += `<div class="results-title" style="margin-top:24px">Recent Activity</div>`;
+  html += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Who</th><th>Action</th><th>Panel</th><th style="text-align:left">Detail</th><th>When</th></tr></thead><tbody>`;
+  acts.forEach(a => {
+    html += `<tr><td style="text-align:left">${escHtml(a.name || a.email || '—')}</td><td>${escHtml(actionLabel(a.action))}</td><td>${escHtml(PANEL_NAMES[a.panel] || a.panel)}</td><td style="text-align:left">${escHtml(a.detail || '—')}</td><td>${fmtTs(a.ts)}</td></tr>`;
+  });
+  if (!acts.length) html += `<tr><td colspan="5" style="text-align:center;color:var(--muted)">No activity yet</td></tr>`;
+  html += `</tbody></table></div></div>`;
+
+  wrap.innerHTML = html;
+}
+
+function dashCard(label, value, color) {
+  return `<div class="card"><div class="dash-stat-label">${label}</div><div class="dash-stat-val" style="color:${color}">${value}</div></div>`;
+}
+function escHtml(s) { return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function fmtTs(ts) {
+  if (!ts) return '—';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+function actionLabel(a) { return {login: 'Signed in', switch_tab: 'Opened tab', process_file: 'Processed file', download_file: 'Downloaded file'}[a] || a; }
+</script>
+</body>
