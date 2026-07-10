@@ -1972,10 +1972,10 @@ function p3ProcessFile(){
       if(!p3AuditRows.length)throw new Error('No product rows found. Please check the file format.');
       p3Msg('Building coloured Excel…');
       p3RebuildExcel().then(()=>{
-        $3('p3STot').textContent=p3AuditRows.length;$3('p3SShort').textContent='—';$3('p3SExcess').textContent='—';$3('p3SMatch').textContent='—';
         p3On($3('p3Stats'));p3On($3('p3InfoStrip'));
         p3On($3('p3PrevWrap'));
         p3Done();$3('p3BtnGo').disabled=false;$3('p3BtnDl').disabled=false;
+        $3('p3Stats').scrollIntoView({behavior:'smooth',block:'start'});
       }).catch(e=>{p3Done();$3('p3BtnGo').disabled=false;$3('p3ErrBox').textContent='Excel build failed: '+e.message;p3On($3('p3ErrBox'));});
     }catch(e){p3Done();$3('p3BtnGo').disabled=false;$3('p3ErrBox').textContent=e.message||'Processing failed.';p3On($3('p3ErrBox'));}
   },60);
