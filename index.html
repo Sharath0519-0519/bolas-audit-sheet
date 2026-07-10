@@ -26,24 +26,53 @@ body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-he
 body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(78,205,196,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(78,205,196,.025) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
 
 /* ── HEADER ── */
-.suite-header{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:36px 24px 0}
-.suite-logo{display:flex;align-items:center;gap:16px;margin-bottom:28px}
-.suite-icon{width:52px;height:52px;background:linear-gradient(135deg,var(--t1),var(--t2));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
-.suite-title h1{font-size:26px;font-weight:800;letter-spacing:-.5px}
-.suite-title h1 span{background:linear-gradient(90deg,var(--t1),var(--t2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.suite-title p{color:var(--muted);font-size:13px;font-family:'DM Mono',monospace;margin-top:4px}
+/* ── SIDEBAR SHELL ── */
+.shell-flex{display:flex;min-height:100vh;align-items:stretch}
+.sidebar{width:252px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:28px 16px 18px;display:flex;flex-direction:column;position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto}
+.sidebar-logo{display:flex;align-items:center;gap:12px;padding:0 8px;margin-bottom:6px}
+.sidebar-logo .suite-icon{width:42px;height:42px;font-size:19px;flex-shrink:0}
+.sidebar-logo h1{font-size:18px;font-weight:800;letter-spacing:-.3px}
+.sidebar-logo h1 span{background:linear-gradient(90deg,var(--t1),var(--t2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sidebar-tagline{color:var(--muted);font-size:10.5px;font-family:'DM Mono',monospace;padding:0 8px;margin-bottom:26px;line-height:1.6}
+.nav-label{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;padding:0 10px;margin:8px 0 9px}
+.sidebar-spacer{flex:1;min-height:20px}
+.sidebar-footer{padding:14px 10px 2px;border-top:1px solid var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:9.5px}
 
-/* ── TABS ── */
-.tab-bar{display:flex;gap:4px;background:var(--surface);border-radius:14px;padding:6px;border:1px solid var(--border);margin-bottom:0}
-.tab{flex:1;padding:10px 16px;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:8px}
-.tab:hover{color:var(--text)}
-.tab.active[data-tab="1"]{background:rgba(78,205,196,.12);color:var(--t1);box-shadow:0 0 0 1px rgba(78,205,196,.3)}
-.tab.active[data-tab="2"]{background:rgba(232,197,71,.12);color:var(--t2);box-shadow:0 0 0 1px rgba(232,197,71,.3)}
-.tab.active[data-tab="3"]{background:rgba(245,158,11,.12);color:var(--t3);box-shadow:0 0 0 1px rgba(245,158,11,.3)}
-.tab .tab-dot{width:8px;height:8px;border-radius:50%}
-.tab[data-tab="1"] .tab-dot{background:var(--t1)}
-.tab[data-tab="2"] .tab-dot{background:var(--t2)}
-.tab[data-tab="3"] .tab-dot{background:var(--t3)}
+.main-area{flex:1;min-width:0}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:32px 30px 0;position:relative;gap:14px}
+.topbar-title{font-family:'Syne',sans-serif;font-weight:800;font-size:21px;letter-spacing:-.3px}
+.hamburger-btn{display:none;background:var(--surface);border:1px solid var(--border);color:var(--text);width:36px;height:36px;border-radius:9px;font-size:15px;cursor:pointer;flex-shrink:0;align-items:center;justify-content:center}
+.sidebar-backdrop{display:none}
+
+/* ── TABS — repurposed as vertical sidebar nav items (same classes, JS untouched) ── */
+.tab-bar{display:flex;flex-direction:column;gap:2px;background:none;border:none;padding:0;margin-top:2px}
+.tab{width:100%;flex:none;justify-content:flex-start;text-align:left;padding:11px 12px 11px 16px;position:relative;gap:10px;border-radius:9px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;background:transparent;color:var(--muted);display:flex;align-items:center}
+.tab:hover{color:var(--text);background:var(--surface2)}
+.tab.active[data-tab="1"]{background:rgba(78,205,196,.12);color:var(--t1)}
+.tab.active[data-tab="2"]{background:rgba(232,197,71,.12);color:var(--t2)}
+.tab.active[data-tab="3"]{background:rgba(245,158,11,.12);color:var(--t3)}
+.tab.active{background:rgba(99,102,241,.14);color:#818cf8}
+.tab .tab-emoji{font-size:15px;line-height:1}
+.tab .tab-label{font-size:13px;flex:1}
+.tab .tab-dot{position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:3px 0 0 3px;background:transparent}
+.tab.active .tab-dot{background:currentColor}
+
+/* ── NUMBERED SETUP CARDS (Upload / Outlet / Rate PDF) ── */
+.setup-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px;align-items:start}
+.setup-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px}
+.setup-card.optional{border-style:dashed}
+.setup-card[onclick]{transition:transform .15s,border-color .15s}
+.setup-card[onclick]:hover{transform:translateY(-2px);border-color:#818cf8}
+.setup-card-hdr{display:flex;align-items:center;gap:10px;margin-bottom:13px}
+.setup-num{width:23px;height:23px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;font-family:'Syne',sans-serif;color:#fff;flex-shrink:0}
+.setup-card-hdr h3{font-size:13.5px;font-weight:800}
+.setup-card-hdr .opt-tag{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;font-weight:400;margin-left:3px}
+@media(max-width:900px){.setup-cards{grid-template-columns:1fr}}
+
+/* ── TOPBAR CHROME: bell + avatar ── */
+.icon-btn{position:relative;width:36px;height:36px;border-radius:10px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;flex-shrink:0;color:var(--text)}
+.icon-btn .badge{position:absolute;top:-5px;right:-5px;background:var(--accent3);color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 4px;font-family:'DM Mono',monospace}
+.avatar-circle{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--t1),var(--t2));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#0d0f14;flex-shrink:0}
 
 /* ── PANELS ── */
 .container{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 24px 60px}
@@ -267,7 +296,6 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 @media(max-width:560px){
   .cards-6{grid-template-columns:repeat(2,1fr)}
   .cards-3{grid-template-columns:1fr}
-  .tab span.tab-label{display:none}
   .audit-stats{grid-template-columns:repeat(2,1fr)}
   .actions-row{flex-direction:column}
   /* Audit preview table: shrink font and padding so it fits on small screens */
@@ -281,7 +309,14 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
   .filter-chip{padding:6px 10px;font-size:10px}
   .ring-card{grid-column:span 2}
   .tscroll{-webkit-overflow-scrolling:touch} /* smooth momentum scroll on iOS */
-  .user-chip{position:static;margin:14px 0 0;justify-content:flex-end}
+  .topbar{padding:20px 16px 0}
+  .user-chip .uc-name{max-width:70px}
+}
+@media(max-width:860px){
+  .hamburger-btn{display:flex}
+  .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:501;transform:translateX(-100%);transition:transform .25s ease;box-shadow:8px 0 30px rgba(0,0,0,.45);width:264px}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-backdrop.open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500}
 }
 
 /* ── ITEM SELECTOR MODAL ── */
@@ -325,14 +360,14 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 #appShell{display:none}
 
 /* ── USER CHIP (top-right, shown to everyone once signed in) ── */
-.user-chip{position:absolute;top:36px;right:24px;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:30px;padding:6px 8px 6px 6px;font-size:12px;z-index:2}
+.user-chip{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:30px;padding:6px 8px 6px 6px;font-size:12px;flex-shrink:0}
 .user-chip img{width:26px;height:26px;border-radius:50%;display:block}
 .user-chip .uc-name{color:var(--text);font-weight:700;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .user-chip button{background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:20px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;transition:all .15s}
 .user-chip button:hover{color:var(--accent3);border-color:var(--accent3)}
 
 /* ── OWNER TAB / DASHBOARD (only ever added to the DOM for the owner account) ── */
-.tab.active[data-tab="4"]{background:rgba(255,107,107,.12);color:var(--accent3);box-shadow:0 0 0 1px rgba(255,107,107,.3)}
+.tab.active[data-tab="4"]{background:rgba(255,107,107,.12);color:var(--accent3)}
 .tab[data-tab="4"] .tab-dot{background:var(--accent3)}
 .dash-stat-label{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
 .dash-stat-val{font-size:26px;font-weight:800}
@@ -379,34 +414,71 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 </div>
 
 <div id="appShell">
-<div class="suite-header">
-  <div class="suite-logo">
+<div class="shell-flex">
+<div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
+<aside class="sidebar" id="sidebarEl">
+  <div class="sidebar-logo">
     <div class="suite-icon">🥜</div>
-    <div class="suite-title">
-      <h1>Bolas <span>Stock Suite</span></h1>
-      <p>3-in-1 Tool · Kernels Report · Flavoured Report · Stock Audit</p>
-    </div>
+    <h1>Bolas <span>Stock Suite</span></h1>
   </div>
-  <div id="userChip" class="user-chip"></div>
+  <p class="sidebar-tagline">3-in-1 Tool · Enterprise Inventory Platform</p>
+  <div class="nav-label">Main Menu</div>
   <div class="tab-bar">
-    <button class="tab active" data-tab="1" onclick="switchTab(1)">
-      <span class="tab-dot"></span> <span class="tab-label">Cashew Kernels</span><span class="tab-emoji">🥜</span>
+    <button class="tab active" data-tab="5" onclick="switchTab(5)">
+      <span class="tab-dot"></span><span class="tab-emoji">🏠</span><span class="tab-label">Dashboard</span>
+    </button>
+    <button class="tab" data-tab="1" onclick="switchTab(1)">
+      <span class="tab-dot"></span><span class="tab-emoji">🥜</span><span class="tab-label">Kernel Report</span>
     </button>
     <button class="tab" data-tab="2" onclick="switchTab(2)">
-      <span class="tab-dot"></span> <span class="tab-label">Stock Report</span><span class="tab-emoji">📊</span>
+      <span class="tab-dot"></span><span class="tab-emoji">📊</span><span class="tab-label">Flavoured Report</span>
     </button>
     <button class="tab" data-tab="3" onclick="switchTab(3)">
-      <span class="tab-dot"></span> <span class="tab-label">Stock Audit</span><span class="tab-emoji">📋</span>
+      <span class="tab-dot"></span><span class="tab-emoji">📋</span><span class="tab-label">Stock Audit</span>
     </button>
+    <button class="tab" data-tab="6" onclick="switchTab(6)">
+      <span class="tab-dot"></span><span class="tab-emoji">🕒</span><span class="tab-label">History</span>
+    </button>
+    <button class="tab" data-tab="7" onclick="switchTab(7)">
+      <span class="tab-dot"></span><span class="tab-emoji">⚙️</span><span class="tab-label">Settings</span>
+    </button>
+  </div>
+  <div class="nav-label" style="margin-top:18px">Tools</div>
+  <div class="tab-bar" id="toolsTabBar">
+    <button class="tab" data-tab="8" onclick="switchTab(8)">
+      <span class="tab-dot"></span><span class="tab-emoji">💰</span><span class="tab-label">Rate Manager</span>
+    </button>
+    <button class="tab" data-tab="9" onclick="switchTab(9)">
+      <span class="tab-dot"></span><span class="tab-emoji">🏬</span><span class="tab-label">Outlet Manager</span>
+    </button>
+    <button class="tab" data-tab="10" onclick="switchTab(10)">
+      <span class="tab-dot"></span><span class="tab-emoji">📜</span><span class="tab-label">Audit History</span>
+    </button>
+    <!-- Owner Dashboard button is appended here by JS, owner account only -->
+  </div>
+  <div class="sidebar-spacer"></div>
+  <div class="sidebar-footer">Bolas Stock Suite</div>
+</aside>
+
+<main class="main-area">
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:14px">
+    <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">☰</button>
+    <div class="topbar-title" id="topbarTitle">Dashboard</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="icon-btn" id="bellBtn" style="display:none" onclick="switchTab(4)" aria-label="Pending requests" title="Pending sign-in requests">🔔<span class="badge" id="bellBadge" style="display:none">0</span></button>
+    <div id="userChip" class="user-chip"></div>
   </div>
 </div>
 
 <div class="container">
 
+
 <!-- ══════════════════════════════════════════════════════
      PANEL 1 — CASHEW KERNELS
 ══════════════════════════════════════════════════════ -->
-<div class="panel active" id="panel1">
+<div class="panel" id="panel1">
   <div class="section-head">
     <span class="dot" style="background:var(--t1)"></span>
     <div>
@@ -515,49 +587,51 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     </div>
   </div>
 
-  <div class="upload-zone amber" id="p3dz">
-    <div class="upload-icon" id="p3ZoneIcon">📦</div>
-    <h2 id="p3ZoneTitle">Drop your Stock Report here</h2>
-    <p id="p3ZoneSub">Drag & drop or <span class="hl3">click to browse</span> · Supports .xls and .xlsx</p>
-    <input type="file" id="p3FileInput" style="display:none">
-  </div>
-
-  <div class="file-info" id="p3FileBar">
-    <div class="file-icon c3">📊</div>
-    <div class="file-details"><div class="name" id="p3FbName">—</div><div class="size" id="p3FbSize">—</div></div>
-    <button class="remove-btn" id="p3FbX" aria-label="Remove file">✕</button>
-  </div>
-
-  <!-- Outlet Name Input -->
-  <div style="margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;">
-    <label style="display:block;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;">🏪 Outlet Name <span style="color:var(--t3)">*</span></label>
-    <input type="text" id="p3OutletName" placeholder="e.g. 053 Bangalore Vijayanagar"
-      style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:13px;color:var(--text);outline:none;transition:border-color .2s;"
-      oninput="p3UpdateOutletPreview()"
-      onfocus="this.style.borderColor='var(--t3)'"
-      onblur="this.style.borderColor='var(--border)'"
-    >
-    <div id="p3OutletPreview" style="margin-top:8px;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);display:none;">
-      📋 Sheet title will read: <span id="p3OutletPreviewText" style="color:var(--t3);font-weight:700;"></span>
-    </div>
-  </div>
-
-  <!-- PDF Rate Upload Section -->
-  <div id="p3RateSection" style="margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <label style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;">
-        📄 Upload Rate PDF <span style="color:var(--muted);font-weight:400;">(optional — auto-fills billing &amp; selling prices)</span>
-      </label>
-      <button id="p3RatePdfToggle" onclick="p3ToggleRatePdf()" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:8px;color:var(--t3);font-family:'DM Mono',monospace;font-size:11px;padding:4px 12px;cursor:pointer;">+ Upload PDF</button>
-    </div>
-    <div id="p3RatePdfArea" style="display:none;">
-      <div class="upload-zone amber" id="p3RatePdfZone" style="padding:20px 16px;" onclick="document.getElementById('p3RatePdfInput').click()">
-        <div style="font-size:13px;font-weight:700;margin-bottom:4px;">Drop Rate PDF here</div>
-        <p style="font-size:12px;color:var(--muted);">Upload your latest price list PDF — Claude AI will extract billing &amp; selling prices automatically</p>
-        <input type="file" id="p3RatePdfInput" accept=".pdf" style="display:none" onchange="p3HandleRatePdf(this.files[0])">
+  <div class="setup-cards">
+    <div class="setup-card">
+      <div class="setup-card-hdr"><div class="setup-num" style="background:var(--t1)">1</div><h3>Upload Stock Report</h3></div>
+      <div class="upload-zone amber" id="p3dz">
+        <div class="upload-icon" id="p3ZoneIcon">📦</div>
+        <h2 id="p3ZoneTitle">Drop your Stock Report here</h2>
+        <p id="p3ZoneSub">Drag & drop or <span class="hl3">click to browse</span> · Supports .xls and .xlsx</p>
+        <input type="file" id="p3FileInput" style="display:none">
       </div>
-      <div id="p3RatePdfStatus" style="display:none;margin-top:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);"></div>
-      <div id="p3RatePdfLoading" style="display:none;margin-top:8px;text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:var(--t3);">⏳ Extracting prices from PDF using AI…</div>
+      <div class="file-info" id="p3FileBar">
+        <div class="file-icon c3">📊</div>
+        <div class="file-details"><div class="name" id="p3FbName">—</div><div class="size" id="p3FbSize">—</div></div>
+        <button class="remove-btn" id="p3FbX" aria-label="Remove file">✕</button>
+      </div>
+    </div>
+
+    <div class="setup-card">
+      <div class="setup-card-hdr"><div class="setup-num" style="background:#10b981">2</div><h3>Outlet Details</h3></div>
+      <label style="display:block;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;">🏪 Outlet Name <span style="color:var(--t3)">*</span></label>
+      <input type="text" id="p3OutletName" placeholder="e.g. 053 Bangalore Vijayanagar"
+        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:13px;color:var(--text);outline:none;transition:border-color .2s;"
+        oninput="p3UpdateOutletPreview()"
+        onfocus="this.style.borderColor='var(--t3)'"
+        onblur="this.style.borderColor='var(--border)'"
+      >
+      <div id="p3OutletPreview" style="margin-top:8px;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);display:none;">
+        📋 Sheet title will read: <span id="p3OutletPreviewText" style="color:var(--t3);font-weight:700;"></span>
+      </div>
+    </div>
+
+    <div class="setup-card optional" id="p3RateSection">
+      <div class="setup-card-hdr"><div class="setup-num" style="background:var(--t3)">3</div><h3>Upload Rate PDF<span class="opt-tag">(Optional)</span></h3></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <label style="font-size:10.5px;font-family:'DM Mono',monospace;color:var(--muted);">Auto-fills billing &amp; selling prices</label>
+        <button id="p3RatePdfToggle" onclick="p3ToggleRatePdf()" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:8px;color:var(--t3);font-family:'DM Mono',monospace;font-size:11px;padding:4px 12px;cursor:pointer;">+ Upload PDF</button>
+      </div>
+      <div id="p3RatePdfArea" style="display:none;">
+        <div class="upload-zone amber" id="p3RatePdfZone" style="padding:20px 16px;" onclick="document.getElementById('p3RatePdfInput').click()">
+          <div style="font-size:13px;font-weight:700;margin-bottom:4px;">Drop Rate PDF here</div>
+          <p style="font-size:12px;color:var(--muted);">Upload your latest price list PDF — Claude AI will extract billing &amp; selling prices automatically</p>
+          <input type="file" id="p3RatePdfInput" accept=".pdf" style="display:none" onchange="p3HandleRatePdf(this.files[0])">
+        </div>
+        <div id="p3RatePdfStatus" style="display:none;margin-top:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);"></div>
+        <div id="p3RatePdfLoading" style="display:none;margin-top:8px;text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:var(--t3);">⏳ Extracting prices from PDF using AI…</div>
+      </div>
     </div>
   </div>
 
@@ -638,7 +712,104 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
   <div id="ownerDashWrap"></div>
 </div>
 
+<!-- ══════════════════════════════════════════════════════
+     PANEL 5 — DASHBOARD (new default landing page)
+══════════════════════════════════════════════════════ -->
+<div class="panel active" id="panel5">
+  <div class="section-head">
+    <span class="dot" style="background:#818cf8"></span>
+    <div><h2>Dashboard</h2><p>Quick access to your tools, and what you've been up to</p></div>
+  </div>
+  <div id="dashWelcome" style="margin-bottom:20px;font-family:'DM Mono',monospace;font-size:13px;color:var(--muted)"></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:28px">
+    <div class="setup-card" style="cursor:pointer" onclick="switchTab(1)">
+      <div style="font-size:24px;margin-bottom:8px">🥜</div>
+      <h3 style="font-size:14px;font-weight:800;margin-bottom:4px">Kernel Report</h3>
+      <p style="font-size:11.5px;color:var(--muted);font-family:'DM Mono',monospace">Cashew kernel stock — auto-detects SKUs</p>
+    </div>
+    <div class="setup-card" style="cursor:pointer" onclick="switchTab(2)">
+      <div style="font-size:24px;margin-bottom:8px">📊</div>
+      <h3 style="font-size:14px;font-weight:800;margin-bottom:4px">Flavoured Report</h3>
+      <p style="font-size:11.5px;color:var(--muted);font-family:'DM Mono',monospace">Flavoured cashew stock report</p>
+    </div>
+    <div class="setup-card" style="cursor:pointer" onclick="switchTab(3)">
+      <div style="font-size:24px;margin-bottom:8px">📋</div>
+      <h3 style="font-size:14px;font-weight:800;margin-bottom:4px">Stock Audit</h3>
+      <p style="font-size:11.5px;color:var(--muted);font-family:'DM Mono',monospace">Physical count → colour-coded audit sheet</p>
+    </div>
+  </div>
+  <div class="results-title">Your Recent Activity</div>
+  <div id="dashRecentWrap"><p style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">Loading…</p></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PANEL 6 — HISTORY (this signed-in user's own activity log)
+══════════════════════════════════════════════════════ -->
+<div class="panel" id="panel6">
+  <div class="section-head">
+    <span class="dot" style="background:#818cf8"></span>
+    <div><h2>History</h2><p>Your own sign-ins, files processed, and downloads</p></div>
+  </div>
+  <div id="historyWrap"><p style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">Loading…</p></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PANEL 7 — SETTINGS (account info)
+══════════════════════════════════════════════════════ -->
+<div class="panel" id="panel7">
+  <div class="section-head">
+    <span class="dot" style="background:#818cf8"></span>
+    <div><h2>Settings</h2><p>Your account on Bolas Stock Suite</p></div>
+  </div>
+  <div id="settingsWrap" class="setup-card" style="max-width:440px"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PANEL 8 — RATE MANAGER (reflects the PDF loaded this session in Stock Audit)
+══════════════════════════════════════════════════════ -->
+<div class="panel" id="panel8">
+  <div class="section-head">
+    <span class="dot" style="background:#818cf8"></span>
+    <div><h2>Rate Manager</h2><p>Prices from the last Rate PDF you loaded in Stock Audit</p></div>
+  </div>
+  <button class="download-btn" id="rateRefreshBtn" style="margin-bottom:18px;max-width:200px;border:2px solid #818cf8;color:#818cf8">↻ Refresh</button>
+  <div id="rateManagerWrap"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PANEL 9 — OUTLET MANAGER (saved outlets, shared across your team, Firestore-backed)
+══════════════════════════════════════════════════════ -->
+<div class="panel" id="panel9">
+  <div class="section-head">
+    <span class="dot" style="background:#818cf8"></span>
+    <div><h2>Outlet Manager</h2><p>Save outlet names once, reuse them in Stock Audit</p></div>
+  </div>
+  <div class="setup-card" style="max-width:460px;margin-bottom:24px">
+    <label style="display:block;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;">Add Outlet</label>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="outletNewName" placeholder="e.g. 053 Bangalore Vijayanagar" style="flex:1;min-width:0;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:13px;color:var(--text);outline:none">
+      <button class="download-btn" onclick="addOutlet()" style="width:auto;padding:10px 18px;border:2px solid #818cf8;color:#818cf8">+ Add</button>
+    </div>
+    <div id="outletAddErr" style="color:#ef4444;font-size:11px;font-family:'DM Mono',monospace;margin-top:8px;min-height:14px"></div>
+  </div>
+  <div class="results-title">Saved Outlets</div>
+  <div id="outletListWrap"><p style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">Loading…</p></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PANEL 10 — AUDIT HISTORY (every generated audit, saved automatically, Firestore-backed)
+══════════════════════════════════════════════════════ -->
+<div class="panel" id="panel10">
+  <div class="section-head">
+    <span class="dot" style="background:#818cf8"></span>
+    <div><h2>Audit History</h2><p>Every Stock Audit sheet generated, saved automatically at download</p></div>
+  </div>
+  <div id="auditHistoryWrap"><p style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">Loading…</p></div>
+</div>
+
 </div><!-- /container -->
+</main><!-- /main-area -->
+</div><!-- /shell-flex -->
 </div><!-- /appShell -->
 
 <!-- ══ ITEM SELECTOR MODAL (Panel 3 — Stock Audit) ══ -->
@@ -2353,6 +2524,17 @@ async function p3ConfirmDownload() {
     a.href = url; a.download = p3GetFileName();
     document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+    // Log this generated audit to Audit History (best-effort; never blocks the download itself)
+    if (typeof saveAuditRecord === 'function' && typeof p3RowCalc === 'function') {
+      const stats = { total: filtered.length, matched: 0, short: 0, excess: 0 };
+      filtered.forEach(r => {
+        const { remark } = p3RowCalc(r);
+        if (remark === 'MATCHED') stats.matched++;
+        else if (remark === 'SHORT') stats.short++;
+        else if (remark === 'EXCESS') stats.excess++;
+      });
+      saveAuditRecord(stats);
+    }
   } catch(e) {
     $3('p3ErrBox').textContent = 'Excel build failed: ' + e.message;
     p3On($3('p3ErrBox'));
@@ -2766,7 +2948,7 @@ const fbAuth = firebase.auth();
 const db = firebase.firestore();
 let currentUser = null;
 let isOwner = false;
-const PANEL_NAMES = {1:'Cashew Kernels',2:'Stock Report',3:'Stock Audit',4:'Owner Dashboard'};
+const PANEL_NAMES = {1:'Kernel Report',2:'Flavoured Report',3:'Stock Audit',4:'Owner Dashboard',5:'Dashboard',6:'History',7:'Settings',8:'Rate Manager',9:'Outlet Manager',10:'Audit History'};
 
 // ---- Sign-in ----
 document.getElementById('googleSignInBtn').addEventListener('click', () => {
@@ -2784,13 +2966,23 @@ document.getElementById('googleSignInBtn').addEventListener('click', () => {
 });
 
 // ---- Auth state: show/hide the app, gate non-approved users, tag the owner ----
-let userStatusUnsub = null;
+let userStatusUnsub = null, bellUnsub = null;
+
+function initials(name, email) {
+  const src = (name || email || '?').trim();
+  const parts = src.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return src.slice(0, 2).toUpperCase();
+}
 
 fbAuth.onAuthStateChanged(async (user) => {
   if (userStatusUnsub) { userStatusUnsub(); userStatusUnsub = null; }
+  if (bellUnsub) { bellUnsub(); bellUnsub = null; }
+  const bellBtn = document.getElementById('bellBtn');
 
   if (!user) {
     currentUser = null; isOwner = false;
+    if (bellBtn) bellBtn.style.display = 'none';
     showScreen('authGate');
     return;
   }
@@ -2799,8 +2991,10 @@ fbAuth.onAuthStateChanged(async (user) => {
 
   const chip = document.getElementById('userChip');
   const firstName = (user.displayName || user.email || '').split(' ')[0];
-  chip.innerHTML = (user.photoURL ? `<img src="${user.photoURL}" referrerpolicy="no-referrer">` : '')
-    + `<span class="uc-name">${firstName}</span><button id="signOutBtn">Sign out</button>`;
+  const avatarHtml = user.photoURL
+    ? `<img src="${user.photoURL}" referrerpolicy="no-referrer" style="width:30px;height:30px;border-radius:50%">`
+    : `<div class="avatar-circle">${initials(user.displayName, user.email)}</div>`;
+  chip.innerHTML = avatarHtml + `<span class="uc-name">${firstName}</span><button id="signOutBtn">Sign out</button>`;
   document.getElementById('signOutBtn').addEventListener('click', () => fbAuth.signOut());
 
   await touchUserDoc(user, isOwner);
@@ -2809,6 +3003,15 @@ fbAuth.onAuthStateChanged(async (user) => {
   if (isOwner) {
     addOwnerTab();
     showScreen('app');
+    // Live badge of pending sign-in requests, visible from any tab
+    if (bellBtn) {
+      bellBtn.style.display = 'flex';
+      bellUnsub = db.collection('users').where('status', '==', 'pending').onSnapshot(snap => {
+        const n = snap.size;
+        const badge = document.getElementById('bellBadge');
+        if (badge) { badge.textContent = n; badge.style.display = n > 0 ? 'flex' : 'none'; }
+      }, err => console.warn('bell listener failed:', err));
+    }
     return;
   }
 
@@ -2829,6 +3032,7 @@ function showScreen(which) {
   document.getElementById('authGate').style.display = which === 'authGate' ? 'flex' : 'none';
   document.getElementById('pendingGate').style.display = 'none';
   document.getElementById('appShell').style.display = which === 'app' ? 'block' : 'none';
+  if (which === 'app') loadDashboardPanel();
 }
 function showPendingGate(status) {
   document.getElementById('authGate').style.display = 'none';
@@ -2882,7 +3086,25 @@ switchTab = function(n) {
   if (currentUser) logActivity('switch_tab', n, PANEL_NAMES[n] || n);
   if (n === 4 && isOwner) loadOwnerDashboard();
   else stopOwnerDashboard();
+  if (n === 5) loadDashboardPanel();
+  if (n === 6) loadHistoryPanel();
+  if (n === 7) loadSettingsPanel();
+  if (n === 8) loadRateManagerPanel();
+  if (n === 9) loadOutletsPanel();
+  if (n === 10) loadAuditHistoryPanel();
+  const t = document.getElementById('topbarTitle');
+  if (t) t.textContent = PANEL_NAMES[n] || '';
+  toggleSidebar(false); // auto-close the mobile drawer after picking a section
 };
+
+// ---- Mobile sidebar drawer ----
+function toggleSidebar(force) {
+  const sb = document.getElementById('sidebarEl'), bd = document.getElementById('sidebarBackdrop');
+  if (!sb || !bd) return;
+  const open = typeof force === 'boolean' ? force : !sb.classList.contains('open');
+  sb.classList.toggle('open', open);
+  bd.classList.toggle('open', open);
+}
 
 // ---- Track processing & downloads (adds listeners alongside the existing ones) ----
 function fileNameFor(n) {
@@ -2901,11 +3123,11 @@ document.querySelector('.modal-btn-dl')?.addEventListener('click', () => logActi
 // ---- Owner tab: only ever created in the DOM for the owner account ----
 function addOwnerTab() {
   if (document.querySelector('.tab[data-tab="4"]')) return;
-  const bar = document.querySelector('.tab-bar');
+  const bar = document.getElementById('toolsTabBar');
   const btn = document.createElement('button');
   btn.className = 'tab'; btn.dataset.tab = '4';
   btn.setAttribute('onclick', 'switchTab(4)');
-  btn.innerHTML = `<span class="tab-dot"></span> <span class="tab-label">Owner Dashboard</span><span class="tab-emoji">🔒</span>`;
+  btn.innerHTML = `<span class="tab-dot"></span><span class="tab-emoji">🔒</span><span class="tab-label">Owner Dashboard</span>`;
   bar.appendChild(btn);
 }
 document.getElementById('ownerRefreshBtn')?.addEventListener('click', loadOwnerDashboard);
@@ -3029,5 +3251,181 @@ function fmtTs(ts) {
   return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 function actionLabel(a) { return {login: 'Signed in', switch_tab: 'Opened tab', process_file: 'Processed file', download_file: 'Downloaded file'}[a] || a; }
+
+// ══════════════════════════════════════════════════════════════
+// DASHBOARD / HISTORY / SETTINGS / RATE MANAGER / OUTLET MANAGER / AUDIT HISTORY
+// ══════════════════════════════════════════════════════════════
+
+async function myRecentActivity(limitN) {
+  if (!currentUser) return [];
+  try {
+    const snap = await db.collection('activity').where('uid', '==', currentUser.uid).limit(200).get();
+    const rows = snap.docs.map(d => d.data());
+    rows.sort((a, b) => (b.ts && b.ts.toMillis ? b.ts.toMillis() : 0) - (a.ts && a.ts.toMillis ? a.ts.toMillis() : 0));
+    return rows.slice(0, limitN);
+  } catch (e) {
+    console.warn('myRecentActivity failed:', e);
+    return null; // signals a load error, vs. a genuinely empty list
+  }
+}
+function activityTableHtml(rows) {
+  let h = `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Action</th><th>Section</th><th style="text-align:left">Detail</th><th>When</th></tr></thead><tbody>`;
+  rows.forEach(a => {
+    h += `<tr><td style="text-align:left">${escHtml(actionLabel(a.action))}</td><td>${escHtml(PANEL_NAMES[a.panel] || a.panel)}</td><td style="text-align:left">${escHtml(a.detail || '—')}</td><td>${fmtTs(a.ts)}</td></tr>`;
+  });
+  return h + `</tbody></table></div></div>`;
+}
+
+async function loadDashboardPanel() {
+  if (!currentUser) return;
+  const welcome = document.getElementById('dashWelcome');
+  if (welcome) {
+    const hr = new Date().getHours();
+    const greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
+    welcome.textContent = `${greet}, ${(currentUser.displayName || currentUser.email || '').split(' ')[0]}. Here's where you left off.`;
+  }
+  const wrap = document.getElementById('dashRecentWrap');
+  if (!wrap) return;
+  const rows = await myRecentActivity(5);
+  if (rows === null) { wrap.innerHTML = `<p style="color:#ef4444;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load recent activity.</p>`; return; }
+  if (!rows.length) { wrap.innerHTML = `<p style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">Nothing yet — once you use a tool, it'll show up here.</p>`; return; }
+  wrap.innerHTML = activityTableHtml(rows);
+}
+
+async function loadHistoryPanel() {
+  if (!currentUser) return;
+  const wrap = document.getElementById('historyWrap');
+  if (!wrap) return;
+  wrap.innerHTML = '<p style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:12px;">Loading…</p>';
+  const rows = await myRecentActivity(150);
+  if (rows === null) { wrap.innerHTML = `<p style="color:#ef4444;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load your history.</p>`; return; }
+  if (!rows.length) { wrap.innerHTML = `<p style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No activity logged yet.</p>`; return; }
+  wrap.innerHTML = activityTableHtml(rows);
+}
+
+async function loadSettingsPanel() {
+  if (!currentUser) return;
+  const wrap = document.getElementById('settingsWrap');
+  if (!wrap) return;
+  wrap.innerHTML = '<p style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:12px;">Loading…</p>';
+  let memberSince = '—';
+  try {
+    const snap = await db.collection('users').doc(currentUser.uid).get();
+    if (snap.exists) memberSince = fmtTs(snap.data().firstLogin);
+  } catch (e) { console.warn('settings load failed:', e); }
+  const avatarHtml = currentUser.photoURL
+    ? `<img src="${currentUser.photoURL}" referrerpolicy="no-referrer" style="width:56px;height:56px;border-radius:50%">`
+    : `<div class="avatar-circle" style="width:56px;height:56px;font-size:19px">${initials(currentUser.displayName, currentUser.email)}</div>`;
+  wrap.innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+      ${avatarHtml}
+      <div>
+        <div style="font-weight:800;font-size:16px">${escHtml(currentUser.displayName || 'No name set')}</div>
+        <div style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px">${escHtml(currentUser.email || '')}</div>
+      </div>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:14px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;justify-content:space-between;font-size:12.5px"><span style="color:var(--muted);font-family:'DM Mono',monospace">Role</span><span style="font-weight:700">${isOwner ? 'Owner' : 'Team member'}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:12.5px"><span style="color:var(--muted);font-family:'DM Mono',monospace">Member since</span><span style="font-weight:700">${memberSince}</span></div>
+    </div>
+    <button class="download-btn" style="margin-top:20px;border:2px solid var(--accent3);color:var(--accent3)" onclick="fbAuth.signOut()">Sign out</button>
+  `;
+}
+
+// ---- Rate Manager: reflects window.p3RateMap, the map Stock Audit fills from an uploaded PDF this session ----
+function loadRateManagerPanel() {
+  const wrap = document.getElementById('rateManagerWrap');
+  if (!wrap) return;
+  const map = window.p3RateMap;
+  if (!map || !map.size) {
+    wrap.innerHTML = `<div class="table-wrap" style="padding:22px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No rates loaded this session yet.<br>Go to <strong>Stock Audit</strong> → card 3 → upload a Rate PDF, then come back here.</div>`;
+    return;
+  }
+  let h = `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Item</th><th>Billing Price</th><th>Selling Price</th><th>Effective Date</th></tr></thead><tbody>`;
+  for (const [key, v] of map) {
+    h += `<tr><td style="text-align:left">${escHtml(v.name || key)}</td><td>${v.billing != null ? '₹' + v.billing : '—'}</td><td>${v.selling != null ? '₹' + v.selling : '—'}</td><td>${escHtml(v.effDate || '—')}</td></tr>`;
+  }
+  h += `</tbody></table></div></div><p style="margin-top:10px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10.5px">${map.size} products · reflects the PDF loaded this browser session only</p>`;
+  wrap.innerHTML = h;
+}
+document.getElementById('rateRefreshBtn')?.addEventListener('click', loadRateManagerPanel);
+
+// ---- Outlet Manager: Firestore-backed, shared with any approved teammate ----
+async function loadOutletsPanel() {
+  const wrap = document.getElementById('outletListWrap');
+  if (!wrap) return;
+  wrap.innerHTML = '<p style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:12px;">Loading…</p>';
+  try {
+    const snap = await db.collection('outlets').orderBy('createdAt', 'desc').limit(200).get();
+    const rows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (!rows.length) { wrap.innerHTML = `<div class="table-wrap" style="padding:18px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No outlets saved yet — add one above.</div>`; return; }
+    let h = `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th style="text-align:left">Added By</th><th>Added</th><th>Action</th></tr></thead><tbody>`;
+    rows.forEach(o => {
+      const canDelete = isOwner || o.createdByUid === (currentUser && currentUser.uid);
+      h += `<tr><td style="text-align:left">${escHtml(o.name || '—')}</td><td style="text-align:left">${escHtml(o.createdByName || '—')}</td><td>${fmtTs(o.createdAt)}</td><td>${canDelete ? `<button class="mini-btn mini-btn-no" onclick="deleteOutlet('${o.id}')">Remove</button>` : '—'}</td></tr>`;
+    });
+    h += `</tbody></table></div></div>`;
+    wrap.innerHTML = h;
+  } catch (e) {
+    console.error('loadOutletsPanel failed:', e);
+    wrap.innerHTML = `<p style="color:#ef4444;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load outlets: ${escHtml(e.message)}</p>`;
+  }
+}
+async function addOutlet() {
+  const inp = document.getElementById('outletNewName');
+  const err = document.getElementById('outletAddErr');
+  const name = (inp.value || '').trim();
+  err.textContent = '';
+  if (!name) { err.textContent = 'Enter an outlet name first.'; return; }
+  try {
+    await db.collection('outlets').add({
+      name, createdByUid: currentUser.uid, createdByName: currentUser.displayName || currentUser.email,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    inp.value = '';
+    loadOutletsPanel();
+  } catch (e) {
+    err.textContent = "Couldn't save: " + e.message;
+  }
+}
+async function deleteOutlet(id) {
+  try {
+    await db.collection('outlets').doc(id).delete();
+    loadOutletsPanel();
+  } catch (e) {
+    alert("Couldn't remove outlet: " + e.message);
+  }
+}
+
+// ---- Audit History: Firestore-backed, one record written each time a Stock Audit is downloaded ----
+async function loadAuditHistoryPanel() {
+  const wrap = document.getElementById('auditHistoryWrap');
+  if (!wrap) return;
+  wrap.innerHTML = '<p style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:12px;">Loading…</p>';
+  try {
+    const snap = await db.collection('audits').orderBy('ts', 'desc').limit(100).get();
+    const rows = snap.docs.map(d => d.data());
+    if (!rows.length) { wrap.innerHTML = `<div class="table-wrap" style="padding:18px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No audits generated yet — they'll appear here as soon as one is downloaded from Stock Audit.</div>`; return; }
+    let h = `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th>Total</th><th>Matched</th><th>Short</th><th>Excess</th><th style="text-align:left">Generated By</th><th>When</th></tr></thead><tbody>`;
+    rows.forEach(a => {
+      h += `<tr><td style="text-align:left">${escHtml(a.outletName || '—')}</td><td>${a.total ?? '—'}</td><td style="color:#10b981;font-weight:700">${a.matched ?? '—'}</td><td style="color:#ef4444;font-weight:700">${a.short ?? '—'}</td><td style="color:#f59e0b;font-weight:700">${a.excess ?? '—'}</td><td style="text-align:left">${escHtml(a.generatedByName || '—')}</td><td>${fmtTs(a.ts)}</td></tr>`;
+    });
+    h += `</tbody></table></div></div>`;
+    wrap.innerHTML = h;
+  } catch (e) {
+    console.error('loadAuditHistoryPanel failed:', e);
+    wrap.innerHTML = `<p style="color:#ef4444;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load audit history: ${escHtml(e.message)}</p>`;
+  }
+}
+function saveAuditRecord(stats) {
+  if (!currentUser) return;
+  const outletEl = document.getElementById('p3OutletName');
+  db.collection('audits').add({
+    outletName: (outletEl && outletEl.value) || 'Unnamed outlet',
+    total: stats.total, matched: stats.matched, short: stats.short, excess: stats.excess,
+    generatedByUid: currentUser.uid, generatedByName: currentUser.displayName || currentUser.email,
+    ts: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(e => console.warn('saveAuditRecord failed:', e));
+}
 </script>
 </body>
