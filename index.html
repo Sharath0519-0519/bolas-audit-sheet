@@ -2049,7 +2049,8 @@ const P3_STOPWORDS = new Set(['','of','the','and','a','x']);
 function p3Tokenize(name){
   let s = String(name||'').toLowerCase().replace(/'/g,'');
   s = s.replace(/[^\w\s.]/g,' ').replace(/(\d)([a-z])/g,'$1 $2').replace(/([a-z])(\d)/g,'$1 $2');
-  return s.split(/\s+/).map(t=>P3_UNIT_SYN[t]||t).filter(t=>!P3_STOPWORDS.has(t));
+  return s.split(/\s+/).map(t=>P3_UNIT_SYN[t]||t).filter(t=>!P3_STOPWORDS.has(t))
+    .map(t=>(t.length>=4 && /s$/.test(t) && !/ss$/.test(t)) ? t.slice(0,-1) : t); // simple plural fold: seeds->seed, nuts->nut, dates->date
 }
 function p3NumTokens(toks){ return new Set(toks.filter(t=>/^\d+(\.\d+)?$/.test(t))); }
 function p3HasBareUnit(toks,nums){ return toks.some(t=>t==='g'||t==='kg'||t==='ml'||t==='l') && nums.size===0; }
@@ -2088,6 +2089,29 @@ function p3GradeOverrideMatch(shortCode){
   return null;
 }
 
+// Recognizes when two DIFFERENT-looking numbers are actually the same real-world
+// quantity in different units ("0.5 Litre" vs "500 Ml"). Deliberately narrow:
+// only fires when EACH side has exactly one number, so it can never paper over
+// a genuine extra quantity like "Pack Of 10" (two numbers) sneaking a match through.
+function p3ValueOf(toks){
+  const nums=[...p3NumTokens(toks)];
+  if(nums.length!==1) return null;
+  const n=parseFloat(nums[0]), idx=toks.indexOf(nums[0]), unit=toks[idx+1];
+  if(unit==='g') return {kind:'wt',val:n};
+  if(unit==='kg') return {kind:'wt',val:n*1000};
+  if(unit==='ml') return {kind:'vol',val:n};
+  if(unit==='l') return {kind:'vol',val:n*1000};
+  return null;
+}
+function p3NumsCompatible(aToks,aNums,bToks,bNums){
+  if(p3SetEq(aNums,bNums)) return true;
+  if(aNums.size===1 && bNums.size===1){
+    const av=p3ValueOf(aToks), bv=p3ValueOf(bToks);
+    if(av && bv && av.kind===bv.kind && Math.abs(av.val-bv.val)<0.01) return true;
+  }
+  return false;
+}
+
 function p3FindRateMatch(pkgName, shortCode){
   if(!window.p3RateMap||!window.p3RateMap.size) return null;
   p3BuildRateCandidates();
@@ -2097,14 +2121,16 @@ function p3FindRateMatch(pkgName, shortCode){
   const graded = p3GradeOverrideMatch(shortCode);
   if (graded) { window._p3RateMatchCache.set(cacheKey, graded); return graded; }
 
+  const weight=window._p3RateWeight;
   const at=p3Tokenize(pkgName), an=p3NumTokens(at);
   const aw=new Set(at.filter(t=>!an.has(t)));
   const aBare=p3HasBareUnit(at,an);
-  const weight=window._p3RateWeight;
 
+  // Pass 1: match on the Package Name column (as before), now tolerant of
+  // same-quantity-different-unit ("0.5 Litre" == "500 Ml").
   let best=null, bestScore=0;
   for(const c of window._p3RateCands){
-    if(an.size && c.nums.size && !p3SetEq(an,c.nums)) continue;
+    if(an.size && c.nums.size && !p3NumsCompatible(at,an,c.toks,c.nums)) continue;
     if(aBare || p3HasBareUnit(c.toks,c.nums)){ if(!p3SetEq(aw,c.words)) continue; }
     if(!aw.size || !c.words.size) continue;
     const union=new Set([...aw,...c.words]);
@@ -2117,9 +2143,35 @@ function p3FindRateMatch(pkgName, shortCode){
     const score=unionW?interW/unionW:0;
     if(score>bestScore){ bestScore=score; best=c.v; }
   }
-  const result=(best && bestScore>=0.58) ? best : null;
-  window._p3RateMatchCache.set(cacheKey, result);
-  return result;
+  if(best && bestScore>=0.58){ window._p3RateMatchCache.set(cacheKey,best); return best; }
+
+  // Pass 2: the Item Name (short code) sometimes carries the real product
+  // description while Package Name is just a generic placeholder like "Numbers"
+  // — try the short code alone, but ONLY when Package Name gave no size/word
+  // signal at all, so there's nothing it could contradict.
+  const pkgIsPlaceholder = !an.size && (aw.size===0 || (aw.size===1 && aw.has('no')));
+  if(pkgIsPlaceholder && shortCode){
+    const st=p3Tokenize(shortCode), sn=p3NumTokens(st);
+    const sw=new Set(st.filter(t=>!sn.has(t)));
+    let best2=null, bestScore2=0;
+    for(const c of window._p3RateCands){
+      if(sn.size && c.nums.size && !p3SetEq(sn,c.nums)) continue;
+      if(!sw.size || !c.words.size) continue;
+      const union=new Set([...sw,...c.words]);
+      let interW=0, unionW=0, interCount=0;
+      union.forEach(t=>{
+        const w=weight(t); unionW+=w;
+        if(sw.has(t) && c.words.has(t)){ interW+=w; interCount++; }
+      });
+      if(!interCount) continue;
+      const score=unionW?interW/unionW:0;
+      if(score>bestScore2){ bestScore2=score; best2=c.v; }
+    }
+    if(best2 && bestScore2>=0.58){ window._p3RateMatchCache.set(cacheKey,best2); return best2; }
+  }
+
+  window._p3RateMatchCache.set(cacheKey,null);
+  return null;
 }
 
 async function p3BuildExcelJS(rows, includeReason){
