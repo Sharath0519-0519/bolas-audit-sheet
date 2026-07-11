@@ -877,6 +877,12 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
         <input type="checkbox" id="chk_paper_medium" checked>
         <div><div class="modal-item-label">White Paper Carry Bag — Medium</div><div class="modal-item-sub">White paper bag, medium size</div></div>
       </label>
+
+      <div class="modal-section-lbl" style="margin-top:6px;padding-top:14px;border-top:1px solid var(--border)">📝 Extra Column</div>
+      <label class="modal-item">
+        <input type="checkbox" id="p3AddReasonCol">
+        <div><div class="modal-item-label">Add a "Reason" column</div><div class="modal-item-sub">Blank column right after Remark, for noting why an item is Short or Excess</div></div>
+      </label>
     </div>
     <div class="modal-ftr">
       <button class="modal-btn modal-btn-cancel" onclick="p3CloseModal()">Cancel</button>
@@ -2017,7 +2023,106 @@ function p3UpdateOutletPreview() {
   }
 }
 
-async function p3BuildExcelJS(rows){
+// ══════════════════════════════════════════════════════════════
+// RATE-PDF MATCHING ENGINE
+// Stock Report package names and PDF SKU names describe the same product
+// with different word order ("Pack Of 28g" vs "28g Pack Of 10"), different
+// unit spelling (g/gm/gms/grams), and stray punctuation. Plain substring
+// matching (the old approach) fails on nearly all of these. This instead:
+//  1. tokenizes both sides and normalizes unit synonyms,
+//  2. requires any size/quantity numbers present on BOTH sides to match
+//     exactly (so "200g" never matches "500g"),
+//  3. scores the remaining word overlap with IDF weighting, so generic
+//     words shared by almost every SKU ("bolas","pack","of") barely count,
+//     while distinctive words ("sunflower","ajwa","coconut") dominate —
+//     this is what stops "Sunflower Oil" from matching "Rice Bran Oil"
+//     just because both share "Bolas...Oil...Pack...1...Ltr".
+// A high match bar (0.58) is used deliberately: a missed match just leaves
+// a cell blank for manual fill (safe, visible); a wrong match would silently
+// apply the wrong price (unsafe). Missing a match is the safer failure mode.
+// ══════════════════════════════════════════════════════════════
+const P3_UNIT_SYN = {gm:'g',gms:'g',gram:'g',grams:'g',g:'g',kg:'kg',kgs:'kg',kilogram:'kg',kilograms:'kg',
+  ml:'ml',millilitre:'ml',millilitres:'ml',ltr:'l',ltrs:'l',litre:'l',litres:'l',liter:'l',liters:'l',l:'l',
+  pc:'pc',pcs:'pc',piece:'pc',pieces:'pc',pkt:'pack',pkts:'pack',packet:'pack',packets:'pack',pack:'pack',packs:'pack',
+  no:'no',nos:'no',number:'no',numbers:'no'};
+const P3_STOPWORDS = new Set(['','of','the','and','a','x']);
+function p3Tokenize(name){
+  let s = String(name||'').toLowerCase().replace(/'/g,'');
+  s = s.replace(/[^\w\s.]/g,' ').replace(/(\d)([a-z])/g,'$1 $2').replace(/([a-z])(\d)/g,'$1 $2');
+  return s.split(/\s+/).map(t=>P3_UNIT_SYN[t]||t).filter(t=>!P3_STOPWORDS.has(t));
+}
+function p3NumTokens(toks){ return new Set(toks.filter(t=>/^\d+(\.\d+)?$/.test(t))); }
+function p3HasBareUnit(toks,nums){ return toks.some(t=>t==='g'||t==='kg'||t==='ml'||t==='l') && nums.size===0; }
+function p3SetEq(a,b){ if(a.size!==b.size) return false; for(const x of a) if(!b.has(x)) return false; return true; }
+
+function p3BuildRateCandidates(){
+  if (window._p3RateCands && window._p3RateCandsSize === window.p3RateMap.size) return;
+  const cands=[], df=new Map();
+  for(const [,v] of window.p3RateMap){
+    const toks=p3Tokenize(v.name), nums=p3NumTokens(toks);
+    const words=new Set(toks.filter(t=>!nums.has(t)));
+    cands.push({v,toks,nums,words});
+    words.forEach(t=>df.set(t,(df.get(t)||0)+1));
+  }
+  const n=cands.length;
+  window._p3RateCands=cands;
+  window._p3RateCandsSize=window.p3RateMap.size;
+  window._p3RateWeight=t=>Math.log((n+1)/(df.get(t)||1))+0.3;
+  window._p3RateMatchCache=new Map();
+}
+
+// Cashew piece-grade codes: these short codes don't share literal text with
+// any PDF entry (the PDF names the SKU by piece-count, not by grade code),
+// so no text-matching algorithm can find them — this is business knowledge,
+// confirmed directly by the shop owner, not something derived from the files.
+const P3_GRADE_PIECE_MAP = {jh:2, jk:4, sk:6, swp:8};
+function p3GradeOverrideMatch(shortCode){
+  const pieces = P3_GRADE_PIECE_MAP[String(shortCode||'').trim().toLowerCase()];
+  if (pieces===undefined) return null;
+  if (!window.p3RateMap || !window.p3RateMap.size) return null;
+  p3BuildRateCandidates();
+  const target = String(pieces);
+  for (const c of window._p3RateCands) {
+    if (c.toks.includes('pc') && c.nums.has(target)) return c.v;
+  }
+  return null;
+}
+
+function p3FindRateMatch(pkgName, shortCode){
+  if(!window.p3RateMap||!window.p3RateMap.size) return null;
+  p3BuildRateCandidates();
+  const cacheKey=String(shortCode||'')+'||'+String(pkgName||'');
+  if(window._p3RateMatchCache.has(cacheKey)) return window._p3RateMatchCache.get(cacheKey);
+
+  const graded = p3GradeOverrideMatch(shortCode);
+  if (graded) { window._p3RateMatchCache.set(cacheKey, graded); return graded; }
+
+  const at=p3Tokenize(pkgName), an=p3NumTokens(at);
+  const aw=new Set(at.filter(t=>!an.has(t)));
+  const aBare=p3HasBareUnit(at,an);
+  const weight=window._p3RateWeight;
+
+  let best=null, bestScore=0;
+  for(const c of window._p3RateCands){
+    if(an.size && c.nums.size && !p3SetEq(an,c.nums)) continue;
+    if(aBare || p3HasBareUnit(c.toks,c.nums)){ if(!p3SetEq(aw,c.words)) continue; }
+    if(!aw.size || !c.words.size) continue;
+    const union=new Set([...aw,...c.words]);
+    let interW=0, unionW=0, interCount=0;
+    union.forEach(t=>{
+      const w=weight(t); unionW+=w;
+      if(aw.has(t) && c.words.has(t)){ interW+=w; interCount++; }
+    });
+    if(!interCount) continue;
+    const score=unionW?interW/unionW:0;
+    if(score>bestScore){ bestScore=score; best=c.v; }
+  }
+  const result=(best && bestScore>=0.58) ? best : null;
+  window._p3RateMatchCache.set(cacheKey, result);
+  return result;
+}
+
+async function p3BuildExcelJS(rows, includeReason){
   const wb=new ExcelJS.Workbook();wb.creator="SHARATH'S SYSTEM";wb.created=new Date();
   const ws=wb.addWorksheet('Stock Audit',{views:[{state:'frozen',xSplit:3,ySplit:3}],pageSetup:{orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0}});
   const C={TITLE:'1B2A6B',DATE:'141A4A',HDR:'2E3F9F',ODD:'FFFFFF',EVEN:'F0F3FF',MAN:'FFFDE7',NEG:'FFF3CD',UNK:'F8F8F8',SBG:'FDECEA',SFG:'C0392B',EBG:'E8F5E9',EFG:'1E8449',MBG:'E3F2FD',MFG:'1A5276',STOT:'2E3F9F',SSHORT:'C0392B',SEXCESS:'1E8449',SMATCH:'1A5276',DARK:'1A1A2E',WHITE:'FFFFFF',DFGG:'AAAACC',FOOT:'7777AA',BRD:'C8CCE8',MUTED:'888888',NEGFG:'856404'};
@@ -2027,28 +2132,12 @@ async function p3BuildExcelJS(rows){
   const AL=(h='center',v='middle',w=false)=>({horizontal:h,vertical:v,wrapText:w});
   // Look up rate from PDF-parsed map (moved up so Sheet 1 can store it per-row,
   // which lets Sheet 2 pull the correct price even after rows get re-grouped).
-  function getRate2(pkgName, field) {
-    if(!window.p3RateMap||!window.p3RateMap.size)return '';
-    // Strip ALL whitespace (not just collapse) so "250g" matches "250 G",
-    // "PackOf" matches "Pack Of", etc. — real-world Stock Report text and
-    // PDF SKU text are rarely spaced identically around units/numbers.
-    const key=String(pkgName||'').toLowerCase().replace(/\s+/g,'');
-    // A pkgName can overlap with more than one PDF entry (e.g. "250 G" vs
-    // "500 G" variants of a similar name). Don't just take whichever the
-    // Map happens to iterate first — score every candidate and keep the
-    // most specific (longest matching name) match; if two are equally
-    // specific, prefer whichever has the most recent Effective From date.
-    let best=null;
-    for(const [k,v] of window.p3RateMap){
-      if(key.includes(k)||k.includes(key)){
-        if(!best || k.length>best.k.length || (k.length===best.k.length && (v.effDateSort||0)>(best.v.effDateSort||0))){
-          best={k,v};
-        }
-      }
-    }
-    return best ? (best.v[field]||'') : '';
+  function getRate2(pkgName, field, shortCode) {
+    const best = p3FindRateMatch(pkgName, shortCode);
+    return best ? (best[field]||'') : '';
   }
   ws.columns=[{width:5},{width:16},{width:44},{width:13},{width:15},{width:13},{width:13},{width:10},{width:13},{width:12},{width:14,hidden:true},{width:14,hidden:true},{width:10,hidden:true},{width:10,hidden:true}];
+  if(includeReason) ws.columns.push({width:32});
   const dateStr=p3TodayStr(),DS=4,DE=rows.length+3;
   ws.mergeCells('A1:J1');ws.getRow(1).height=30;
   const t1=ws.getCell('A1');t1.value=p3GetSheetTitle();t1.font=FN(C.WHITE,true,14);t1.fill=FL(C.TITLE);t1.alignment=AL('center');t1.border=BD();
@@ -2060,13 +2149,17 @@ async function p3BuildExcelJS(rows){
   ws.getRow(3).height=34;
   [['A','Sr No','center'],['B','Item Name','left'],['C','Package Name','left'],['D','Closing Stock','center'],['E','Physical (Packs)','center'],['F','Store Count','center'],['G','Rack Count','center'],['H','Total','center'],['I','Difference','center'],['J','Remark','center']
   ].forEach(([col,label,align])=>{const c=ws.getCell(col+'3');c.value=label;c.font=FN(C.WHITE,true,10);c.fill=FL(C.HDR);c.alignment=AL(align,'middle',true);c.border=BD();});
-  ws.autoFilter={from:{row:3,column:1},to:{row:3,column:10}};
+  if(includeReason){
+    const c=ws.getCell('O3');c.value='Reason';c.font=FN(C.WHITE,true,10);c.fill=FL(C.HDR);c.alignment=AL('center','middle',true);c.border=BD();
+  }
+  ws.autoFilter={from:{row:3,column:1},to:{row:3,column:includeReason?15:10}};
   rows.forEach((r,ri)=>{
     const er=ri+DS,bg=r.hasNegative?C.NEG:(ri%2===0?C.ODD:C.EVEN);
     ws.getRow(er).height=18;
     const set=(col,val,fg,bold,fillHex,align)=>{const c=ws.getCell(col+er);c.value=val;c.font=FN(fg||C.DARK,bold||false,10);c.fill=FL(fillHex||bg);c.alignment=AL(align||'center','middle');c.border=BD();};
     set('A',ri+1,C.MUTED,false,bg,'center');set('B',r.shortCode,C.DARK,true,bg,'left');set('C',r.pkgName,C.DARK,false,bg,'left');
     set('D',r.closing,r.hasNegative?C.NEGFG:C.DARK,r.hasNegative,bg,'right');
+    ws.getCell('D'+er).numFmt='0.000';
     {const c=ws.getCell('E'+er);
      if(r.physKg!==null&&r.physKg!==undefined){c.value={formula:`D${er}/${parseFloat(r.physKg.toFixed(6))}`,result:r.physical??0};c.font=FN(C.DARK,false,10);c.fill=FL(bg);c.alignment=AL('center','middle');c.border=BD();}
      else if(r.packType==='numbers'){
@@ -2078,13 +2171,16 @@ async function p3BuildExcelJS(rows){
     {const c=ws.getCell('H'+er);c.value={formula:`IF(AND(F${er}="",G${er}=""),"",IF(F${er}="",0,F${er})+IF(G${er}="",0,G${er}))`,result:''};c.font=FN(C.DARK,false,10);c.fill=FL(bg);c.alignment=AL('center','middle');c.border=BD();}
     {const c=ws.getCell('I'+er);c.value={formula:`IF(OR(H${er}="",E${er}=""),"",ROUND(H${er}-E${er},4))`,result:''};c.font=FN(C.DARK,false,10);c.fill=FL(bg);c.alignment=AL('center','middle');c.border=BD();}
     {const c=ws.getCell('J'+er);c.value={formula:`IF(I${er}="","",IF(I${er}<0,"SHORT",IF(I${er}>0,"EXCESS","MATCHED")))`,result:''};c.font=FN(C.DARK,true,10);c.fill=FL(bg);c.alignment=AL('center','middle');c.border=BD();}
-    const bp=getRate2(r.pkgName,'billing'),sp=getRate2(r.pkgName,'selling');
+    const bp=getRate2(r.pkgName,'billing',r.shortCode),sp=getRate2(r.pkgName,'selling',r.shortCode);
     ws.getCell('K'+er).value = bp!=='' ? Number(bp) : '';
     ws.getCell('L'+er).value = sp!=='' ? Number(sp) : '';
     // Running rank among SHORT items so far / among EXCESS items so far (blank otherwise).
     // Sheet 2 finds "the row whose rank = k" with a plain MATCH — no array formulas, no AGGREGATE.
     ws.getCell('M'+er).value = {formula:`IF($J${er}="SHORT",COUNTIF($J$${DS}:J${er},"SHORT"),"")`,result:''};
     ws.getCell('N'+er).value = {formula:`IF($J${er}="EXCESS",COUNTIF($J$${DS}:J${er},"EXCESS"),"")`,result:''};
+    if(includeReason){
+      const c=ws.getCell('O'+er);c.value='';c.font=FN(C.DARK,false,10);c.fill=FL(C.MAN);c.alignment=AL('left','middle');c.border=BD();
+    }
   });
   ws.addConditionalFormatting({ref:`J${DS}:J${DE}`,rules:[
     {type:'containsText',operator:'containsText',text:'SHORT',priority:1,style:{fill:{type:'pattern',pattern:'solid',bgColor:{argb:'FFFDECEA'},fgColor:{argb:'FFFDECEA'}},font:{bold:true,color:{argb:'FFC0392B'}}}},
@@ -2508,6 +2604,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 async function p3ConfirmDownload() {
+  const addReason = document.getElementById('p3AddReasonCol')?.checked || false;
   p3CloseModal();
   if (!p3AuditRows.length) return;
   // Re-build excel with filtered rows
@@ -2519,7 +2616,7 @@ async function p3ConfirmDownload() {
   // Show loader briefly
   p3Msg('Building filtered Excel…');
   try {
-    const blob = await p3BuildExcelJS(filtered);
+    const blob = await p3BuildExcelJS(filtered, addReason);
     const url = URL.createObjectURL(blob), a = document.createElement('a');
     a.href = url; a.download = p3GetFileName();
     document.body.appendChild(a); a.click();
@@ -2569,7 +2666,7 @@ function p3BuildPreview(rows){
     const searchKey=p3Esc((r.shortCode+' '+r.pkgName).toLowerCase());
     h+=`<tr style="${rowBg}" data-idx="${ri}" data-status="pending" data-search="${searchKey}">`
       +`<td style="color:#888;text-align:center;font-size:10px">${ri+1}</td><td>${p3Esc(r.shortCode)}</td><td title="${p3Esc(r.pkgName)}">${nm}</td>`
-      +`<td style="${clsStyle}">${r.closing}</td><td style="${psStyle}">${ps}</td>`
+      +`<td style="${clsStyle}">${Number(r.closing).toFixed(3)}</td><td style="${psStyle}">${ps}</td>`
       +`<td class="manual"><input type="number" inputmode="numeric" min="0" class="cnt-input" data-idx="${ri}" data-field="store" value=""></td>`
       +`<td class="manual"><input type="number" inputmode="numeric" min="0" class="cnt-input" data-idx="${ri}" data-field="rack" value=""></td>`
       +`<td id="p3Tot${ri}"></td><td id="p3Dif${ri}"></td><td id="p3Rem${ri}" style="color:#aaa;font-style:italic;font-size:10px">auto</td></tr>`;
@@ -2878,9 +2975,12 @@ async function p3HandleRatePdf(file) {
     // Build rate map — key = lowercase name with ALL whitespace stripped.
     // Stock Report text and PDF SKU text are rarely spaced identically
     // around numbers/units ("250g" vs "250 G", "PackOf" vs "Pack Of"), so
-    // matching is done on a fully space-stripped form on both sides.
+    // exact-duplicate PDF rows (same SKU re-priced) can be deduplicated below.
+    // (Fuzzy matching against Stock Report names happens separately, in
+    // p3FindRateMatch — see the matching engine above p3BuildExcelJS.)
     const p3Norm = s => String(s||'').toLowerCase().replace(/\s+/g,'');
     window.p3RateMap = new Map();
+    window._p3RateCands = null; window._p3RateMatchCache = null; // old cache is now stale
     entries.forEach(e => {
       if (!e.name) return;
       const key = p3Norm(e.name);
