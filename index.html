@@ -2089,6 +2089,49 @@ function p3GradeOverrideMatch(shortCode){
   return null;
 }
 
+// Confirmed directly by the shop owner, item by item — these pairs use different
+// wording or brand-internal names between the Stock Report and the Rate PDF
+// (e.g. "Khenaizi Dates" vs the PDF's plain "Black Dates") that don't share
+// enough literal text for any matching algorithm to bridge safely on its own.
+// Where one short code covers more than one package size (e.g. "BB" is both a
+// 500g and a 1kg item), pkgHas picks the right one.
+const P3_CONFIRMED_OVERRIDES = [
+  {sc:'bb', pkgHas:['1 kg','1kg'], pdf:'baby bits bb 1kg'},
+  {sc:'bb', pkgHas:['500'], pdf:'cashew baby bits 500g'},
+  {sc:'almond kernel', pdf:'california almonds 1kg'},
+  {sc:'320', pdf:'cashew 320 1kg'},
+  {sc:'almonds blissfully salted', pdf:'almond dryroasted and salted pack 200'},
+  {sc:'pistachio blissfully salted', pdf:'dry roasted salted pista pack of 25'},
+  {sc:'whole dried strawberry', pdf:'strawberries pack of 200'},
+  {sc:'nandadeepa', pkgHas:['450'], pdf:'deepam oil bottle of 450'},
+  {sc:'irani pista in shell roasted & salted', pdf:'flavoured iranian pista pack of 200'},
+  {sc:'khenaizi dates', pdf:'black dates jar of 400'},
+  {sc:'hazelnuts dry roasted and salted', pdf:'turkishhazelnut roasted and salted 50'},
+  {sc:'pecan nuts roasted and salted', pdf:'american pecan dry roasted salted 50'},
+  {sc:'macadamia nuts roasted and salted', pdf:'australianmacadamia flavoured pack 50'},
+  {sc:'bolas sunflower oil', pkgHas:['1 ltr','1ltr'], pdf:'sunflower oil pack of 910g'},
+  {sc:'bolas coconut oil', pkgHas:['half litre'], pdf:'coconut oil pack of 500ml'},
+  {sc:'mazafati dates', pdf:'mazafati dates jar of 400'},
+  {sc:'soan papdi', pdf:'south canara soan papdi 200'},
+  {sc:'dry fruits ladoo', pdf:'dryfruits laddoo pack of 150'},
+  {sc:'nandadeepa', pkgHas:['4.5'], pdf:'deepam oil 4.5 kgs jar'},
+  {sc:'bolas sunflower oil', pkgHas:['4.25','4250'], pdf:'sunflower oil 4.5 kg can'},
+  {sc:'cashew honey', pkgHas:['200'], pdf:'honey roasted cashew pack of 200'},
+];
+function p3ConfirmedOverrideMatch(shortCode, pkgName){
+  if(!window.p3RateMap||!window.p3RateMap.size) return null;
+  const sc=String(shortCode||'').trim().toLowerCase();
+  const pkg=String(pkgName||'').trim().toLowerCase();
+  for(const o of P3_CONFIRMED_OVERRIDES){
+    if(o.sc!==sc) continue;
+    if(o.pkgHas && !o.pkgHas.some(h=>pkg.includes(h))) continue;
+    for(const [,v] of window.p3RateMap){
+      if(v.name.toLowerCase().includes(o.pdf)) return v;
+    }
+  }
+  return null;
+}
+
 // Recognizes when two DIFFERENT-looking numbers are actually the same real-world
 // quantity in different units ("0.5 Litre" vs "500 Ml"). Deliberately narrow:
 // only fires when EACH side has exactly one number, so it can never paper over
@@ -2120,6 +2163,9 @@ function p3FindRateMatch(pkgName, shortCode){
 
   const graded = p3GradeOverrideMatch(shortCode);
   if (graded) { window._p3RateMatchCache.set(cacheKey, graded); return graded; }
+
+  const confirmed = p3ConfirmedOverrideMatch(shortCode, pkgName);
+  if (confirmed) { window._p3RateMatchCache.set(cacheKey, confirmed); return confirmed; }
 
   const weight=window._p3RateWeight;
   const at=p3Tokenize(pkgName), an=p3NumTokens(at);
@@ -2188,8 +2234,9 @@ async function p3BuildExcelJS(rows, includeReason){
     const best = p3FindRateMatch(pkgName, shortCode);
     return best ? (best[field]||'') : '';
   }
-  ws.columns=[{width:5},{width:16},{width:44},{width:13},{width:15},{width:13},{width:13},{width:10},{width:13},{width:12},{width:14,hidden:true},{width:14,hidden:true},{width:10,hidden:true},{width:10,hidden:true}];
-  if(includeReason) ws.columns.push({width:32});
+  const p3ColDefs=[{width:5},{width:16},{width:44},{width:13},{width:15},{width:13},{width:13},{width:10},{width:13},{width:12},{width:14,hidden:true},{width:14,hidden:true},{width:10,hidden:true},{width:10,hidden:true}];
+  if(includeReason) p3ColDefs.push({width:32});
+  ws.columns=p3ColDefs;
   const dateStr=p3TodayStr(),DS=4,DE=rows.length+3;
   ws.mergeCells('A1:J1');ws.getRow(1).height=30;
   const t1=ws.getCell('A1');t1.value=p3GetSheetTitle();t1.font=FN(C.WHITE,true,14);t1.fill=FL(C.TITLE);t1.alignment=AL('center');t1.border=BD();
