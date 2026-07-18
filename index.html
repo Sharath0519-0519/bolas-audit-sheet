@@ -279,6 +279,74 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 .filter-chip.active.f-excess{background:#10b981;border-color:#10b981;color:#fff}
 .filter-chip.active.f-matched{background:#3b82f6;border-color:#3b82f6;color:#fff}
 .audit-table tbody tr.row-hidden{display:none}
+
+/* ── PHOTO ATTACH CELL (Short/Excess rows) ── */
+.photo-cell label{cursor:pointer;font-size:15px}
+.photo-cell input{display:none}
+.photo-cell img{width:22px;height:22px;object-fit:cover;border-radius:4px;vertical-align:middle}
+.repeat-badge{display:inline-block;margin-left:4px;font-size:9px;background:#ef4444;color:#fff;border-radius:8px;padding:1px 5px;font-weight:700;vertical-align:middle}
+
+/* ── DRAFT-RESUME BANNER ── */
+.draft-banner{display:none;align-items:center;justify-content:space-between;gap:12px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);border-radius:12px;padding:12px 16px;margin-bottom:14px;flex-wrap:wrap}
+.draft-banner.on{display:flex}
+.draft-banner .db-txt{font-family:'DM Mono',monospace;font-size:12px;color:var(--t3)}
+.draft-banner .db-btns{display:flex;gap:8px}
+.draft-banner button{border-radius:8px;padding:6px 14px;font-family:'Syne',sans-serif;font-weight:700;font-size:11.5px;cursor:pointer}
+.db-resume{background:var(--t3);border:none;color:#1a1a2e}
+.db-discard{background:none;border:1px solid var(--border);color:var(--muted)}
+
+/* ── COUNT MODE (one item at a time) ── */
+.count-mode-toggle{border:1px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:20px;padding:7px 14px;font-family:'Syne',sans-serif;font-weight:700;font-size:11px;cursor:pointer;white-space:nowrap}
+.count-mode-toggle.active{background:#818cf8;border-color:#818cf8;color:#fff}
+.count-mode-card{display:none;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;margin:14px 0}
+.count-mode-card.on{display:block}
+.cm-progress{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.cm-progress-bar{height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;margin-bottom:18px}
+.cm-progress-fill{height:100%;background:#818cf8;transition:width .2s}
+.cm-item-name{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
+.cm-pkg-name{font-size:18px;font-weight:800;margin:4px 0 14px;line-height:1.3}
+.cm-readout{display:flex;gap:10px;margin-bottom:18px}
+.cm-readout-box{flex:1;background:var(--surface2);border-radius:10px;padding:10px;text-align:center}
+.cm-readout-box .v{font-size:17px;font-weight:800}
+.cm-readout-box .l{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;margin-top:2px}
+.cm-inputs{display:flex;gap:12px;margin-bottom:16px}
+.cm-input-box{flex:1}
+.cm-input-box label{display:block;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:6px;text-align:center}
+.cm-input-box input{width:100%;text-align:center;font-size:24px;font-weight:800;padding:14px;border-radius:10px;border:2px solid var(--border);background:var(--surface2);color:var(--text)}
+.cm-input-box input:focus{outline:none;border-color:#818cf8}
+.cm-result{text-align:center;margin-bottom:18px;min-height:30px}
+.cm-nav{display:flex;gap:10px}
+.cm-nav button{flex:1;padding:13px;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;border:none}
+.cm-prev{background:var(--surface2);color:var(--text)}
+.cm-next{background:#818cf8;color:#fff}
+.cm-next:disabled,.cm-prev:disabled{opacity:.4;cursor:not-allowed}
+.cm-jump{width:100%;margin-top:10px;background:none;border:1px dashed var(--border);color:var(--muted);border-radius:8px;padding:8px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer}
+
+/* ── OFFLINE STATUS BANNER ── */
+#p3OfflineBanner{display:none;position:sticky;top:0;z-index:200;background:#ef4444;color:#fff;text-align:center;padding:8px 14px;font-family:'DM Mono',monospace;font-size:11.5px;font-weight:700}
+#p3OfflineBanner.on{display:block}
+
+/* ── PETTY CASH ── */
+.pc-label{display:block;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px}
+.pc-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:13px;color:var(--text);outline:none;transition:border-color .2s}
+.pc-input:focus{border-color:#818cf8}
+.pc-add-btn{width:100%;margin-top:10px;background:none;border:1px dashed var(--border);color:var(--muted);border-radius:8px;padding:9px;font-family:'DM Mono',monospace;font-size:11.5px;cursor:pointer}
+.pc-expense-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.pc-expense-row input:nth-child(1){flex:2;min-width:0}
+.pc-expense-row input:nth-child(2){flex:1;min-width:0}
+.pc-expense-row button{background:none;border:none;color:#ef4444;cursor:pointer;font-size:17px;padding:0 4px;flex-shrink:0}
+
+/* ── CLEANLINESS ── */
+.cl-item{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:8px;flex-wrap:wrap}
+.cl-item-name{font-size:13px;font-weight:700;flex:1;min-width:160px}
+.cl-item-rating{display:flex;gap:6px}
+.cl-item-rating button{border:1px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:8px;padding:6px 12px;font-family:'Syne',sans-serif;font-weight:700;font-size:11px;cursor:pointer}
+.cl-item-rating button.sel-good{background:rgba(16,185,129,.15);border-color:#10b981;color:#10b981}
+.cl-item-rating button.sel-average{background:rgba(245,158,11,.15);border-color:#f59e0b;color:#f59e0b}
+.cl-item-rating button.sel-poor{background:rgba(239,68,68,.15);border-color:#ef4444;color:#ef4444}
+.cl-photo-btn{display:inline-flex;align-items:center;gap:8px;background:var(--surface2);border:1px dashed var(--border);color:var(--muted);border-radius:9px;padding:9px 14px;font-family:'DM Mono',monospace;font-size:11.5px;cursor:pointer}
+.cl-photo-btn input{display:none}
+.cl-photo-thumb{width:40px;height:40px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-left:8px}
 .sum-total{background:#2E3F9F;color:#fff}
 .sum-short-l,.sum-short-v{background:#C0392B;color:#fff}
 .sum-excess-l,.sum-excess-v{background:#1E8449;color:#fff}
@@ -414,6 +482,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 </div>
 
 <div id="appShell">
+<div id="p3OfflineBanner">🔴 You're offline — new counts and photos will save automatically once your connection returns. Keep this tab open.</div>
 <div class="shell-flex">
 <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
 <aside class="sidebar" id="sidebarEl">
@@ -435,6 +504,12 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     </button>
     <button class="tab" data-tab="3" onclick="switchTab(3)">
       <span class="tab-dot"></span><span class="tab-emoji">📋</span><span class="tab-label">Stock Audit</span>
+    </button>
+    <button class="tab" data-tab="11" onclick="switchTab(11)">
+      <span class="tab-dot"></span><span class="tab-emoji">💵</span><span class="tab-label">Petty Cash</span>
+    </button>
+    <button class="tab" data-tab="12" onclick="switchTab(12)">
+      <span class="tab-dot"></span><span class="tab-emoji">🧹</span><span class="tab-label">Cleanliness</span>
     </button>
     <button class="tab" data-tab="6" onclick="switchTab(6)">
       <span class="tab-dot"></span><span class="tab-emoji">🕒</span><span class="tab-label">History</span>
@@ -606,15 +681,25 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     <div class="setup-card">
       <div class="setup-card-hdr"><div class="setup-num" style="background:#10b981">2</div><h3>Outlet Details</h3></div>
       <label style="display:block;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;">🏪 Outlet Name <span style="color:var(--t3)">*</span></label>
-      <input type="text" id="p3OutletName" placeholder="e.g. 053 Bangalore Vijayanagar"
+      <input type="text" id="p3OutletName" list="p3OutletDatalist" placeholder="e.g. 053 Bangalore Vijayanagar" autocomplete="off"
         style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:13px;color:var(--text);outline:none;transition:border-color .2s;"
         oninput="p3UpdateOutletPreview()"
         onfocus="this.style.borderColor='var(--t3)'"
         onblur="this.style.borderColor='var(--border)'"
       >
+      <datalist id="p3OutletDatalist"></datalist>
       <div id="p3OutletPreview" style="margin-top:8px;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);display:none;">
         📋 Sheet title will read: <span id="p3OutletPreviewText" style="color:var(--t3);font-weight:700;"></span>
       </div>
+      <div id="p3SaveOutletRow" style="margin-top:8px;display:none;">
+        <button type="button" onclick="p3SaveCurrentOutlet()" style="background:none;border:1px dashed var(--border);color:var(--muted);border-radius:7px;padding:5px 11px;font-family:'DM Mono',monospace;font-size:10.5px;cursor:pointer;">+ Save "<span id="p3SaveOutletName"></span>" to Outlet Manager</button>
+      </div>
+      <label style="display:block;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin:14px 0 8px;">✍️ Verified By <span style="font-weight:400;color:var(--muted)">(outlet staff, optional)</span></label>
+      <input type="text" id="p3VerifiedBy" placeholder="Staff name at the outlet"
+        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:13px;color:var(--text);outline:none;transition:border-color .2s;"
+        onfocus="this.style.borderColor='var(--t3)'"
+        onblur="this.style.borderColor='var(--border)'"
+      >
     </div>
 
     <div class="setup-card optional" id="p3RateSection">
@@ -668,6 +753,14 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     </p>
   </div>
 
+  <div class="draft-banner" id="p3DraftBanner">
+    <div class="db-txt">⏳ Found a saved count in progress for this outlet — resume where you left off?</div>
+    <div class="db-btns">
+      <button class="db-resume" onclick="p3ResumeDraft()">Resume</button>
+      <button class="db-discard" onclick="p3DiscardDraftPrompt()">Start Fresh</button>
+    </div>
+  </div>
+
   <div class="prev-wrap" id="p3PrevWrap">
     <div class="prev-hdr">
       <div class="prev-title">Audit Preview — fill counts, download when ready</div>
@@ -679,6 +772,31 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
       <button class="filter-chip" data-filter="matched" onclick="p3SetFilter('matched')">Matched</button>
       <button class="filter-chip" data-filter="short" onclick="p3SetFilter('short')">Short</button>
       <button class="filter-chip" data-filter="excess" onclick="p3SetFilter('excess')">Excess</button>
+      <button class="count-mode-toggle" id="p3CountModeToggle" onclick="p3ToggleCountMode()">🔢 Count Mode</button>
+    </div>
+
+    <div class="count-mode-card" id="p3CountModeCard">
+      <div class="cm-progress">
+        <span id="cmProgressTxt">Item 1 of 1</span>
+        <span id="cmProgressUnfilled">— unfilled</span>
+      </div>
+      <div class="cm-progress-bar"><div class="cm-progress-fill" id="cmProgressFill" style="width:0%"></div></div>
+      <div class="cm-item-name" id="cmShortCode">—</div>
+      <div class="cm-pkg-name" id="cmPkgName">—</div>
+      <div class="cm-readout">
+        <div class="cm-readout-box"><div class="v" id="cmClosing">—</div><div class="l">Closing</div></div>
+        <div class="cm-readout-box"><div class="v" id="cmPhysical">—</div><div class="l">Physical</div></div>
+      </div>
+      <div class="cm-inputs">
+        <div class="cm-input-box"><label>Store Count</label><input type="number" inputmode="numeric" min="0" id="cmStoreInput" oninput="p3CmOnInput()"></div>
+        <div class="cm-input-box"><label>Rack Count</label><input type="number" inputmode="numeric" min="0" id="cmRackInput" oninput="p3CmOnInput()"></div>
+      </div>
+      <div class="cm-result" id="cmResult"></div>
+      <div class="cm-nav">
+        <button class="cm-prev" id="cmPrevBtn" onclick="p3CmNav(-1)">← Previous</button>
+        <button class="cm-next" id="cmNextBtn" onclick="p3CmNav(1)">Next →</button>
+      </div>
+      <button class="cm-jump" onclick="p3CmJumpUnfilled()">⏭ Jump to next unfilled item</button>
     </div>
     <!-- Sheet tabs -->
     <div style="display:flex;gap:0;margin-bottom:0;border-bottom:2px solid #C8CCE8;">
@@ -770,9 +888,12 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 <div class="panel" id="panel8">
   <div class="section-head">
     <span class="dot" style="background:#818cf8"></span>
-    <div><h2>Rate Manager</h2><p>Prices from the last Rate PDF you loaded in Stock Audit</p></div>
+    <div><h2>Rate Manager</h2><p>Saved prices, shared with the whole team — updates when anyone uploads a Rate PDF in Stock Audit</p></div>
   </div>
-  <button class="download-btn" id="rateRefreshBtn" style="margin-bottom:18px;max-width:200px;border:2px solid #818cf8;color:#818cf8">↻ Refresh</button>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px">
+    <button class="download-btn" id="rateRefreshBtn" style="max-width:200px;border:2px solid #818cf8;color:#818cf8">↻ Refresh</button>
+    <button class="download-btn" id="rateDownloadBtn" onclick="rateManagerDownloadExcel()" style="max-width:200px;border:2px solid #10b981;color:#10b981">⬇ Download Excel</button>
+  </div>
   <div id="rateManagerWrap"></div>
 </div>
 
@@ -805,6 +926,96 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     <div><h2>Audit History</h2><p>Every Stock Audit sheet generated, saved automatically at download</p></div>
   </div>
   <div id="auditHistoryWrap"><p style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">Loading…</p></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PANEL 11 — PETTY CASH AUDIT
+══════════════════════════════════════════════════════ -->
+<div class="panel" id="panel11">
+  <div class="section-head">
+    <span class="dot" style="background:#818cf8"></span>
+    <div><h2>Petty Cash Audit</h2><p>Count the till, log expenses, see what doesn't add up</p></div>
+  </div>
+
+  <div class="setup-cards" style="grid-template-columns:1fr 1fr">
+    <div class="setup-card">
+      <div class="setup-card-hdr"><div class="setup-num" style="background:#818cf8">1</div><h3>Outlet &amp; Balances</h3></div>
+      <label class="pc-label">🏪 Outlet Name</label>
+      <input type="text" id="pcOutletName" list="p3OutletDatalist" placeholder="e.g. 053 Bangalore Vijayanagar" class="pc-input" autocomplete="off">
+      <label class="pc-label" style="margin-top:12px">Opening Balance (₹)</label>
+      <input type="number" id="pcOpening" min="0" class="pc-input" oninput="pcRecalc()">
+      <label class="pc-label" style="margin-top:12px">Cash Received (₹)</label>
+      <input type="number" id="pcReceived" min="0" class="pc-input" oninput="pcRecalc()">
+      <label class="pc-label" style="margin-top:12px">Actual Cash Counted (₹)</label>
+      <input type="number" id="pcActual" min="0" class="pc-input" oninput="pcRecalc()">
+    </div>
+    <div class="setup-card">
+      <div class="setup-card-hdr"><div class="setup-num" style="background:#f59e0b">2</div><h3>Expenses</h3></div>
+      <div id="pcExpenseRows"></div>
+      <button type="button" onclick="pcAddExpenseRow()" class="pc-add-btn">+ Add expense</button>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:11px;margin:20px 0">
+    <div class="sc"><div class="sv a" id="pcTotalExpenses">₹0</div><div class="sl">Total Expenses</div></div>
+    <div class="sc"><div class="sv b" id="pcExpected">₹0</div><div class="sl">Expected Closing</div></div>
+    <div class="sc"><div class="sv" id="pcDifference" style="color:var(--muted)">₹0</div><div class="sl">Difference</div></div>
+  </div>
+
+  <div class="setup-card" style="margin-bottom:20px;max-width:520px">
+    <label class="pc-label">Remarks</label>
+    <textarea id="pcRemarks" rows="2" class="pc-input" style="resize:vertical"></textarea>
+    <label class="pc-label" style="margin-top:12px">✍️ Verified By</label>
+    <input type="text" id="pcVerifiedBy" class="pc-input" placeholder="Staff name at the outlet">
+  </div>
+
+  <button class="download-btn" id="pcSaveBtn" onclick="pcSaveAudit()" style="max-width:260px;border:2px solid #818cf8;color:#818cf8">💾 Save Petty Cash Audit</button>
+  <div id="pcSaveMsg" style="margin-top:8px;font-family:'DM Mono',monospace;font-size:11.5px"></div>
+
+  <div class="results-title" style="margin-top:30px">Recent Petty Cash Audits</div>
+  <div id="pettyCashHistoryWrap"><p style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">Loading…</p></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PANEL 12 — CLEANLINESS AUDIT
+══════════════════════════════════════════════════════ -->
+<div class="panel" id="panel12">
+  <div class="section-head">
+    <span class="dot" style="background:#818cf8"></span>
+    <div><h2>Cleanliness Audit</h2><p>Quick checklist, rate each area, attach a photo if something needs fixing</p></div>
+  </div>
+
+  <div class="setup-card" style="max-width:460px;margin-bottom:20px">
+    <label class="pc-label">🏪 Outlet Name</label>
+    <input type="text" id="clOutletName" list="p3OutletDatalist" placeholder="e.g. 053 Bangalore Vijayanagar" class="pc-input" autocomplete="off">
+  </div>
+
+  <div id="clChecklist"></div>
+
+  <div class="cl-photo-btn" style="margin:14px 0" id="clPhotoBtnWrap">
+    <label style="cursor:pointer;display:flex;align-items:center;gap:8px">
+      📷 Attach a photo (optional)
+      <input type="file" accept="image/*" capture="environment" onchange="clUploadPhoto(this.files[0])">
+    </label>
+    <img id="clPhotoThumb" class="cl-photo-thumb" style="display:none">
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:11px;margin:20px 0">
+    <div class="sc"><div class="sv a" id="clScore">—</div><div class="sl">Overall Score</div></div>
+  </div>
+
+  <div class="setup-card" style="margin-bottom:20px;max-width:520px">
+    <label class="pc-label">Remarks</label>
+    <textarea id="clRemarks" rows="2" class="pc-input" style="resize:vertical"></textarea>
+    <label class="pc-label" style="margin-top:12px">✍️ Verified By</label>
+    <input type="text" id="clVerifiedBy" class="pc-input" placeholder="Staff name at the outlet">
+  </div>
+
+  <button class="download-btn" id="clSaveBtn" onclick="clSaveAudit()" style="max-width:260px;border:2px solid #818cf8;color:#818cf8">💾 Save Cleanliness Audit</button>
+  <div id="clSaveMsg" style="margin-top:8px;font-family:'DM Mono',monospace;font-size:11.5px"></div>
+
+  <div class="results-title" style="margin-top:30px">Recent Cleanliness Audits</div>
+  <div id="cleanlinessHistoryWrap"><p style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">Loading…</p></div>
 </div>
 
 </div><!-- /container -->
@@ -2005,6 +2216,9 @@ function p3GetOutletName() {
   const val = ($3('p3OutletName') ? $3('p3OutletName').value.trim() : '');
   return val || "MOLSI'S";
 }
+function p3GetVerifiedBy() {
+  return ($3('p3VerifiedBy') ? $3('p3VerifiedBy').value.trim() : '');
+}
 function p3GetSheetTitle() {
   return p3GetOutletName().toUpperCase() + ' — PHYSICAL STOCK AUDIT SHEET';
 }
@@ -2021,6 +2235,7 @@ function p3UpdateOutletPreview() {
   } else {
     el.style.display = 'none';
   }
+  if (typeof p3CheckOutletSaved === 'function') p3CheckOutletSaved(name);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2236,22 +2451,28 @@ async function p3BuildExcelJS(rows, includeReason){
   }
   const p3ColDefs=[{width:5},{width:16},{width:44},{width:13},{width:15},{width:13},{width:13},{width:10},{width:13},{width:12},{width:14,hidden:true},{width:14,hidden:true},{width:10,hidden:true},{width:10,hidden:true}];
   if(includeReason) p3ColDefs.push({width:32});
+  const hasPhotos = rows.some(r=>r.photoUrl);
+  const photoColNum = includeReason ? 16 : 15; // sits right after Reason if included, otherwise takes that slot itself
+  if(hasPhotos){ while(p3ColDefs.length < photoColNum-1) p3ColDefs.push({width:10}); p3ColDefs.push({width:16}); }
   ws.columns=p3ColDefs;
   const dateStr=p3TodayStr(),DS=4,DE=rows.length+3;
   ws.mergeCells('A1:J1');ws.getRow(1).height=30;
   const t1=ws.getCell('A1');t1.value=p3GetSheetTitle();t1.font=FN(C.WHITE,true,14);t1.fill=FL(C.TITLE);t1.alignment=AL('center');t1.border=BD();
   'BCDEFGHIJ'.split('').forEach(col=>{const c=ws.getCell(col+'1');c.fill=FL(C.TITLE);c.border=BD();});
   ws.mergeCells('A2:J2');ws.getRow(2).height=16;
-  const t2c=ws.getCell('A2');t2c.value=`Audit Date: ${dateStr}     |     Generated by SHARATH'S SYSTEM     |     CONFIDENTIAL`;
+  const t2c=ws.getCell('A2');t2c.value=`Audit Date: ${dateStr}     |     Generated by SHARATH'S SYSTEM${p3GetVerifiedBy()?'     |     Verified by: '+p3GetVerifiedBy():''}     |     CONFIDENTIAL`;
   t2c.font=FN(C.DFGG,false,9,true);t2c.fill=FL(C.DATE);t2c.alignment=AL('center');t2c.border=BD();
   'BCDEFGHIJ'.split('').forEach(col=>{const c=ws.getCell(col+'2');c.fill=FL(C.DATE);c.border=BD();});
   ws.getRow(3).height=34;
+  if(hasPhotos){
+    const c=ws.getRow(3).getCell(photoColNum);c.value='Photo';c.font=FN(C.WHITE,true,10);c.fill=FL(C.HDR);c.alignment=AL('center','middle',true);c.border=BD();
+  }
   [['A','Sr No','center'],['B','Item Name','left'],['C','Package Name','left'],['D','Closing Stock','center'],['E','Physical (Packs)','center'],['F','Store Count','center'],['G','Rack Count','center'],['H','Total','center'],['I','Difference','center'],['J','Remark','center']
   ].forEach(([col,label,align])=>{const c=ws.getCell(col+'3');c.value=label;c.font=FN(C.WHITE,true,10);c.fill=FL(C.HDR);c.alignment=AL(align,'middle',true);c.border=BD();});
   if(includeReason){
     const c=ws.getCell('O3');c.value='Reason';c.font=FN(C.WHITE,true,10);c.fill=FL(C.HDR);c.alignment=AL('center','middle',true);c.border=BD();
   }
-  ws.autoFilter={from:{row:3,column:1},to:{row:3,column:includeReason?15:10}};
+  ws.autoFilter={from:{row:3,column:1},to:{row:3,column:hasPhotos?photoColNum:(includeReason?15:10)}};
   rows.forEach((r,ri)=>{
     const er=ri+DS,bg=r.hasNegative?C.NEG:(ri%2===0?C.ODD:C.EVEN);
     ws.getRow(er).height=18;
@@ -2279,6 +2500,11 @@ async function p3BuildExcelJS(rows, includeReason){
     ws.getCell('N'+er).value = {formula:`IF($J${er}="EXCESS",COUNTIF($J$${DS}:J${er},"EXCESS"),"")`,result:''};
     if(includeReason){
       const c=ws.getCell('O'+er);c.value='';c.font=FN(C.DARK,false,10);c.fill=FL(C.MAN);c.alignment=AL('left','middle');c.border=BD();
+    }
+    if(hasPhotos){
+      const c=ws.getRow(er).getCell(photoColNum);
+      c.fill=FL(bg);c.border=BD();c.alignment=AL('center','middle');
+      if(r.photoUrl){ c.value={text:'📷 View',hyperlink:r.photoUrl};c.font=FN('1A5276',false,10); }
     }
   });
   ws.addConditionalFormatting({ref:`J${DS}:J${DE}`,rules:[
@@ -2723,14 +2949,16 @@ async function p3ConfirmDownload() {
     // Log this generated audit to Audit History (best-effort; never blocks the download itself)
     if (typeof saveAuditRecord === 'function' && typeof p3RowCalc === 'function') {
       const stats = { total: filtered.length, matched: 0, short: 0, excess: 0 };
+      const shortItems = [], excessItems = [];
       filtered.forEach(r => {
         const { remark } = p3RowCalc(r);
         if (remark === 'MATCHED') stats.matched++;
-        else if (remark === 'SHORT') stats.short++;
-        else if (remark === 'EXCESS') stats.excess++;
+        else if (remark === 'SHORT') { stats.short++; shortItems.push(r.pkgName); }
+        else if (remark === 'EXCESS') { stats.excess++; excessItems.push(r.pkgName); }
       });
-      saveAuditRecord(stats);
+      saveAuditRecord(stats, shortItems, excessItems);
     }
+    if (typeof p3ClearDraft === 'function') p3ClearDraft(); // audit is complete, drop the in-progress save
   } catch(e) {
     $3('p3ErrBox').textContent = 'Excel build failed: ' + e.message;
     p3On($3('p3ErrBox'));
@@ -2754,9 +2982,9 @@ function p3SwitchPreviewTab(n) {
 
 function p3BuildPreview(rows){
   const tbl=$3('p3PrevTbl'),dateStr=p3TodayStr();
-  let h=`<tr class="title-row"><td colspan="10">${p3GetSheetTitle()}</td></tr>`;
-  h+=`<tr class="date-row"><td colspan="10">Audit Date: ${dateStr} &nbsp;|&nbsp; Generated by SHARATH'S SYSTEM &nbsp;|&nbsp; CONFIDENTIAL</td></tr>`;
-  h+=`<thead><tr><th style="width:34px">Sr</th><th style="text-align:left">Item Name</th><th style="text-align:left">Package Name</th><th>Closing</th><th>Physical (Packs)</th><th>Store Count</th><th>Rack Count</th><th>Total</th><th>Difference</th><th>Remark</th></tr></thead><tbody>`;
+  let h=`<tr class="title-row"><td colspan="11">${p3GetSheetTitle()}</td></tr>`;
+  h+=`<tr class="date-row"><td colspan="11">Audit Date: ${dateStr} &nbsp;|&nbsp; Generated by SHARATH'S SYSTEM${p3GetVerifiedBy()?' &nbsp;|&nbsp; Verified by: '+p3Esc(p3GetVerifiedBy()):''} &nbsp;|&nbsp; CONFIDENTIAL</td></tr>`;
+  h+=`<thead><tr><th style="width:34px">Sr</th><th style="text-align:left">Item Name</th><th style="text-align:left">Package Name</th><th>Closing</th><th>Physical (Packs)</th><th>Store Count</th><th>Rack Count</th><th>Total</th><th>Difference</th><th>Remark</th><th style="width:30px">📷</th></tr></thead><tbody>`;
   rows.forEach((r,ri)=>{
     let ps,psStyle='';
     if(r.packType==='unknown'){ps='?';psStyle='color:#888;font-style:italic';}else if(r.physical!==null){ps=Math.round(r.physical*1000)/1000;}else{ps='—';psStyle='color:#888';}
@@ -2768,13 +2996,14 @@ function p3BuildPreview(rows){
       +`<td style="${clsStyle}">${Number(r.closing).toFixed(3)}</td><td style="${psStyle}">${ps}</td>`
       +`<td class="manual"><input type="number" inputmode="numeric" min="0" class="cnt-input" data-idx="${ri}" data-field="store" value=""></td>`
       +`<td class="manual"><input type="number" inputmode="numeric" min="0" class="cnt-input" data-idx="${ri}" data-field="rack" value=""></td>`
-      +`<td id="p3Tot${ri}"></td><td id="p3Dif${ri}"></td><td id="p3Rem${ri}" style="color:#aaa;font-style:italic;font-size:10px">auto</td></tr>`;
+      +`<td id="p3Tot${ri}"></td><td id="p3Dif${ri}"></td><td id="p3Rem${ri}" style="color:#aaa;font-style:italic;font-size:10px">auto</td>`
+      +`<td id="p3Photo${ri}" class="photo-cell"></td></tr>`;
   });
   const negCount=rows.filter(r=>r.hasNegative).length,unkCount=rows.filter(r=>r.packType==='unknown').length;
   let warns='';
   if(negCount>0)warns+=`<div style="background:#FFF3CD;border:1px solid #ffc107;border-radius:6px;padding:7px 12px;margin:5px 0;font-size:11px;color:#856404">⚠ <strong>${negCount} product(s)</strong> have negative closing stock — please check your source file.</div>`;
   if(unkCount>0)warns+=`<div style="background:#f8f9fa;border:1px solid #dee2e6;border-radius:6px;padding:7px 12px;margin:5px 0;font-size:11px;color:#555">ℹ <strong>${unkCount} product(s)</strong> show "?" — pack size not recognised.</div>`;
-  h+=`</tbody><tfoot>${warns?`<tr><td colspan="10" style="padding:7px 4px;border:none;">${warns}</td></tr>`:''}<tr><td colspan="10" style="padding:0;border:none;"><div class="summary-section"><div class="summary-boxes"><div class="sum-box"><div class="sum-box-lbl sum-total">TOTAL PRODUCTS</div><div class="sum-box-val sum-total">${rows.length}</div></div><div class="sum-box"><div class="sum-box-lbl sum-short-l">SHORT</div><div class="sum-box-val sum-short-v" id="p3SumShort">0</div></div><div class="sum-box"><div class="sum-box-lbl sum-excess-l">EXCESS</div><div class="sum-box-val sum-excess-v" id="p3SumExcess">0</div></div><div class="sum-box"><div class="sum-box-lbl sum-match-l">MATCHED</div><div class="sum-box-val sum-match-v" id="p3SumMatch">0</div></div></div></div></td></tr><tr><td colspan="10" style="padding:0;border:none;"><div class="foot-note">★ Ivory = tap to fill Store/Rack Count | Amber = negative closing | ? = unknown pack | Confidential</div></td></tr></tfoot>`;
+  h+=`</tbody><tfoot>${warns?`<tr><td colspan="11" style="padding:7px 4px;border:none;">${warns}</td></tr>`:''}<tr><td colspan="11" style="padding:0;border:none;"><div class="summary-section"><div class="summary-boxes"><div class="sum-box"><div class="sum-box-lbl sum-total">TOTAL PRODUCTS</div><div class="sum-box-val sum-total">${rows.length}</div></div><div class="sum-box"><div class="sum-box-lbl sum-short-l">SHORT</div><div class="sum-box-val sum-short-v" id="p3SumShort">0</div></div><div class="sum-box"><div class="sum-box-lbl sum-excess-l">EXCESS</div><div class="sum-box-val sum-excess-v" id="p3SumExcess">0</div></div><div class="sum-box"><div class="sum-box-lbl sum-match-l">MATCHED</div><div class="sum-box-val sum-match-v" id="p3SumMatch">0</div></div></div></div></td></tr><tr><td colspan="11" style="padding:0;border:none;"><div class="foot-note">★ Ivory = tap to fill Store/Rack Count | Amber = negative closing | ? = unknown pack | 📷 = photo for Short/Excess | Confidential</div></td></tr></tfoot>`;
   tbl.innerHTML=h;
 
   // Wire up the editable count inputs
@@ -2787,6 +3016,13 @@ function p3BuildPreview(rows){
 
   // Also build Sheet 2 preview
   p3BuildPreviewSheet2(rows);
+
+  // Load prior audit for this outlet (repeat-short/excess flagging) and check for a saved draft
+  if (typeof p3LoadPriorAuditForOutlet === 'function') {
+    const outletName = ($3('p3OutletName') ? $3('p3OutletName').value.trim() : '');
+    p3LoadPriorAuditForOutlet(outletName).then(() => p3RecalcSummary());
+  }
+  if (typeof p3OfferDraftResume === 'function') p3OfferDraftResume();
 }
 
 // ── Live recompute engine for the editable Store/Rack Count columns ──────
@@ -2808,6 +3044,7 @@ function p3OnCountInput(e){
   p3AuditRows[idx][field==='store'?'storeCount':'rackCount']=val;
   p3RecalcRow(idx);
   p3RecalcSummary();
+  if (typeof p3ScheduleDraftSave === 'function') p3ScheduleDraftSave();
 }
 function p3RecalcRow(idx){
   const r=p3AuditRows[idx];
@@ -2820,12 +3057,31 @@ function p3RecalcRow(idx){
     else{
       const map={SHORT:['#FDECEA','#C0392B'],EXCESS:['#E8F5E9','#1E8449'],MATCHED:['#E3F2FD','#1A5276']};
       const [bg,fg]=map[remark];
+      const streak=(remark==='SHORT'||remark==='EXCESS') && typeof p3PriorStreaks!=='undefined' && p3PriorStreaks ? (p3PriorStreaks[r.pkgName]||0) : 0;
+      const thisTime=streak+1; // streak counts prior audits only; this audit makes it one more
+      const badge = streak>0
+        ? `<span class="repeat-badge" title="Short/Excess for ${thisTime} audits running at this outlet" style="${streak>=2?'background:#dc2626':''}">${thisTime}× RUNNING</span>`
+        : '';
       remEl.style.cssText='padding:0';
-      remEl.innerHTML=`<span class="remark-pill" style="background:${bg};color:${fg}">${remark}</span>`;
+      remEl.innerHTML=`<span class="remark-pill" style="background:${bg};color:${fg}">${remark}</span>${badge}`;
     }
   }
   const tr=totEl?totEl.closest('tr'):null;
   if(tr) tr.dataset.status = remark?remark.toLowerCase():'pending';
+
+  // Photo cell: only offer/show for Short or Excess rows
+  const photoEl=document.getElementById(`p3Photo${idx}`);
+  if(photoEl){
+    if(remark==='SHORT'||remark==='EXCESS'){
+      if(r.photoUrl){
+        photoEl.innerHTML=`<a href="${r.photoUrl}" target="_blank" rel="noopener"><img src="${r.photoThumb||r.photoUrl}" alt="photo"></a>`;
+      } else {
+        photoEl.innerHTML=`<label title="Attach a photo">📷<input type="file" accept="image/*" capture="environment" onchange="p3UploadPhoto(${idx},this.files[0])"></label>`;
+      }
+    } else {
+      photoEl.innerHTML='';
+    }
+  }
 }
 function p3RecalcSummary(){
   let short=0,excess=0,matched=0,filled=0;
@@ -3092,6 +3348,11 @@ async function p3HandleRatePdf(file) {
       }
     });
 
+    // Persist to Firestore so the next visit doesn't need this PDF re-uploaded
+    // (shared with the whole team, same as Outlet Manager). Best-effort —
+    // never blocks the rates from being usable this session even if it fails.
+    if (typeof p3SavePersistedRates === 'function') p3SavePersistedRates();
+
     // If the audit sheet was already generated once (e.g. PDF uploaded after
     // clicking "Generate"), refresh it now so these rates apply right away —
     // no need to click "Generate Audit Sheet" again.
@@ -3147,7 +3408,7 @@ const fbAuth = firebase.auth();
 const db = firebase.firestore();
 let currentUser = null;
 let isOwner = false;
-const PANEL_NAMES = {1:'Kernel Report',2:'Flavoured Report',3:'Stock Audit',4:'Owner Dashboard',5:'Dashboard',6:'History',7:'Settings',8:'Rate Manager',9:'Outlet Manager',10:'Audit History'};
+const PANEL_NAMES = {1:'Kernel Report',2:'Flavoured Report',3:'Stock Audit',4:'Owner Dashboard',5:'Dashboard',6:'History',7:'Settings',8:'Rate Manager',9:'Outlet Manager',10:'Audit History',11:'Petty Cash',12:'Cleanliness'};
 
 // ---- Sign-in ----
 document.getElementById('googleSignInBtn').addEventListener('click', () => {
@@ -3291,6 +3552,10 @@ switchTab = function(n) {
   if (n === 8) loadRateManagerPanel();
   if (n === 9) loadOutletsPanel();
   if (n === 10) loadAuditHistoryPanel();
+  if (n === 11 && typeof pcInit === 'function') pcInit();
+  if (n === 12 && typeof clInit === 'function') clInit();
+  if (n === 3 && typeof p3LoadOutletDatalist === 'function') p3LoadOutletDatalist();
+  if (n === 3 && typeof p3LoadPersistedRates === 'function') p3LoadPersistedRates();
   const t = document.getElementById('topbarTitle');
   if (t) t.textContent = PANEL_NAMES[n] || '';
   toggleSidebar(false); // auto-close the mobile drawer after picking a section
@@ -3532,22 +3797,145 @@ async function loadSettingsPanel() {
 }
 
 // ---- Rate Manager: reflects window.p3RateMap, the map Stock Audit fills from an uploaded PDF this session ----
-function loadRateManagerPanel() {
+async function loadRateManagerPanel() {
   const wrap = document.getElementById('rateManagerWrap');
   if (!wrap) return;
+  if (!window.p3RateMap || !window.p3RateMap.size) {
+    wrap.innerHTML = '<p style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:12px;">Loading saved rates…</p>';
+    if (typeof p3LoadPersistedRates === 'function') await p3LoadPersistedRates();
+  }
   const map = window.p3RateMap;
   if (!map || !map.size) {
-    wrap.innerHTML = `<div class="table-wrap" style="padding:22px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No rates loaded this session yet.<br>Go to <strong>Stock Audit</strong> → card 3 → upload a Rate PDF, then come back here.</div>`;
+    wrap.innerHTML = `<div class="table-wrap" style="padding:22px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No rates saved yet.<br>Go to <strong>Stock Audit</strong> → card 3 → upload a Rate PDF — it'll be saved here for everyone automatically.</div>`;
     return;
   }
+  const meta = window._p3RatesMeta;
+  const sourceNote = (typeof p3RatesLoadedFromCloud !== 'undefined' && p3RatesLoadedFromCloud)
+    ? `Saved rates${meta && meta.updatedAt ? ' — last updated ' + fmtTs(meta.updatedAt) + (meta.updatedBy ? ' by ' + escHtml(meta.updatedBy) : '') : ''}`
+    : 'Just uploaded this session — now saved for everyone automatically';
   let h = `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Item</th><th>Billing Price</th><th>Selling Price</th><th>Effective Date</th></tr></thead><tbody>`;
   for (const [key, v] of map) {
     h += `<tr><td style="text-align:left">${escHtml(v.name || key)}</td><td>${v.billing != null ? '₹' + v.billing : '—'}</td><td>${v.selling != null ? '₹' + v.selling : '—'}</td><td>${escHtml(v.effDate || '—')}</td></tr>`;
   }
-  h += `</tbody></table></div></div><p style="margin-top:10px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10.5px">${map.size} products · reflects the PDF loaded this browser session only</p>`;
+  h += `</tbody></table></div></div><p style="margin-top:10px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10.5px">${map.size} products · ${sourceNote}</p>`;
   wrap.innerHTML = h;
 }
 document.getElementById('rateRefreshBtn')?.addEventListener('click', loadRateManagerPanel);
+
+async function rateManagerDownloadExcel(){
+  const map = window.p3RateMap;
+  if(!map || !map.size){ alert('No rates loaded yet — nothing to download.'); return; }
+  const btn = document.getElementById('rateDownloadBtn');
+  if(btn){ btn.disabled = true; btn.textContent = '⏳ Building…'; }
+  try{
+    const wb = new ExcelJS.Workbook();
+    wb.creator = "SHARATH'S SYSTEM"; wb.created = new Date();
+    const ws = wb.addWorksheet('Rate List', { views:[{state:'frozen', ySplit:3}] });
+    ws.columns = [{width:46},{width:16},{width:16},{width:16}];
+
+    const TITLE='1B2A6B', DATEBG='141A4A', HDR='2E3F9F', ODD='FFFFFF', EVEN='F0F3FF', DARK='1A1A2E', WHITE='FFFFFF', DFGG='AAAACC', BRD='C8CCE8';
+    const FL=h=>({type:'pattern',pattern:'solid',fgColor:{argb:'FF'+h}});
+    const FN=(h,bold=false,sz=10)=>({name:'Calibri',size:sz,bold,color:{argb:'FF'+h}});
+    const BD=()=>({top:{style:'thin',color:{argb:'FF'+BRD}},bottom:{style:'thin',color:{argb:'FF'+BRD}},left:{style:'thin',color:{argb:'FF'+BRD}},right:{style:'thin',color:{argb:'FF'+BRD}}});
+    const AL=(h='center',v='middle')=>({horizontal:h,vertical:v});
+    const dateStr = (typeof p3TodayStr==='function') ? p3TodayStr() : new Date().toLocaleDateString('en-GB').split('/').join('-');
+
+    ws.mergeCells('A1:D1'); ws.getRow(1).height=28;
+    const t1=ws.getCell('A1'); t1.value='BOLAS — RATE LIST'; t1.font=FN(WHITE,true,14); t1.fill=FL(TITLE); t1.alignment=AL('center'); t1.border=BD();
+    'BCD'.split('').forEach(c=>{ const cc=ws.getCell(c+'1'); cc.fill=FL(TITLE); cc.border=BD(); });
+
+    ws.mergeCells('A2:D2'); ws.getRow(2).height=16;
+    const t2=ws.getCell('A2'); t2.value=`Generated: ${dateStr}     |     ${map.size} products     |     Generated by SHARATH'S SYSTEM     |     CONFIDENTIAL`;
+    t2.font=FN(DFGG,false,9); t2.fill=FL(DATEBG); t2.alignment=AL('center'); t2.border=BD();
+    'BCD'.split('').forEach(c=>{ const cc=ws.getCell(c+'2'); cc.fill=FL(DATEBG); cc.border=BD(); });
+
+    ws.getRow(3).height=26;
+    [['A','Item Name','left'],['B','Billing Price','center'],['C','Selling Price','center'],['D','Effective Date','center']].forEach(([col,label,align])=>{
+      const c=ws.getCell(col+'3'); c.value=label; c.font=FN(WHITE,true,10); c.fill=FL(HDR); c.alignment=AL(align,'middle'); c.border=BD();
+    });
+    ws.autoFilter = { from:{row:3,column:1}, to:{row:3,column:4} };
+
+    // Alphabetical rather than upload order — easier to look up a specific item in a printed/scanned list
+    const sorted = [...map.values()].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));
+    let r=4;
+    sorted.forEach((v,i)=>{
+      const bg = i%2===0 ? ODD : EVEN;
+      const nameCell=ws.getCell('A'+r); nameCell.value=v.name||''; nameCell.font=FN(DARK,false,10); nameCell.fill=FL(bg); nameCell.alignment=AL('left','middle'); nameCell.border=BD();
+      const bCell=ws.getCell('B'+r); bCell.value=v.billing!=null?v.billing:''; bCell.numFmt='"₹"#,##0.00'; bCell.font=FN(DARK,false,10); bCell.fill=FL(bg); bCell.alignment=AL('center','middle'); bCell.border=BD();
+      const sCell=ws.getCell('C'+r); sCell.value=v.selling!=null?v.selling:''; sCell.numFmt='"₹"#,##0.00'; sCell.font=FN(DARK,false,10); sCell.fill=FL(bg); sCell.alignment=AL('center','middle'); sCell.border=BD();
+      const dCell=ws.getCell('D'+r); dCell.value=v.effDate||''; dCell.font=FN(DARK,false,10); dCell.fill=FL(bg); dCell.alignment=AL('center','middle'); dCell.border=BD();
+      r++;
+    });
+
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url = URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url; a.download=`Bolas_Rate_List_${dateStr}.xlsx`;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 1000);
+    if (typeof logActivity==='function') logActivity('download_file', 8, 'Rate List Excel');
+  }catch(e){
+    alert("Couldn't build the Excel file: "+e.message);
+    console.error('rateManagerDownloadExcel failed:', e);
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='⬇ Download Excel'; }
+  }
+}
+
+// ---- Persisted Rate Manager: rates saved to Firestore, shared across the team ----
+let p3RatesLoadedFromCloud = false;
+async function p3SavePersistedRates(){
+  if(!currentUser || !window.p3RateMap || !window.p3RateMap.size) return;
+  try{
+    // Fully replace the saved set on every upload — otherwise an item that's
+    // been discontinued (no longer in the newest PDF) would keep its old price
+    // sitting in Firestore forever and could get silently reused on a future
+    // audit. The rates collection should only ever reflect the latest PDF.
+    const existing = await db.collection('rates').get();
+    const deleteIds = existing.docs.map(d=>d.id);
+
+    // Firestore caps a single batch at 500 operations — chunk both the
+    // deletes and the writes so this keeps working as the price list grows
+    // past that, instead of silently failing once it crosses ~500 items.
+    const CHUNK = 450;
+    for(let i=0;i<deleteIds.length;i+=CHUNK){
+      const batch = db.batch();
+      deleteIds.slice(i,i+CHUNK).forEach(id=>batch.delete(db.collection('rates').doc(id)));
+      await batch.commit();
+    }
+    const entries = [...window.p3RateMap.entries()];
+    for(let i=0;i<entries.length;i+=CHUNK){
+      const batch = db.batch();
+      entries.slice(i,i+CHUNK).forEach(([key,v])=>{
+        batch.set(db.collection('rates').doc(key), {
+          name: v.name, billing: v.billing, selling: v.selling, effDate: v.effDate, effDateSort: v.effDateSort||0,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: currentUser.displayName||currentUser.email
+        });
+      });
+      await batch.commit();
+    }
+    await db.collection('rates').doc('_meta').set({
+      count: window.p3RateMap.size, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: currentUser.displayName||currentUser.email
+    });
+  }catch(e){ console.warn('p3SavePersistedRates failed:', e); }
+}
+async function p3LoadPersistedRates(){
+  if(window.p3RateMap && window.p3RateMap.size) return; // this session's own upload takes priority
+  try{
+    const snap = await db.collection('rates').limit(3000).get(); // reads aren't batch-capped like writes; generous ceiling so a large price list never gets silently truncated
+    const map = new Map(); let meta = null;
+    snap.docs.forEach(d=>{
+      if(d.id==='_meta'){ meta=d.data(); return; }
+      map.set(d.id, d.data());
+    });
+    if(map.size){
+      window.p3RateMap = map;
+      window._p3RateCands = null; window._p3RateMatchCache = null;
+      p3RatesLoadedFromCloud = true;
+      window._p3RatesMeta = meta;
+    }
+  }catch(e){ console.warn('p3LoadPersistedRates failed:', e); }
+}
 
 // ---- Outlet Manager: Firestore-backed, shared with any approved teammate ----
 async function loadOutletsPanel() {
@@ -3602,29 +3990,524 @@ async function loadAuditHistoryPanel() {
   if (!wrap) return;
   wrap.innerHTML = '<p style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:12px;">Loading…</p>';
   try {
-    const snap = await db.collection('audits').orderBy('ts', 'desc').limit(100).get();
-    const rows = snap.docs.map(d => d.data());
-    if (!rows.length) { wrap.innerHTML = `<div class="table-wrap" style="padding:18px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No audits generated yet — they'll appear here as soon as one is downloaded from Stock Audit.</div>`; return; }
-    let h = `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th>Total</th><th>Matched</th><th>Short</th><th>Excess</th><th style="text-align:left">Generated By</th><th>When</th></tr></thead><tbody>`;
-    rows.forEach(a => {
-      h += `<tr><td style="text-align:left">${escHtml(a.outletName || '—')}</td><td>${a.total ?? '—'}</td><td style="color:#10b981;font-weight:700">${a.matched ?? '—'}</td><td style="color:#ef4444;font-weight:700">${a.short ?? '—'}</td><td style="color:#f59e0b;font-weight:700">${a.excess ?? '—'}</td><td style="text-align:left">${escHtml(a.generatedByName || '—')}</td><td>${fmtTs(a.ts)}</td></tr>`;
+    const [outletsSnap, auditsSnap] = await Promise.all([
+      db.collection('outlets').limit(200).get(),
+      db.collection('audits').orderBy('ts', 'desc').limit(300).get()
+    ]);
+    const outletNames = outletsSnap.docs.map(d => d.data().name).filter(Boolean);
+    const audits = auditsSnap.docs.map(d => d.data());
+
+    // Group audits per outlet, most recent first
+    const byOutlet = {};
+    audits.forEach(a => {
+      const key = (a.outletName || '').trim().toLowerCase();
+      if (!key) return;
+      (byOutlet[key] = byOutlet[key] || []).push(a);
     });
-    h += `</tbody></table></div></div>`;
-    wrap.innerHTML = h;
+    Object.values(byOutlet).forEach(list => list.sort((a, b) => (b.ts && b.ts.toMillis ? b.ts.toMillis() : 0) - (a.ts && a.ts.toMillis ? a.ts.toMillis() : 0)));
+
+    // Stale outlets: no audit in 7+ days, or never audited at all
+    const now = Date.now();
+    const stale = outletNames.map(name => {
+      const list = byOutlet[name.trim().toLowerCase()];
+      const latest = list && list[0];
+      const daysSince = (latest && latest.ts && latest.ts.toMillis) ? Math.floor((now - latest.ts.toMillis()) / 86400000) : null;
+      return { name, daysSince };
+    }).filter(o => o.daysSince === null || o.daysSince >= 7)
+      .sort((a, b) => (b.daysSince ?? 99999) - (a.daysSince ?? 99999));
+
+    // Repeat-issue outlets: same item(s) short/excess two visits running
+    const repeats = [];
+    Object.values(byOutlet).forEach(list => {
+      if (list.length < 2) return;
+      const [latest, prev] = list;
+      const latestBad = new Set([...(latest.shortItems || []), ...(latest.excessItems || [])]);
+      const prevBad = new Set([...(prev.shortItems || []), ...(prev.excessItems || [])]);
+      const overlap = [...latestBad].filter(x => prevBad.has(x));
+      if (overlap.length) repeats.push({ name: latest.outletName, count: overlap.length });
+    });
+
+    let html = '';
+    if (stale.length || repeats.length) {
+      html += `<div class="results-title">⚠️ Needs Attention</div>`;
+      html += `<div class="table-wrap" style="margin-bottom:26px"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th style="text-align:left">Issue</th></tr></thead><tbody>`;
+      stale.forEach(o => {
+        html += `<tr><td style="text-align:left">${escHtml(o.name)}</td><td style="text-align:left;color:#f59e0b">${o.daysSince === null ? 'Never audited yet' : `Not audited in ${o.daysSince} days`}</td></tr>`;
+      });
+      repeats.forEach(o => {
+        html += `<tr><td style="text-align:left">${escHtml(o.name)}</td><td style="text-align:left;color:#ef4444">${o.count} item(s) short/excess two visits running</td></tr>`;
+      });
+      html += `</tbody></table></div></div>`;
+    }
+
+    if (!audits.length) {
+      html += `<div class="table-wrap" style="padding:18px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No audits generated yet — they'll appear here as soon as one is downloaded from Stock Audit.</div>`;
+      wrap.innerHTML = html;
+      return;
+    }
+    html += `<div class="results-title">All Audits</div>`;
+    html += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th>Total</th><th>Matched</th><th>Short</th><th>Excess</th><th style="text-align:left">Verified By</th><th style="text-align:left">Generated By</th><th>When</th></tr></thead><tbody>`;
+    audits.forEach(a => {
+      html += `<tr><td style="text-align:left">${escHtml(a.outletName || '—')}</td><td>${a.total ?? '—'}</td><td style="color:#10b981;font-weight:700">${a.matched ?? '—'}</td><td style="color:#ef4444;font-weight:700">${a.short ?? '—'}</td><td style="color:#f59e0b;font-weight:700">${a.excess ?? '—'}</td><td style="text-align:left">${escHtml(a.verifiedBy || '—')}</td><td style="text-align:left">${escHtml(a.generatedByName || '—')}</td><td>${fmtTs(a.ts)}</td></tr>`;
+    });
+    html += `</tbody></table></div></div>`;
+    wrap.innerHTML = html;
   } catch (e) {
     console.error('loadAuditHistoryPanel failed:', e);
     wrap.innerHTML = `<p style="color:#ef4444;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load audit history: ${escHtml(e.message)}</p>`;
   }
 }
-function saveAuditRecord(stats) {
+function saveAuditRecord(stats, shortItems, excessItems) {
   if (!currentUser) return;
   const outletEl = document.getElementById('p3OutletName');
+  const verifiedEl = document.getElementById('p3VerifiedBy');
   db.collection('audits').add({
     outletName: (outletEl && outletEl.value) || 'Unnamed outlet',
+    verifiedBy: (verifiedEl && verifiedEl.value.trim()) || '',
     total: stats.total, matched: stats.matched, short: stats.short, excess: stats.excess,
+    shortItems: shortItems || [], excessItems: excessItems || [],
     generatedByUid: currentUser.uid, generatedByName: currentUser.displayName || currentUser.email,
     ts: firebase.firestore.FieldValue.serverTimestamp()
   }).catch(e => console.warn('saveAuditRecord failed:', e));
+}
+
+// ══════════════════════════════════════════════════════════════
+// OUTLET DROPDOWN — autocomplete from Outlet Manager's saved list
+// ══════════════════════════════════════════════════════════════
+let p3SavedOutlets = [];
+async function p3LoadOutletDatalist(){
+  try{
+    const snap = await db.collection('outlets').orderBy('createdAt','desc').limit(200).get();
+    p3SavedOutlets = snap.docs.map(d=>({id:d.id, name:(d.data().name||'')}));
+    const dl = document.getElementById('p3OutletDatalist');
+    if(dl) dl.innerHTML = p3SavedOutlets.map(o=>`<option value="${escHtml(o.name)}">`).join('');
+    p3CheckOutletSaved(document.getElementById('p3OutletName') ? document.getElementById('p3OutletName').value.trim() : '');
+  }catch(e){ console.warn('p3LoadOutletDatalist failed:', e); }
+}
+function p3CheckOutletSaved(name){
+  const row = document.getElementById('p3SaveOutletRow'), nameEl = document.getElementById('p3SaveOutletName');
+  if(!row) return;
+  const trimmed = (name||'').trim();
+  const already = trimmed && p3SavedOutlets.some(o=>o.name.trim().toLowerCase()===trimmed.toLowerCase());
+  if(trimmed && !already){ nameEl.textContent = trimmed; row.style.display='block'; }
+  else { row.style.display='none'; }
+}
+async function p3SaveCurrentOutlet(){
+  const name = (document.getElementById('p3OutletName').value||'').trim();
+  if(!name || !currentUser) return;
+  try{
+    await db.collection('outlets').add({
+      name, createdByUid: currentUser.uid, createdByName: currentUser.displayName||currentUser.email,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    await p3LoadOutletDatalist();
+  }catch(e){ alert("Couldn't save outlet: "+e.message); }
+}
+
+// ══════════════════════════════════════════════════════════════
+// PHOTO ATTACH — uploads to ImgBB, stores the returned URL on the row
+// ══════════════════════════════════════════════════════════════
+const P3_IMGBB_KEY = 'deecff0af879f6d4691e5270da45e141';
+async function p3UploadPhoto(idx, file){
+  if(!file) return;
+  const cell = document.getElementById(`p3Photo${idx}`);
+  if(cell) cell.innerHTML = '⏳';
+  try{
+    const b64 = await new Promise((res,rej)=>{
+      const r=new FileReader();
+      r.onload=()=>res(String(r.result).split(',')[1]);
+      r.onerror=()=>rej(new Error('Could not read file'));
+      r.readAsDataURL(file);
+    });
+    const form = new FormData();
+    form.append('image', b64);
+    const resp = await fetch(`https://api.imgbb.com/1/upload?key=${P3_IMGBB_KEY}`, { method:'POST', body:form });
+    const data = await resp.json();
+    if(data && data.success){
+      p3AuditRows[idx].photoUrl = data.data.url;
+      p3AuditRows[idx].photoThumb = (data.data.thumb && data.data.thumb.url) || data.data.url;
+      p3RecalcRow(idx);
+      if (typeof p3ScheduleDraftSave === 'function') p3ScheduleDraftSave();
+    } else {
+      if(cell) cell.innerHTML = '⚠';
+      console.warn('imgbb upload failed:', data);
+    }
+  }catch(e){
+    if(cell) cell.innerHTML = '⚠';
+    console.warn('photo upload failed:', e);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// PRIOR AUDIT — "flag it again" if the same item was short/excess last visit
+// ══════════════════════════════════════════════════════════════
+let p3PriorStreaks = {}; // {pkgName: consecutive prior audits it was short/excess in, most-recent-unbroken}
+async function p3LoadPriorAuditForOutlet(outletName){
+  p3PriorStreaks = {};
+  if(!outletName) return;
+  try{
+    const snap = await db.collection('audits').where('outletName','==',outletName).limit(50).get();
+    const docs = snap.docs.map(d=>d.data());
+    docs.sort((a,b)=>(b.ts&&b.ts.toMillis?b.ts.toMillis():0)-(a.ts&&a.ts.toMillis?a.ts.toMillis():0));
+    // Walk backward from the most recent prior audit, counting each item's unbroken streak
+    const streaks = {}; const active = new Set(); let first = true;
+    for (const doc of docs) {
+      const bad = new Set([...(doc.shortItems||[]), ...(doc.excessItems||[])]);
+      if (first) { bad.forEach(item => { streaks[item]=1; active.add(item); }); first=false; }
+      else { [...active].forEach(item => { if (bad.has(item)) streaks[item]++; else active.delete(item); }); }
+      if (!active.size) break;
+    }
+    p3PriorStreaks = streaks;
+  }catch(e){ console.warn('p3LoadPriorAuditForOutlet failed:', e); }
+}
+
+// ══════════════════════════════════════════════════════════════
+// AUTO-SAVE DRAFT — Store/Rack counts persist as you type, resumable
+// per (user, outlet) if the tab closes or the same file is reopened later.
+// ══════════════════════════════════════════════════════════════
+let p3DraftSaveTimer = null;
+function p3DraftKey(){
+  const outlet = (document.getElementById('p3OutletName') ? document.getElementById('p3OutletName').value : '').trim().toLowerCase();
+  return (currentUser && outlet) ? `${currentUser.uid}__${outlet}` : null;
+}
+function p3ScheduleDraftSave(){
+  if(!currentUser) return;
+  clearTimeout(p3DraftSaveTimer);
+  p3DraftSaveTimer = setTimeout(p3SaveDraft, 1500);
+}
+// ══════════════════════════════════════════════════════════════
+// CONNECTIVITY — visible offline status + in-memory retry queue.
+// Deliberately does NOT use any browser storage API (localStorage etc. are
+// off-limits here), so this protects against a temporary dropped connection
+// while the tab stays open — it does NOT survive closing the tab or an app
+// restart. The banner tells the person that plainly so they know to keep
+// the tab open rather than assume it's safe to close.
+// ══════════════════════════════════════════════════════════════
+let p3PendingWrites = [];
+function p3UpdateOnlineStatus(){
+  const el = document.getElementById('p3OfflineBanner');
+  if (el) el.classList.toggle('on', !navigator.onLine);
+  if (navigator.onLine && p3PendingWrites.length) p3FlushPendingWrites();
+}
+window.addEventListener('online', p3UpdateOnlineStatus);
+window.addEventListener('offline', p3UpdateOnlineStatus);
+p3UpdateOnlineStatus(); // set correct initial state in case the page loads while already offline
+async function p3FlushPendingWrites(){
+  const queue = p3PendingWrites; p3PendingWrites = [];
+  for (const retry of queue) {
+    try { await retry(); } catch(e) { console.warn('retry failed, will try again on next reconnect:', e); p3PendingWrites.push(retry); }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// PETTY CASH AUDIT
+// ══════════════════════════════════════════════════════════════
+let pcExpenseCount = 0, pcInitDone = false;
+function pcInit(){
+  if (typeof p3LoadOutletDatalist === 'function') p3LoadOutletDatalist();
+  if (!pcInitDone) { pcAddExpenseRow(); pcInitDone = true; }
+  pcLoadHistory();
+}
+function pcAddExpenseRow(){
+  const id = pcExpenseCount++;
+  const wrap = document.getElementById('pcExpenseRows');
+  const row = document.createElement('div');
+  row.className = 'pc-expense-row';
+  row.id = `pcRow${id}`;
+  row.innerHTML = `<input type="text" placeholder="What for" class="pc-input" oninput="pcRecalc()">
+    <input type="number" min="0" placeholder="₹" class="pc-input" oninput="pcRecalc()">
+    <button type="button" onclick="document.getElementById('pcRow${id}').remove();pcRecalc()">✕</button>`;
+  wrap.appendChild(row);
+}
+function pcGetExpenses(){
+  return [...document.querySelectorAll('.pc-expense-row')].map(row=>{
+    const inputs = row.querySelectorAll('input');
+    return { label: inputs[0].value.trim(), amount: parseFloat(inputs[1].value)||0 };
+  }).filter(e=>e.label || e.amount);
+}
+function pcRecalc(){
+  const opening = parseFloat(document.getElementById('pcOpening').value)||0;
+  const received = parseFloat(document.getElementById('pcReceived').value)||0;
+  const actual = parseFloat(document.getElementById('pcActual').value)||0;
+  const expenses = pcGetExpenses();
+  const totalExp = expenses.reduce((s,e)=>s+e.amount,0);
+  const expected = opening + received - totalExp;
+  const diff = actual - expected;
+  document.getElementById('pcTotalExpenses').textContent = '₹'+totalExp.toFixed(2);
+  document.getElementById('pcExpected').textContent = '₹'+expected.toFixed(2);
+  const diffEl = document.getElementById('pcDifference');
+  diffEl.textContent = (diff>0?'+':'')+'₹'+diff.toFixed(2);
+  diffEl.className = 'sv ' + (Math.abs(diff)<0.01 ? 'b' : diff<0 ? 'r' : 'g');
+  return { opening, received, actual, expenses, totalExp, expected, diff };
+}
+async function pcSaveAudit(){
+  const outlet = document.getElementById('pcOutletName').value.trim();
+  const msg = document.getElementById('pcSaveMsg');
+  if(!outlet){ msg.style.color='#ef4444'; msg.textContent='Enter an outlet name first.'; return; }
+  if(!currentUser){ msg.style.color='#ef4444'; msg.textContent='Not signed in.'; return; }
+  const calc = pcRecalc();
+  msg.style.color='var(--muted)'; msg.textContent='Saving…';
+  const payload = {
+    outletName: outlet, opening: calc.opening, received: calc.received, actual: calc.actual,
+    expenses: calc.expenses, totalExpenses: calc.totalExp, expected: calc.expected, difference: calc.diff,
+    remarks: document.getElementById('pcRemarks').value.trim(),
+    verifiedBy: document.getElementById('pcVerifiedBy').value.trim(),
+    generatedByUid: currentUser.uid, generatedByName: currentUser.displayName||currentUser.email,
+    ts: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  try{
+    await db.collection('petty_cash_audits').add(payload);
+    msg.style.color='#10b981'; msg.textContent='✓ Saved.';
+    if (typeof logActivity === 'function') logActivity('petty_cash_audit', 11, outlet);
+    pcLoadHistory();
+  }catch(e){
+    console.warn('pcSaveAudit failed, queued to retry once back online:', e);
+    p3PendingWrites.push(() => db.collection('petty_cash_audits').add(payload));
+    msg.style.color='#f59e0b'; msg.textContent="⏳ Couldn't reach the server — will save automatically once you're back online. Keep this tab open.";
+  }
+}
+async function pcLoadHistory(){
+  const wrap = document.getElementById('pettyCashHistoryWrap');
+  if(!wrap) return;
+  try{
+    const snap = await db.collection('petty_cash_audits').orderBy('ts','desc').limit(50).get();
+    const rows = snap.docs.map(d=>d.data());
+    if(!rows.length){ wrap.innerHTML = `<div class="table-wrap" style="padding:18px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No petty cash audits saved yet.</div>`; return; }
+    let h = `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th>Expected</th><th>Actual</th><th>Difference</th><th style="text-align:left">Verified By</th><th>When</th></tr></thead><tbody>`;
+    rows.forEach(a=>{
+      const diffColor = Math.abs(a.difference||0)<0.01 ? 'var(--text)' : (a.difference<0 ? '#ef4444' : '#10b981');
+      h += `<tr><td style="text-align:left">${escHtml(a.outletName||'—')}</td><td>₹${(a.expected||0).toFixed(2)}</td><td>₹${(a.actual||0).toFixed(2)}</td><td style="color:${diffColor};font-weight:700">₹${(a.difference||0).toFixed(2)}</td><td style="text-align:left">${escHtml(a.verifiedBy||'—')}</td><td>${fmtTs(a.ts)}</td></tr>`;
+    });
+    h += `</tbody></table></div></div>`;
+    wrap.innerHTML = h;
+  }catch(e){
+    console.error('pcLoadHistory failed:', e);
+    wrap.innerHTML = `<p style="color:#ef4444;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load: ${escHtml(e.message)}</p>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// CLEANLINESS AUDIT
+// ══════════════════════════════════════════════════════════════
+const CL_AREAS = ['Storefront & Signage','Billing Counter','Shelves & Display','Storage / Back Room','Floor','Restroom (if applicable)','Staff Grooming'];
+let clRatings = {}, clPhotoUrl = null, clInitDone = false;
+function clInit(){
+  if (typeof p3LoadOutletDatalist === 'function') p3LoadOutletDatalist();
+  if (!clInitDone) { clRenderChecklist(); clInitDone = true; }
+  clLoadHistory();
+}
+function clRenderChecklist(){
+  const wrap = document.getElementById('clChecklist');
+  wrap.innerHTML = CL_AREAS.map(area => `
+    <div class="cl-item">
+      <div class="cl-item-name">${area}</div>
+      <div class="cl-item-rating" data-area="${escHtml(area)}">
+        <button type="button" onclick="clRate('${escHtml(area)}','good',this)">✓ Good</button>
+        <button type="button" onclick="clRate('${escHtml(area)}','average',this)">~ Average</button>
+        <button type="button" onclick="clRate('${escHtml(area)}','poor',this)">✕ Poor</button>
+      </div>
+    </div>`).join('');
+}
+function clRate(area, rating, btn){
+  clRatings[area] = rating;
+  const group = btn.closest('.cl-item-rating');
+  group.querySelectorAll('button').forEach(b=>b.classList.remove('sel-good','sel-average','sel-poor'));
+  btn.classList.add('sel-'+rating);
+  clUpdateScore();
+}
+function clUpdateScore(){
+  const rated = Object.values(clRatings);
+  const el = document.getElementById('clScore');
+  if(!rated.length){ el.textContent='—'; return; }
+  const points = {good:100, average:60, poor:20};
+  const avg = rated.reduce((s,r)=>s+points[r],0)/rated.length;
+  el.textContent = Math.round(avg)+'%';
+  el.className = 'sv ' + (avg>=80?'b':avg>=50?'a':'r');
+}
+async function clUploadPhoto(file){
+  if(!file) return;
+  const thumb = document.getElementById('clPhotoThumb');
+  try{
+    const b64 = await new Promise((res,rej)=>{
+      const r=new FileReader(); r.onload=()=>res(String(r.result).split(',')[1]); r.onerror=()=>rej(new Error('read failed')); r.readAsDataURL(file);
+    });
+    const form = new FormData(); form.append('image', b64);
+    const resp = await fetch(`https://api.imgbb.com/1/upload?key=${P3_IMGBB_KEY}`, {method:'POST', body:form});
+    const data = await resp.json();
+    if(data && data.success){
+      clPhotoUrl = data.data.url;
+      thumb.src = (data.data.thumb && data.data.thumb.url) || data.data.url;
+      thumb.style.display = 'inline-block';
+    }
+  }catch(e){ console.warn('clUploadPhoto failed:', e); }
+}
+async function clSaveAudit(){
+  const outlet = document.getElementById('clOutletName').value.trim();
+  const msg = document.getElementById('clSaveMsg');
+  if(!outlet){ msg.style.color='#ef4444'; msg.textContent='Enter an outlet name first.'; return; }
+  if(!currentUser){ msg.style.color='#ef4444'; msg.textContent='Not signed in.'; return; }
+  if(!Object.keys(clRatings).length){ msg.style.color='#ef4444'; msg.textContent='Rate at least one area first.'; return; }
+  msg.style.color='var(--muted)'; msg.textContent='Saving…';
+  const scoreEl = document.getElementById('clScore').textContent;
+  const payload = {
+    outletName: outlet, ratings: clRatings, score: scoreEl,
+    photoUrl: clPhotoUrl, remarks: document.getElementById('clRemarks').value.trim(),
+    verifiedBy: document.getElementById('clVerifiedBy').value.trim(),
+    generatedByUid: currentUser.uid, generatedByName: currentUser.displayName||currentUser.email,
+    ts: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  try{
+    await db.collection('cleanliness_audits').add(payload);
+    msg.style.color='#10b981'; msg.textContent='✓ Saved.';
+    if (typeof logActivity === 'function') logActivity('cleanliness_audit', 12, outlet);
+    clLoadHistory();
+  }catch(e){
+    console.warn('clSaveAudit failed, queued to retry once back online:', e);
+    p3PendingWrites.push(() => db.collection('cleanliness_audits').add(payload));
+    msg.style.color='#f59e0b'; msg.textContent="⏳ Couldn't reach the server — will save automatically once you're back online. Keep this tab open.";
+  }
+}
+async function clLoadHistory(){
+  const wrap = document.getElementById('cleanlinessHistoryWrap');
+  if(!wrap) return;
+  try{
+    const snap = await db.collection('cleanliness_audits').orderBy('ts','desc').limit(50).get();
+    const rows = snap.docs.map(d=>d.data());
+    if(!rows.length){ wrap.innerHTML = `<div class="table-wrap" style="padding:18px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No cleanliness audits saved yet.</div>`; return; }
+    let h = `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th>Score</th><th style="text-align:left">Photo</th><th style="text-align:left">Verified By</th><th>When</th></tr></thead><tbody>`;
+    rows.forEach(a=>{
+      h += `<tr><td style="text-align:left">${escHtml(a.outletName||'—')}</td><td>${escHtml(a.score||'—')}</td><td style="text-align:left">${a.photoUrl?`<a href="${a.photoUrl}" target="_blank" rel="noopener">📷 View</a>`:'—'}</td><td style="text-align:left">${escHtml(a.verifiedBy||'—')}</td><td>${fmtTs(a.ts)}</td></tr>`;
+    });
+    h += `</tbody></table></div></div>`;
+    wrap.innerHTML = h;
+  }catch(e){
+    console.error('clLoadHistory failed:', e);
+    wrap.innerHTML = `<p style="color:#ef4444;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load: ${escHtml(e.message)}</p>`;
+  }
+}
+
+async function p3SaveDraft(){
+  const key = p3DraftKey();
+  if(!key || !p3AuditRows.length) return;
+  const counts = p3AuditRows.map(r=>({s:r.storeCount,r:r.rackCount,p:r.photoUrl||null,pt:r.photoThumb||null}));
+  const payload = {
+    uid: currentUser.uid, outletName: document.getElementById('p3OutletName').value.trim(),
+    rowCount: p3AuditRows.length, firstItem: p3AuditRows[0] ? p3AuditRows[0].pkgName : '',
+    counts, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  try{
+    await db.collection('audit_drafts').doc(key).set(payload);
+  }catch(e){
+    console.warn('p3SaveDraft failed, queued to retry once back online:', e);
+    p3PendingWrites.push(() => db.collection('audit_drafts').doc(key).set(payload));
+  }
+}
+async function p3OfferDraftResume(){
+  const key = p3DraftKey();
+  const banner = document.getElementById('p3DraftBanner');
+  if(!key || !banner) return;
+  try{
+    const snap = await db.collection('audit_drafts').doc(key).get();
+    if(!snap.exists) { banner.classList.remove('on'); return; }
+    const d = snap.data();
+    const matches = d.rowCount===p3AuditRows.length && d.firstItem===(p3AuditRows[0]?p3AuditRows[0].pkgName:'');
+    if(matches){ window._p3PendingDraft = d; banner.classList.add('on'); }
+    else { banner.classList.remove('on'); }
+  }catch(e){ banner.classList.remove('on'); }
+}
+function p3ResumeDraft(){
+  const d = window._p3PendingDraft;
+  if(!d) return;
+  d.counts.forEach((c,idx)=>{
+    if(!p3AuditRows[idx]) return;
+    p3AuditRows[idx].storeCount = (c.s===undefined?null:c.s);
+    p3AuditRows[idx].rackCount = (c.r===undefined?null:c.r);
+    if(c.p){ p3AuditRows[idx].photoUrl=c.p; p3AuditRows[idx].photoThumb=c.pt||c.p; }
+    const storeInp = document.querySelector(`.cnt-input[data-idx="${idx}"][data-field="store"]`);
+    const rackInp = document.querySelector(`.cnt-input[data-idx="${idx}"][data-field="rack"]`);
+    if(storeInp) storeInp.value = p3AuditRows[idx].storeCount ?? '';
+    if(rackInp) rackInp.value = p3AuditRows[idx].rackCount ?? '';
+  });
+  p3RecalcSummary();
+  document.getElementById('p3DraftBanner').classList.remove('on');
+}
+function p3DiscardDraftPrompt(){
+  document.getElementById('p3DraftBanner').classList.remove('on');
+  p3ClearDraft();
+}
+async function p3ClearDraft(){
+  const key = p3DraftKey();
+  if(!key) return;
+  try{ await db.collection('audit_drafts').doc(key).delete(); }catch(e){ /* best-effort */ }
+}
+
+// ══════════════════════════════════════════════════════════════
+// COUNT MODE — one item at a time, built for walking a store on a phone
+// ══════════════════════════════════════════════════════════════
+let p3CmActive = false, p3CmIndex = 0;
+function p3ToggleCountMode(){
+  p3CmActive = !p3CmActive;
+  const card = document.getElementById('p3CountModeCard');
+  const btn = document.getElementById('p3CountModeToggle');
+  const wrap = document.querySelector('#p3PrevWrap .table-wrap') || document.getElementById('p3PrevTbl');
+  card.classList.toggle('on', p3CmActive);
+  btn.classList.toggle('active', p3CmActive);
+  if (wrap) wrap.style.display = p3CmActive ? 'none' : '';
+  document.getElementById('p3Toolbar').querySelectorAll('.filter-chip, .audit-search').forEach(el=>{ el.style.display = p3CmActive ? 'none' : ''; });
+  if (p3CmActive) { p3CmIndex = 0; p3CmRender(); }
+}
+function p3CmRender(){
+  if (!p3AuditRows.length) return;
+  const r = p3AuditRows[p3CmIndex];
+  document.getElementById('cmProgressTxt').textContent = `Item ${p3CmIndex+1} of ${p3AuditRows.length}`;
+  const unfilled = p3AuditRows.filter(x=>x.storeCount===null && x.rackCount===null).length;
+  document.getElementById('cmProgressUnfilled').textContent = `${unfilled} unfilled`;
+  document.getElementById('cmProgressFill').style.width = Math.round(((p3CmIndex+1)/p3AuditRows.length)*100) + '%';
+  document.getElementById('cmShortCode').textContent = r.shortCode;
+  document.getElementById('cmPkgName').textContent = r.pkgName;
+  document.getElementById('cmClosing').textContent = Number(r.closing).toFixed(3);
+  document.getElementById('cmPhysical').textContent = r.packType==='unknown' ? '?' : (r.physical!==null ? Math.round(r.physical*1000)/1000 : '—');
+  document.getElementById('cmStoreInput').value = r.storeCount ?? '';
+  document.getElementById('cmRackInput').value = r.rackCount ?? '';
+  document.getElementById('cmPrevBtn').disabled = p3CmIndex===0;
+  document.getElementById('cmNextBtn').textContent = p3CmIndex===p3AuditRows.length-1 ? 'Done ✓' : 'Next →';
+  p3CmRenderResult(r);
+}
+function p3CmRenderResult(r){
+  const {remark} = p3RowCalc(r);
+  const el = document.getElementById('cmResult');
+  if(!remark){ el.innerHTML = `<span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px">Enter both counts to see the result</span>`; return; }
+  const map={SHORT:['#FDECEA','#C0392B'],EXCESS:['#E8F5E9','#1E8449'],MATCHED:['#E3F2FD','#1A5276']};
+  const [bg,fg]=map[remark];
+  el.innerHTML = `<span class="remark-pill" style="background:${bg};color:${fg};font-size:14px;padding:6px 16px">${remark}</span>`;
+}
+function p3CmOnInput(){
+  const r = p3AuditRows[p3CmIndex];
+  const sv = document.getElementById('cmStoreInput').value, rv = document.getElementById('cmRackInput').value;
+  r.storeCount = sv===''?null:Math.max(0,parseInt(sv,10)||0);
+  r.rackCount = rv===''?null:Math.max(0,parseInt(rv,10)||0);
+  // keep the (hidden) table view's inputs in sync so switching back to Table View shows the same data
+  const storeInp = document.querySelector(`.cnt-input[data-idx="${p3CmIndex}"][data-field="store"]`);
+  const rackInp = document.querySelector(`.cnt-input[data-idx="${p3CmIndex}"][data-field="rack"]`);
+  if(storeInp) storeInp.value = r.storeCount ?? '';
+  if(rackInp) rackInp.value = r.rackCount ?? '';
+  p3RecalcRow(p3CmIndex);
+  p3RecalcSummary();
+  p3CmRenderResult(r);
+  document.getElementById('cmProgressUnfilled').textContent = `${p3AuditRows.filter(x=>x.storeCount===null && x.rackCount===null).length} unfilled`;
+  p3ScheduleDraftSave();
+}
+function p3CmNav(dir){
+  if (p3CmIndex+dir < 0 || p3CmIndex+dir > p3AuditRows.length-1) { if(dir>0) p3ToggleCountMode(); return; }
+  p3CmIndex += dir;
+  p3CmRender();
+}
+function p3CmJumpUnfilled(){
+  const start = p3CmIndex;
+  for(let i=1;i<=p3AuditRows.length;i++){
+    const idx=(start+i)%p3AuditRows.length;
+    if(p3AuditRows[idx].storeCount===null && p3AuditRows[idx].rackCount===null){ p3CmIndex=idx; p3CmRender(); return; }
+  }
 }
 </script>
 </body>
