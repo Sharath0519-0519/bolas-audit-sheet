@@ -335,6 +335,11 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 .pc-expense-row input:nth-child(1){flex:2;min-width:0}
 .pc-expense-row input:nth-child(2){flex:1;min-width:0}
 .pc-expense-row button{background:none;border:none;color:#ef4444;cursor:pointer;font-size:17px;padding:0 4px;flex-shrink:0}
+.pc-denom-box{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;text-align:center}
+.pc-denom-box .dv{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:6px}
+.pc-denom-box input{width:100%;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:7px;font-family:'DM Mono',monospace;font-size:14px;font-weight:700;color:var(--text)}
+.pc-denom-box input:focus{outline:none;border-color:#ef4444}
+.pc-denom-box .dsub{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:5px}
 
 /* ── CLEANLINESS ── */
 .cl-item{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:8px;flex-wrap:wrap}
@@ -827,6 +832,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
   </div>
   <button class="download-btn" id="ownerRefreshBtn" style="margin-bottom:20px;max-width:220px;border:2px solid var(--accent3);color:var(--accent3)">↻ Refresh Data</button>
   <div id="ownerPendingWrap" style="margin-bottom:28px"></div>
+  <div id="ownerPackWrap" style="margin-bottom:28px"></div>
   <div id="ownerDashWrap"></div>
 </div>
 
@@ -855,6 +861,12 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
       <h3 style="font-size:14px;font-weight:800;margin-bottom:4px">Stock Audit</h3>
       <p style="font-size:11.5px;color:var(--muted);font-family:'DM Mono',monospace">Physical count → colour-coded audit sheet</p>
     </div>
+  </div>
+  <div class="setup-card" style="margin-bottom:28px;max-width:520px">
+    <div class="setup-card-hdr"><div class="setup-num" style="background:#10b981">⬇</div><h3>Download All Reports</h3></div>
+    <p style="font-size:11.5px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:14px">One Excel file, four sheets — Stock Audit History, Rate List, Petty Cash, Cleanliness</p>
+    <button class="download-btn" id="dashDownloadAllBtn" onclick="downloadAllReports()" style="max-width:260px;border:2px solid #10b981;color:#10b981">⬇ Download All Reports</button>
+    <div id="dashDownloadAllMsg" style="margin-top:8px;font-family:'DM Mono',monospace;font-size:11.5px"></div>
   </div>
   <div class="results-title">Your Recent Activity</div>
   <div id="dashRecentWrap"><p style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">Loading…</p></div>
@@ -934,7 +946,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 <div class="panel" id="panel11">
   <div class="section-head">
     <span class="dot" style="background:#818cf8"></span>
-    <div><h2>Petty Cash Audit</h2><p>Count the till, log expenses, see what doesn't add up</p></div>
+    <div><h2>Petty Cash Report</h2><p>Opening → Sales → Deposits → Expenditure → Closing Balance, reconciled against physical denominations</p></div>
   </div>
 
   <div class="setup-cards" style="grid-template-columns:1fr 1fr">
@@ -942,24 +954,32 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
       <div class="setup-card-hdr"><div class="setup-num" style="background:#818cf8">1</div><h3>Outlet &amp; Balances</h3></div>
       <label class="pc-label">🏪 Outlet Name</label>
       <input type="text" id="pcOutletName" list="p3OutletDatalist" placeholder="e.g. 053 Bangalore Vijayanagar" class="pc-input" autocomplete="off">
+      <label class="pc-label" style="margin-top:12px">📅 Date</label>
+      <input type="date" id="pcDate" class="pc-input">
       <label class="pc-label" style="margin-top:12px">Opening Balance (₹)</label>
       <input type="number" id="pcOpening" min="0" class="pc-input" oninput="pcRecalc()">
-      <label class="pc-label" style="margin-top:12px">Cash Received (₹)</label>
+      <label class="pc-label" style="margin-top:12px">Add: Cash Sales (₹)</label>
       <input type="number" id="pcReceived" min="0" class="pc-input" oninput="pcRecalc()">
-      <label class="pc-label" style="margin-top:12px">Actual Cash Counted (₹)</label>
-      <input type="number" id="pcActual" min="0" class="pc-input" oninput="pcRecalc()">
+      <label class="pc-label" style="margin-top:12px">Less: Cash Deposited To Bank (₹)</label>
+      <input type="number" id="pcDeposited" min="0" class="pc-input" oninput="pcRecalc()">
     </div>
     <div class="setup-card">
-      <div class="setup-card-hdr"><div class="setup-num" style="background:#f59e0b">2</div><h3>Expenses</h3></div>
+      <div class="setup-card-hdr"><div class="setup-num" style="background:#f59e0b">2</div><h3>Less: Expenditure</h3></div>
       <div id="pcExpenseRows"></div>
       <button type="button" onclick="pcAddExpenseRow()" class="pc-add-btn">+ Add expense</button>
     </div>
   </div>
 
+  <div class="setup-card" style="margin:16px 0">
+    <div class="setup-card-hdr"><div class="setup-num" style="background:#ef4444">3</div><h3>Denominations — count what's physically in the till</h3></div>
+    <div id="pcDenomRows" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px"></div>
+  </div>
+
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:11px;margin:20px 0">
-    <div class="sc"><div class="sv a" id="pcTotalExpenses">₹0</div><div class="sl">Total Expenses</div></div>
-    <div class="sc"><div class="sv b" id="pcExpected">₹0</div><div class="sl">Expected Closing</div></div>
-    <div class="sc"><div class="sv" id="pcDifference" style="color:var(--muted)">₹0</div><div class="sl">Difference</div></div>
+    <div class="sc"><div class="sv a" id="pcTotalExpenses">₹0</div><div class="sl">Total Expenditure</div></div>
+    <div class="sc"><div class="sv b" id="pcExpected">₹0</div><div class="sl">Closing Balance</div></div>
+    <div class="sc"><div class="sv" id="pcDenomTotal" style="color:var(--muted)">₹0</div><div class="sl">Denomination Total</div></div>
+    <div class="sc"><div class="sv" id="pcDifference" style="color:var(--muted)">₹0</div><div class="sl">Reconciliation Diff</div></div>
   </div>
 
   <div class="setup-card" style="margin-bottom:20px;max-width:520px">
@@ -969,7 +989,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     <input type="text" id="pcVerifiedBy" class="pc-input" placeholder="Staff name at the outlet">
   </div>
 
-  <button class="download-btn" id="pcSaveBtn" onclick="pcSaveAudit()" style="max-width:260px;border:2px solid #818cf8;color:#818cf8">💾 Save Petty Cash Audit</button>
+  <button class="download-btn" id="pcSaveBtn" onclick="pcSaveAudit()" style="max-width:300px;border:2px solid #818cf8;color:#818cf8">💾 Save &amp; Download Excel</button>
   <div id="pcSaveMsg" style="margin-top:8px;font-family:'DM Mono',monospace;font-size:11.5px"></div>
 
   <div class="results-title" style="margin-top:30px">Recent Petty Cash Audits</div>
@@ -2120,6 +2140,56 @@ function p3ResetAll(){
   if (typeof p3ExitCountModeIfActive === 'function') p3ExitCountModeIfActive();
 }
 
+// ══════════════════════════════════════════════════════════════
+// PACK SIZE OVERRIDES
+// p3ParsePkg (below) auto-detects a product's pack weight from its name
+// using pattern matching. This works for most products, but it has no way
+// to know about carton-style multipliers — e.g. "Salted Cashew 25g Pack Of
+// 10" auto-detects as a 25g pack (the first weight it finds in the text),
+// when the real divide-by weight for physical-count purposes is 250g (25g
+// × 10 units per carton). Text pattern-matching alone can't reliably infer
+// that multiplier for every possible phrasing, so instead: every new
+// weight/unknown-type product gets registered here on first sighting with
+// its auto-detected value as a starting point, visible to the owner in the
+// Owner Dashboard to confirm or correct. Once the owner sets a value, it's
+// used for every future stock report — a reused product name is never
+// re-guessed.
+// ══════════════════════════════════════════════════════════════
+function p3PackKey(name){ return String(name||'').toLowerCase().replace(/\s+/g,''); }
+window.p3PackOverrideMap = window.p3PackOverrideMap || new Map(); // key -> {packageName, divideByGrams, assigned, autoDetectedGrams}
+let p3PackOverridesLoaded = false;
+async function p3LoadPackOverrides(){
+  if (p3PackOverridesLoaded) return;
+  try{
+    const snap = await db.collection('pack_overrides').limit(3000).get();
+    window.p3PackOverrideMap = new Map(snap.docs.map(d=>[d.id, d.data()]));
+    p3PackOverridesLoaded = true;
+  }catch(e){ console.warn('p3LoadPackOverrides failed:', e); }
+}
+// Products seen during THIS processing run that had no saved override —
+// queued here, then registered to Firestore in one pass after the row loop
+// finishes, so a large stock report doesn't fire hundreds of writes inline.
+let p3NewPackProducts = [];
+async function p3RegisterNewPackProducts(){
+  const queue = p3NewPackProducts; p3NewPackProducts = [];
+  if (!queue.length || !currentUser) return;
+  const CHUNK = 450;
+  for (let i=0; i<queue.length; i+=CHUNK) {
+    const batch = db.batch();
+    queue.slice(i,i+CHUNK).forEach(item => {
+      const ref = db.collection('pack_overrides').doc(item.key);
+      batch.set(ref, {
+        packageName: item.packageName, divideByGrams: item.autoDetectedGrams, autoDetectedGrams: item.autoDetectedGrams,
+        packType: item.packType, assigned: false,
+        firstSeenAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: currentUser.displayName||currentUser.email
+      }, { merge: true }); // merge so re-registering an existing (possibly already-assigned) product never clobbers the owner's value
+      window.p3PackOverrideMap.set(item.key, { packageName: item.packageName, divideByGrams: item.autoDetectedGrams, autoDetectedGrams: item.autoDetectedGrams, assigned: false });
+    });
+    try { await batch.commit(); } catch(e) { console.warn('p3RegisterNewPackProducts batch failed:', e); }
+  }
+}
+
 function p3ParsePkg(raw){
   const s=(raw||'').trim(),sl=s.toLowerCase();
   if(/\bin\s+numbers?\b/i.test(s)||/\bnos\b/i.test(s)||/sandook/i.test(s)||/yatra/i.test(s)||/dhamaka/i.test(s)||/stuffed\s*dates/i.test(s)||/gift\s*(box|pack|set|hamper)/i.test(s)||/combo\s*\d+\s*g/i.test(s)||/festival\s*of\s*joy/i.test(s)||/best\s*wishes/i.test(s))return{type:'numbers'};
@@ -2181,13 +2251,28 @@ function p3ProcessFile(){
         if(clsRaw===''||clsRaw===null||clsRaw===undefined)continue;
         const closing=typeof clsRaw==='number'?clsRaw:parseFloat(String(clsRaw).replace(/,/g,''));
         if(isNaN(closing))continue;
-        const pack=p3ParsePkg(pkgRaw);
+        const cleanPkgName = pkgRaw.replace(/^in\s+/i,'').trim();
+        const packKey = p3PackKey(cleanPkgName);
+        const savedOverride = window.p3PackOverrideMap.get(packKey);
+        let pack;
+        if (savedOverride && savedOverride.divideByGrams > 0) {
+          pack = { type: 'weight', kg: savedOverride.divideByGrams / 1000 };
+        } else {
+          pack = p3ParsePkg(pkgRaw);
+          if (!savedOverride && pack.type !== 'numbers') {
+            // Never seen this product before — queue it for the owner to review/confirm.
+            const autoGrams = pack.type==='weight' ? Math.round(pack.kg*1000) : null;
+            p3NewPackProducts.push({ key: packKey, packageName: cleanPkgName, autoDetectedGrams: autoGrams, packType: pack.type });
+            window.p3PackOverrideMap.set(packKey, { packageName: cleanPkgName, divideByGrams: autoGrams, autoDetectedGrams: autoGrams, assigned: false }); // avoid re-queuing the same product twice within one file
+          }
+        }
         let physical=null,physKg=null;
         if(pack.type==='numbers'){physical=closing;}
         else if(pack.type==='weight'&&pack.kg>0){physical=Math.round(closing/pack.kg*1000)/1000;physKg=pack.kg;}
-        p3AuditRows.push({shortCode:itmRaw||'—',pkgName:pkgRaw.replace(/^in\s+/i,'').trim(),closing,physical,physKg,packType:pack.type,hasNegative:closing<0,storeCount:null,rackCount:null});
+        p3AuditRows.push({shortCode:itmRaw||'—',pkgName:cleanPkgName,closing,physical,physKg,packType:pack.type,hasNegative:closing<0,storeCount:null,rackCount:null});
       }
       if(!p3AuditRows.length)throw new Error('No product rows found. Please check the file format.');
+      if (typeof p3RegisterNewPackProducts === 'function') p3RegisterNewPackProducts();
       p3Msg('Building coloured Excel…');
       p3RebuildExcel().then(()=>{
         p3On($3('p3Stats'));p3On($3('p3InfoStrip'));
@@ -3576,6 +3661,7 @@ switchTab = function(n) {
   if (n === 12 && typeof clInit === 'function') clInit();
   if (n === 3 && typeof p3LoadOutletDatalist === 'function') p3LoadOutletDatalist();
   if (n === 3 && typeof p3LoadPersistedRates === 'function') p3LoadPersistedRates();
+  if (n === 3 && typeof p3LoadPackOverrides === 'function') p3LoadPackOverrides();
   const t = document.getElementById('topbarTitle');
   if (t) t.textContent = PANEL_NAMES[n] || '';
   toggleSidebar(false); // auto-close the mobile drawer after picking a section
@@ -3617,12 +3703,13 @@ function addOwnerTab() {
 document.getElementById('ownerRefreshBtn')?.addEventListener('click', loadOwnerDashboard);
 
 // ---- Owner dashboard: live-updating usage + approval data ----
-let ownerUsersUnsub = null, ownerActUnsub = null;
+let ownerUsersUnsub = null, ownerActUnsub = null, ownerPackUnsub = null;
 let ownerLatestUsers = null, ownerLatestActs = null;
 
 function stopOwnerDashboard() {
   if (ownerUsersUnsub) { ownerUsersUnsub(); ownerUsersUnsub = null; }
   if (ownerActUnsub) { ownerActUnsub(); ownerActUnsub = null; }
+  if (ownerPackUnsub) { ownerPackUnsub(); ownerPackUnsub = null; }
   ownerLatestUsers = null; ownerLatestActs = null;
 }
 
@@ -3630,9 +3717,19 @@ function loadOwnerDashboard() {
   stopOwnerDashboard();
   const pendWrap = document.getElementById('ownerPendingWrap');
   const wrap = document.getElementById('ownerDashWrap');
+  const packWrap = document.getElementById('ownerPackWrap');
   if (!wrap) return;
   const loadingMsg = '<p style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:12px;">Loading…</p>';
-  pendWrap.innerHTML = loadingMsg; wrap.innerHTML = loadingMsg;
+  pendWrap.innerHTML = loadingMsg; wrap.innerHTML = loadingMsg; if(packWrap) packWrap.innerHTML = loadingMsg;
+
+  ownerPackUnsub = db.collection('pack_overrides').limit(1000)
+    .onSnapshot(snap => {
+      const items = snap.docs.filter(d=>d.id!=='_meta').map(d => ({ key: d.id, ...d.data() }));
+      renderOwnerPackSizes(items);
+    }, err => {
+      console.error('pack_overrides listener failed:', err);
+      if(packWrap) packWrap.innerHTML = `<p style="color:#ef4444;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load product pack sizes: ${escHtml(err.message)}</p>`;
+    });
 
   ownerUsersUnsub = db.collection('users').orderBy('lastLogin', 'desc').limit(200)
     .onSnapshot(snap => {
@@ -3661,6 +3758,54 @@ async function setUserStatus(uid, newStatus) {
     // live listeners pick up the change automatically — nothing else to do
   } catch (e) {
     alert("Couldn't update this user: " + e.message);
+  }
+}
+
+function renderOwnerPackSizes(items) {
+  const wrap = document.getElementById('ownerPackWrap');
+  if (!wrap) return;
+  if (!items.length) {
+    wrap.innerHTML = `<div class="results-title">📦 Product Pack Sizes</div><div class="table-wrap" style="padding:16px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No products processed yet — they'll appear here the first time anyone runs a Stock Audit.</div>`;
+    return;
+  }
+  // Unconfirmed products first, since those are the ones that actually need a look
+  items.sort((a,b) => (a.assigned===b.assigned) ? String(a.packageName||'').localeCompare(String(b.packageName||'')) : (a.assigned?1:-1));
+  const newCount = items.filter(i=>!i.assigned).length;
+  let h = `<div class="results-title">📦 Product Pack Sizes${newCount?` <span style="color:#f59e0b">(${newCount} new)</span>`:''}</div>`;
+  h += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Package Name</th><th>Auto-Detected</th><th>Divide By (g)</th><th>Status</th><th>Save</th></tr></thead><tbody>`;
+  items.forEach(item => {
+    const autoTxt = item.autoDetectedGrams!=null ? item.autoDetectedGrams+' g' : (item.packType==='unknown' ? '? unknown' : '—');
+    const pill = item.assigned
+      ? `<span class="remark-pill" style="background:#E8F5E9;color:#1E8449">✅ Confirmed</span>`
+      : `<span class="remark-pill" style="background:#FDECEA;color:#C0392B">🆕 New</span>`;
+    h += `<tr><td style="text-align:left">${escHtml(item.packageName||item.key)}</td><td>${escHtml(autoTxt)}</td>`
+       + `<td><input type="number" min="1" class="packDivideInput" data-key="${escHtml(item.key)}" value="${item.divideByGrams!=null?item.divideByGrams:''}" style="width:80px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px;font-family:'DM Mono',monospace;color:var(--text)"></td>`
+       + `<td>${pill}</td>`
+       + `<td><button class="packSaveBtn" data-key="${escHtml(item.key)}" style="background:var(--t3);border:none;color:#1a1a2e;border-radius:6px;padding:5px 12px;font-family:'Syne',sans-serif;font-weight:700;font-size:11px;cursor:pointer">Save</button></td></tr>`;
+  });
+  h += `</tbody></table></div></div>`;
+  wrap.innerHTML = h;
+  wrap.querySelectorAll('.packSaveBtn').forEach(btn => {
+    btn.addEventListener('click', () => savePackOverride(btn.dataset.key));
+  });
+}
+
+async function savePackOverride(key) {
+  const input = document.querySelector(`.packDivideInput[data-key="${CSS.escape(key)}"]`);
+  if (!input) return;
+  const grams = parseFloat(input.value);
+  if (!grams || grams <= 0) { alert('Enter a valid weight in grams first.'); return; }
+  try {
+    await db.collection('pack_overrides').doc(key).set({
+      divideByGrams: grams, assigned: true,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: currentUser.displayName||currentUser.email
+    }, { merge: true });
+    if (window.p3PackOverrideMap && window.p3PackOverrideMap.has(key)) {
+      const existing = window.p3PackOverrideMap.get(key);
+      window.p3PackOverrideMap.set(key, { ...existing, divideByGrams: grams, assigned: true });
+    }
+  } catch(e) {
+    alert("Couldn't save: " + e.message);
   }
 }
 
@@ -3899,6 +4044,104 @@ async function rateManagerDownloadExcel(){
     console.error('rateManagerDownloadExcel failed:', e);
   }finally{
     if(btn){ btn.disabled=false; btn.textContent='⬇ Download Excel'; }
+  }
+}
+
+// ---- Download All Reports: one workbook, four sheets ----
+async function downloadAllReports(){
+  const btn = document.getElementById('dashDownloadAllBtn');
+  const msg = document.getElementById('dashDownloadAllMsg');
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Building…'; }
+  if(msg){ msg.style.color='var(--muted)'; msg.textContent='Fetching your data…'; }
+  try{
+    const [auditsSnap, ratesSnap, pettySnap, cleanSnap] = await Promise.all([
+      db.collection('audits').orderBy('ts','desc').limit(500).get(),
+      db.collection('rates').limit(3000).get(),
+      db.collection('petty_cash_audits').orderBy('ts','desc').limit(500).get(),
+      db.collection('cleanliness_audits').orderBy('ts','desc').limit(500).get(),
+    ]);
+    const audits = auditsSnap.docs.map(d=>d.data());
+    const rates = ratesSnap.docs.filter(d=>d.id!=='_meta').map(d=>d.data()).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));
+    const pettyCash = pettySnap.docs.map(d=>d.data());
+    const cleanliness = cleanSnap.docs.map(d=>d.data());
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = "SHARATH'S SYSTEM"; wb.created = new Date();
+
+    const HDR='2E3F9F', WHITE='FFFFFF', DARK='1A1A2E', ODD='FFFFFF', EVEN='F0F3FF', BRD='C8CCE8';
+    const FL=h=>({type:'pattern',pattern:'solid',fgColor:{argb:'FF'+h}});
+    const FN=(h,bold=false,sz=10)=>({name:'Calibri',size:sz,bold,color:{argb:'FF'+h}});
+    const BD=()=>({top:{style:'thin',color:{argb:'FF'+BRD}},bottom:{style:'thin',color:{argb:'FF'+BRD}},left:{style:'thin',color:{argb:'FF'+BRD}},right:{style:'thin',color:{argb:'FF'+BRD}}});
+    const AL=(h='center',v='middle')=>({horizontal:h,vertical:v});
+    const dateStr = (typeof p3TodayStr==='function') ? p3TodayStr() : new Date().toLocaleDateString('en-GB').split('/').join('-');
+
+    function sheetHeader(ws, title, cols, colCount){
+      ws.mergeCells(1,1,1,colCount); ws.getRow(1).height=26;
+      const t=ws.getCell(1,1); t.value=title; t.font=FN(WHITE,true,13); t.fill=FL(HDR); t.alignment=AL('center'); t.border=BD();
+      for(let c=2;c<=colCount;c++){ const cc=ws.getCell(1,c); cc.fill=FL(HDR); cc.border=BD(); }
+      ws.getRow(2).height=22;
+      cols.forEach((label,i)=>{ const c=ws.getCell(2,i+1); c.value=label; c.font=FN(WHITE,true,10); c.fill=FL(HDR); c.alignment=AL('center'); c.border=BD(); });
+    }
+    function dataRow(ws, row, values, aligns, bg){
+      values.forEach((v,i)=>{ const c=ws.getCell(row,i+1); c.value=v; c.font=FN(DARK,false,10); c.fill=FL(bg); c.alignment=AL(aligns[i]||'center'); c.border=BD(); });
+    }
+
+    // Sheet 1: Stock Audit History
+    const ws1 = wb.addWorksheet('Stock Audit History');
+    ws1.columns = [{width:24},{width:9},{width:9},{width:9},{width:9},{width:18},{width:18},{width:16}];
+    sheetHeader(ws1, 'STOCK AUDIT HISTORY', ['Outlet','Total','Matched','Short','Excess','Verified By','Generated By','When'], 8);
+    audits.forEach((a,i)=>{
+      dataRow(ws1, i+3, [a.outletName||'—', a.total??'', a.matched??'', a.short??'', a.excess??'', a.verifiedBy||'—', a.generatedByName||'—', a.ts&&a.ts.toDate?a.ts.toDate().toLocaleDateString('en-IN'):'—'],
+        ['left','center','center','center','center','left','left','center'], i%2===0?ODD:EVEN);
+    });
+    if(!audits.length) dataRow(ws1, 3, ['No audits yet','','','','','','',''], ['left'], ODD);
+
+    // Sheet 2: Rate List
+    const ws2 = wb.addWorksheet('Rate List');
+    ws2.columns = [{width:46},{width:14},{width:14},{width:14}];
+    sheetHeader(ws2, 'RATE LIST', ['Item Name','Billing Price','Selling Price','Effective Date'], 4);
+    rates.forEach((v,i)=>{
+      const row=i+3, bg=i%2===0?ODD:EVEN;
+      dataRow(ws2, row, [v.name||'', v.billing??'', v.selling??'', v.effDate||''], ['left','center','center','center'], bg);
+      if(v.billing!=null) ws2.getCell(row,2).numFmt='"₹"#,##0.00';
+      if(v.selling!=null) ws2.getCell(row,3).numFmt='"₹"#,##0.00';
+    });
+    if(!rates.length) dataRow(ws2, 3, ['No rates saved yet','','',''], ['left'], ODD);
+
+    // Sheet 3: Petty Cash (summary table, one row per saved report)
+    const ws3 = wb.addWorksheet('Petty Cash');
+    ws3.columns = [{width:20},{width:12},{width:13},{width:13},{width:15},{width:15},{width:15},{width:15},{width:13},{width:16}];
+    sheetHeader(ws3, 'PETTY CASH', ['Outlet','Date','Opening','Cash Sales','Deposited','Total Expenditure','Closing Balance','Denom Total','Difference','Verified By'], 10);
+    pettyCash.forEach((p,i)=>{
+      dataRow(ws3, i+3, [p.outletName||'—', p.date||'—', p.opening??'', p.received??'', p.deposited??'', p.totalExpenses??'', p.closingBalance??'', p.denomTotal??'', p.difference??'', p.verifiedBy||'—'],
+        ['left','center','center','center','center','center','center','center','center','left'], i%2===0?ODD:EVEN);
+    });
+    if(!pettyCash.length) dataRow(ws3, 3, ['No petty cash reports yet','','','','','','','','',''], ['left'], ODD);
+
+    // Sheet 4: Cleanliness
+    const ws4 = wb.addWorksheet('Cleanliness');
+    ws4.columns = [{width:24},{width:12},{width:12},{width:18},{width:16}];
+    sheetHeader(ws4, 'CLEANLINESS', ['Outlet','Score','Photo','Verified By','When'], 5);
+    cleanliness.forEach((c,i)=>{
+      const row=i+3;
+      dataRow(ws4, row, [c.outletName||'—', c.score||'—', c.photoUrl?'View photo':'—', c.verifiedBy||'—', c.ts&&c.ts.toDate?c.ts.toDate().toLocaleDateString('en-IN'):'—'], ['left','center','center','left','center'], i%2===0?ODD:EVEN);
+      if(c.photoUrl) ws4.getCell(row,3).value={text:'View photo', hyperlink:c.photoUrl};
+    });
+    if(!cleanliness.length) dataRow(ws4, 3, ['No cleanliness reports yet','','','',''], ['left'], ODD);
+
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url = URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url; a.download=`Bolas_All_Reports_${dateStr}.xlsx`;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 1000);
+    if (typeof logActivity==='function') logActivity('download_file', 5, 'All Reports (4 sheets)');
+    if(msg){ msg.style.color='#10b981'; msg.textContent=`✓ Downloaded — ${audits.length} audits, ${rates.length} rates, ${pettyCash.length} petty cash reports, ${cleanliness.length} cleanliness reports.`; }
+  }catch(e){
+    console.error('downloadAllReports failed:', e);
+    if(msg){ msg.style.color='#ef4444'; msg.textContent="Couldn't build the file: "+e.message; }
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='⬇ Download All Reports'; }
   }
 }
 
@@ -4227,10 +4470,33 @@ async function p3FlushPendingWrites(){
 // PETTY CASH AUDIT
 // ══════════════════════════════════════════════════════════════
 let pcExpenseCount = 0, pcInitDone = false;
+const PC_DENOMS = [500, 200, 100, 50, 20, 10, 5, 2, 1];
 function pcInit(){
   if (typeof p3LoadOutletDatalist === 'function') p3LoadOutletDatalist();
-  if (!pcInitDone) { pcAddExpenseRow(); pcInitDone = true; }
+  if (!pcInitDone) {
+    pcAddExpenseRow();
+    pcRenderDenomRows();
+    const dateEl = document.getElementById('pcDate');
+    if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0,10);
+    pcInitDone = true;
+  }
   pcLoadHistory();
+}
+function pcRenderDenomRows(){
+  const wrap = document.getElementById('pcDenomRows');
+  if (!wrap) return;
+  wrap.innerHTML = PC_DENOMS.map(v => `
+    <div class="pc-denom-box">
+      <div class="dv">₹${v}</div>
+      <input type="number" min="0" inputmode="numeric" id="pcDenom${v}" oninput="pcRecalc()" placeholder="0">
+      <div class="dsub" id="pcDenomSub${v}">= ₹0</div>
+    </div>`).join('');
+}
+function pcGetDenoms(){
+  return PC_DENOMS.map(v => {
+    const count = Math.max(0, parseInt(document.getElementById('pcDenom'+v) ? document.getElementById('pcDenom'+v).value : 0, 10) || 0);
+    return { value: v, count, subtotal: v * count };
+  });
 }
 function pcAddExpenseRow(){
   const id = pcExpenseCount++;
@@ -4252,17 +4518,23 @@ function pcGetExpenses(){
 function pcRecalc(){
   const opening = Math.max(0, parseFloat(document.getElementById('pcOpening').value)||0);
   const received = Math.max(0, parseFloat(document.getElementById('pcReceived').value)||0);
-  const actual = Math.max(0, parseFloat(document.getElementById('pcActual').value)||0);
+  const deposited = Math.max(0, parseFloat(document.getElementById('pcDeposited').value)||0);
   const expenses = pcGetExpenses();
   const totalExp = expenses.reduce((s,e)=>s+e.amount,0);
-  const expected = opening + received - totalExp;
-  const diff = actual - expected;
+  const totalAvailable = opening + received;
+  const closingBalance = totalAvailable - deposited - totalExp;
+  const denoms = pcGetDenoms();
+  const denomTotal = denoms.reduce((s,d)=>s+d.subtotal,0);
+  const diff = denomTotal - closingBalance;
+
+  denoms.forEach(d => { const el = document.getElementById('pcDenomSub'+d.value); if(el) el.textContent = '= ₹'+d.subtotal.toFixed(2); });
   document.getElementById('pcTotalExpenses').textContent = '₹'+totalExp.toFixed(2);
-  document.getElementById('pcExpected').textContent = '₹'+expected.toFixed(2);
+  document.getElementById('pcExpected').textContent = '₹'+closingBalance.toFixed(2);
+  document.getElementById('pcDenomTotal').textContent = '₹'+denomTotal.toFixed(2);
   const diffEl = document.getElementById('pcDifference');
   diffEl.textContent = (diff>0?'+':'')+'₹'+diff.toFixed(2);
   diffEl.className = 'sv ' + (Math.abs(diff)<0.01 ? 'b' : diff<0 ? 'r' : 'g');
-  return { opening, received, actual, expenses, totalExp, expected, diff };
+  return { opening, received, deposited, expenses, totalExp, totalAvailable, closingBalance, denoms, denomTotal, diff };
 }
 async function pcSaveAudit(){
   const outlet = document.getElementById('pcOutletName').value.trim();
@@ -4270,10 +4542,13 @@ async function pcSaveAudit(){
   if(!outlet){ msg.style.color='#ef4444'; msg.textContent='Enter an outlet name first.'; return; }
   if(!currentUser){ msg.style.color='#ef4444'; msg.textContent='Not signed in.'; return; }
   const calc = pcRecalc();
+  const dateVal = document.getElementById('pcDate').value || new Date().toISOString().slice(0,10);
   msg.style.color='var(--muted)'; msg.textContent='Saving…';
   const payload = {
-    outletName: outlet, opening: calc.opening, received: calc.received, actual: calc.actual,
-    expenses: calc.expenses, totalExpenses: calc.totalExp, expected: calc.expected, difference: calc.diff,
+    outletName: outlet, date: dateVal,
+    opening: calc.opening, received: calc.received, deposited: calc.deposited,
+    expenses: calc.expenses, totalExpenses: calc.totalExp, totalAvailable: calc.totalAvailable,
+    closingBalance: calc.closingBalance, denoms: calc.denoms, denomTotal: calc.denomTotal, difference: calc.diff,
     remarks: document.getElementById('pcRemarks').value.trim(),
     verifiedBy: document.getElementById('pcVerifiedBy').value.trim(),
     generatedByUid: currentUser.uid, generatedByName: currentUser.displayName||currentUser.email,
@@ -4287,8 +4562,12 @@ async function pcSaveAudit(){
   }catch(e){
     console.warn('pcSaveAudit failed, queued to retry once back online:', e);
     p3PendingWrites.push(() => db.collection('petty_cash_audits').add(payload));
-    msg.style.color='#f59e0b'; msg.textContent="⏳ Couldn't reach the server — will save automatically once you're back online. Keep this tab open.";
+    msg.style.color='#f59e0b'; msg.textContent="⏳ Couldn't reach the server — saved locally, will sync once you're back online. Keep this tab open.";
   }
+  // Excel generation is entirely client-side, so it always runs regardless of
+  // whether the cloud save above succeeded or got queued for later.
+  try { await pcDownloadExcel(payload); }
+  catch(e) { console.error('pcDownloadExcel failed:', e); alert("Couldn't build the Excel file: " + e.message); }
 }
 async function pcLoadHistory(){
   const wrap = document.getElementById('pettyCashHistoryWrap');
@@ -4297,10 +4576,10 @@ async function pcLoadHistory(){
     const snap = await db.collection('petty_cash_audits').orderBy('ts','desc').limit(50).get();
     const rows = snap.docs.map(d=>d.data());
     if(!rows.length){ wrap.innerHTML = `<div class="table-wrap" style="padding:18px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No petty cash audits saved yet.</div>`; return; }
-    let h = `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th>Expected</th><th>Actual</th><th>Difference</th><th style="text-align:left">Verified By</th><th>When</th></tr></thead><tbody>`;
+    let h = `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th>Date</th><th>Closing Balance</th><th>Denom Total</th><th>Diff</th><th style="text-align:left">Verified By</th><th>When</th></tr></thead><tbody>`;
     rows.forEach(a=>{
       const diffColor = Math.abs(a.difference||0)<0.01 ? 'var(--text)' : (a.difference<0 ? '#ef4444' : '#10b981');
-      h += `<tr><td style="text-align:left">${escHtml(a.outletName||'—')}</td><td>₹${(a.expected||0).toFixed(2)}</td><td>₹${(a.actual||0).toFixed(2)}</td><td style="color:${diffColor};font-weight:700">₹${(a.difference||0).toFixed(2)}</td><td style="text-align:left">${escHtml(a.verifiedBy||'—')}</td><td>${fmtTs(a.ts)}</td></tr>`;
+      h += `<tr><td style="text-align:left">${escHtml(a.outletName||'—')}</td><td>${escHtml(a.date||'—')}</td><td>₹${(a.closingBalance||0).toFixed(2)}</td><td>₹${(a.denomTotal||0).toFixed(2)}</td><td style="color:${diffColor};font-weight:700">₹${(a.difference||0).toFixed(2)}</td><td style="text-align:left">${escHtml(a.verifiedBy||'—')}</td><td>${fmtTs(a.ts)}</td></tr>`;
     });
     h += `</tbody></table></div></div>`;
     wrap.innerHTML = h;
@@ -4308,6 +4587,82 @@ async function pcLoadHistory(){
     console.error('pcLoadHistory failed:', e);
     wrap.innerHTML = `<p style="color:#ef4444;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load: ${escHtml(e.message)}</p>`;
   }
+}
+
+// ---- Petty Cash Excel export, matching the shop's existing paper/Excel report format exactly ----
+async function pcDownloadExcel(p){
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "SHARATH'S SYSTEM"; wb.created = new Date();
+  const ws = wb.addWorksheet('Petty Cash', { views:[{state:'frozen', ySplit:2}] });
+  ws.columns = [{width:14},{width:34},{width:16},{width:3},{width:12},{width:10},{width:14}];
+
+  const BAND='C9D6EE', HDRBG='B8C4E0', WHITE='FFFFFF', DARK='1A1A2E', RED='B03A2E', MUTED='555555', CLOSEBG='D8ECE4';
+  const FL=h=>({type:'pattern',pattern:'solid',fgColor:{argb:'FF'+h}});
+  const FN=(h,bold=false,sz=10,italic=false)=>({name:'Calibri',size:sz,bold,italic,color:{argb:'FF'+h}});
+  const BD=()=>({top:{style:'thin',color:{argb:'FFB0B0C0'}},bottom:{style:'thin',color:{argb:'FFB0B0C0'}},left:{style:'thin',color:{argb:'FFB0B0C0'}},right:{style:'thin',color:{argb:'FFB0B0C0'}}});
+  const AL=(h='center',v='middle')=>({horizontal:h,vertical:v});
+  const money = n => '₹'+Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const dateDisp = p.date ? p.date.split('-').reverse().join('-') : p3TodayStr();
+
+  // Title
+  ws.mergeCells('A1:G1'); ws.getRow(1).height=26;
+  const t1=ws.getCell('A1'); t1.value=`PETTY CASH REPORT - ${(p.outletName||'').toUpperCase()}`;
+  t1.font=FN(DARK,true,13); t1.fill=FL(HDRBG); t1.alignment=AL('center'); t1.border=BD();
+  'BCDEFG'.split('').forEach(c=>{ const cc=ws.getCell(c+'1'); cc.fill=FL(HDRBG); cc.border=BD(); });
+
+  // Column headers
+  ws.getRow(2).height=20;
+  [['A','DATE'],['B','PARTICULARS'],['C','AMOUNT']].forEach(([col,label])=>{
+    const c=ws.getCell(col+'2'); c.value=label; c.font=FN(DARK,true,10); c.fill=FL(HDRBG); c.alignment=AL('center'); c.border=BD();
+  });
+  ws.getCell('D2').fill=FL(HDRBG); ws.getCell('D2').border=BD();
+  ws.mergeCells('E2:G2');
+  const denomHdr = ws.getCell('E2'); denomHdr.value='Denominations'; denomHdr.font=FN(RED,true,10); denomHdr.fill=FL(HDRBG); denomHdr.alignment=AL('center'); denomHdr.border=BD();
+  'FG'.split('').forEach(c=>{ ws.getCell(c+'2').fill=FL(HDRBG); ws.getCell(c+'2').border=BD(); });
+
+  let r = 3;
+  function leftRow(label, amount, opts={}){
+    const bg = opts.band ? BAND : (opts.closing ? CLOSEBG : WHITE);
+    const fg = opts.closing ? RED : DARK;
+    const bold = opts.bold !== false;
+    if (opts.date) { const c=ws.getCell('A'+r); c.value=dateDisp; c.font=FN(fg,bold,10); c.fill=FL(bg); c.alignment=AL('center'); c.border=BD(); }
+    else { const c=ws.getCell('A'+r); c.value=''; c.fill=FL(bg); c.border=BD(); }
+    const b=ws.getCell('B'+r); b.value=label; b.font=FN(fg,bold,10); b.fill=FL(bg); b.alignment=AL('left'); b.border=BD();
+    const c2=ws.getCell('C'+r); c2.value = (amount===null||amount===undefined) ? '' : Number(amount); if(amount!=null) c2.numFmt='#,##0.00'; c2.font=FN(fg,bold,10); c2.fill=FL(bg); c2.alignment=AL('right'); c2.border=BD();
+    ws.getCell('D'+r).fill=FL(bg); ws.getCell('D'+r).border=BD();
+    r++;
+  }
+  leftRow('OPENING BALANCE', p.opening, {date:true, band:true});
+  leftRow('', null, {});
+  leftRow('ADD : CASH SALES', p.received, {});
+  leftRow('TOTAL AVAILABLE CASH BALANCE', p.totalAvailable, {band:true});
+  leftRow('LESS : CASH DEPOSITED TO BANK', p.deposited, {});
+  leftRow('LESS : EXPENDITURE', null, {});
+  (p.expenses||[]).forEach(e => leftRow(e.label, e.amount, {bold:false}));
+  leftRow('CLOSING BALANCE', p.closingBalance, {date:true, closing:true});
+
+  // Denominations block, independent row-count from the left side, starting at the same row 3
+  let dr = 3;
+  (p.denoms||[]).forEach(d => {
+    const e=ws.getCell('E'+dr); e.value=d.value; e.font=FN(DARK,false,10); e.alignment=AL('center'); e.border=BD();
+    const f=ws.getCell('F'+dr); f.value=d.count; f.font=FN(DARK,false,10); f.alignment=AL('center'); f.border=BD();
+    const g=ws.getCell('G'+dr); g.value=d.subtotal; g.numFmt='#,##0.00'; g.font=FN(DARK,false,10); g.alignment=AL('center'); g.border=BD();
+    dr++;
+  });
+  const totalCount = (p.denoms||[]).reduce((s,d)=>s+d.count,0);
+  const reconDiff = (p.denomTotal||0) - (p.closingBalance||0);
+  const eT=ws.getCell('E'+dr); eT.value='TOTAL'; eT.font=FN(RED,true,10); eT.alignment=AL('center'); eT.border=BD();
+  const fT=ws.getCell('F'+dr); fT.value=totalCount; fT.font=FN(DARK,true,10); fT.alignment=AL('center'); fT.border=BD();
+  const gT=ws.getCell('G'+dr); gT.value=reconDiff; gT.numFmt='#,##0.00'; gT.font=FN(Math.abs(reconDiff)<0.01?'1E8449':RED,true,10); gT.alignment=AL('center'); gT.border=BD();
+
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url = URL.createObjectURL(blob), a=document.createElement('a');
+  const safeOutlet = (p.outletName||'outlet').replace(/[^a-zA-Z0-9_\-\s]/g,'').trim().replace(/\s+/g,'_');
+  a.href=url; a.download=`Petty_Cash_${safeOutlet}_${p.date||p3TodayStr()}.xlsx`;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 1000);
+  if (typeof logActivity==='function') logActivity('download_file', 11, 'Petty Cash Excel');
 }
 
 // ══════════════════════════════════════════════════════════════
