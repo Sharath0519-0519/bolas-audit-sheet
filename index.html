@@ -10,27 +10,31 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 :root {
-  --bg:#0d0f14; --surface:#161920; --surface2:#1e222c; --border:#2a2f3d;
-  --text:#e8eaf0; --muted:#6b7280;
-  --t1:#4ecdc4; /* Cashew Kernels teal */
-  --t2:#e8c547; /* Stock Report gold */
-  --t3:#f59e0b; /* Stock Audit amber */
-  --accent3:#ff6b6b;
-  --c50:#ffd166; --c100:#a29bfe; --c200:#06d6a0; --c250:#fd79a8; --c500:#74b9ff; --c1k:#e17055;
-  --r25:#ffd166; --r50:#06d6a0; --r200:#118ab2;
+  --bg:#0A0C10; --surface:#12151B; --surface2:#191D25; --border:#242933;
+  --text:#E6E8EC; --muted:#7D8494;
+  --t1:#5B7FE0; /* single primary accent — used for all tool branding, replacing the old teal/gold/amber/coral set */
+  --t2:#5B7FE0;
+  --t3:#5B7FE0;
+  --accent3:#E15C5C; /* danger/negative, functional only */
+  --success:#3FB874; --warning:#D6923B; --danger:#E15C5C;
+  --brand1:#5B7FE0; --brand2:#7C93D6; /* logo mark gradient only */
+  /* Muted categorical palette for weight-bucket charts (Kernel Report) — tonal, not a rainbow */
+  --c50:#5B7FE0; --c100:#7C93D6; --c200:#4FA6A0; --c250:#B98A5E; --c500:#8B8FA3; --c1k:#6B8FB5;
+  --r25:#5B7FE0; --r50:#4FA6A0; --r200:#8B8FA3;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(78,205,196,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(78,205,196,.025) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
 
 /* ── HEADER ── */
 /* ── SIDEBAR SHELL ── */
 .shell-flex{display:flex;min-height:100vh;align-items:stretch}
 .sidebar{width:252px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:28px 16px 18px;display:flex;flex-direction:column;position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto}
 .sidebar-logo{display:flex;align-items:center;gap:12px;padding:0 8px;margin-bottom:6px}
-.sidebar-logo .suite-icon{width:42px;height:42px;font-size:19px;flex-shrink:0}
+.sidebar-logo .suite-icon{width:38px;height:38px;flex-shrink:0;background:linear-gradient(135deg,var(--brand1),var(--brand2));border-radius:10px;display:flex;align-items:center;justify-content:center}
+.sidebar-logo .suite-icon svg{width:20px;height:20px}
 .sidebar-logo h1{font-size:18px;font-weight:800;letter-spacing:-.3px}
 .sidebar-logo h1 span{background:linear-gradient(90deg,var(--t1),var(--t2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .sidebar-tagline{color:var(--muted);font-size:10.5px;font-family:'DM Mono',monospace;padding:0 8px;margin-bottom:26px;line-height:1.6}
@@ -40,19 +44,17 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 
 .main-area{flex:1;min-width:0}
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:32px 30px 0;position:relative;gap:14px}
-.topbar-title{font-family:'Syne',sans-serif;font-weight:800;font-size:21px;letter-spacing:-.3px}
+.topbar-title{font-family:'Manrope',sans-serif;font-weight:800;font-size:21px;letter-spacing:-.3px}
 .hamburger-btn{display:none;background:var(--surface);border:1px solid var(--border);color:var(--text);width:36px;height:36px;border-radius:9px;font-size:15px;cursor:pointer;flex-shrink:0;align-items:center;justify-content:center}
 .sidebar-backdrop{display:none}
 
 /* ── TABS — repurposed as vertical sidebar nav items (same classes, JS untouched) ── */
 .tab-bar{display:flex;flex-direction:column;gap:2px;background:none;border:none;padding:0;margin-top:2px}
-.tab{width:100%;flex:none;justify-content:flex-start;text-align:left;padding:11px 12px 11px 16px;position:relative;gap:10px;border-radius:9px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;background:transparent;color:var(--muted);display:flex;align-items:center}
+.tab{width:100%;flex:none;justify-content:flex-start;text-align:left;padding:11px 12px 11px 16px;position:relative;gap:10px;border-radius:9px;font-family:'Manrope',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;background:transparent;color:var(--muted);display:flex;align-items:center}
 .tab:hover{color:var(--text);background:var(--surface2)}
-.tab.active[data-tab="1"]{background:rgba(78,205,196,.12);color:var(--t1)}
-.tab.active[data-tab="2"]{background:rgba(232,197,71,.12);color:var(--t2)}
-.tab.active[data-tab="3"]{background:rgba(245,158,11,.12);color:var(--t3)}
-.tab.active{background:rgba(99,102,241,.14);color:#818cf8}
-.tab .tab-emoji{font-size:15px;line-height:1}
+.tab.active{background:rgba(91,127,224,.14);color:var(--t1)}
+.tab .tab-icon{width:17px;height:17px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.tab .tab-icon svg{width:100%;height:100%;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .tab .tab-label{font-size:13px;flex:1}
 .tab .tab-dot{position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:3px 0 0 3px;background:transparent}
 .tab.active .tab-dot{background:currentColor}
@@ -60,11 +62,13 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 /* ── NUMBERED SETUP CARDS (Upload / Outlet / Rate PDF) ── */
 .setup-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px;align-items:start}
 .setup-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px}
+.dash-card-icon{width:34px;height:34px;border-radius:9px;background:rgba(91,127,224,.12);color:var(--t1);display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.dash-card-icon svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .setup-card.optional{border-style:dashed}
 .setup-card[onclick]{transition:transform .15s,border-color .15s}
-.setup-card[onclick]:hover{transform:translateY(-2px);border-color:#818cf8}
+.setup-card[onclick]:hover{transform:translateY(-2px);border-color:#5B7FE0}
 .setup-card-hdr{display:flex;align-items:center;gap:10px;margin-bottom:13px}
-.setup-num{width:23px;height:23px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;font-family:'Syne',sans-serif;color:#fff;flex-shrink:0}
+.setup-num{width:23px;height:23px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;font-family:'Manrope',sans-serif;color:#fff;flex-shrink:0}
 .setup-card-hdr h3{font-size:13.5px;font-weight:800}
 .setup-card-hdr .opt-tag{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;font-weight:400;margin-left:3px}
 @media(max-width:900px){.setup-cards{grid-template-columns:1fr}}
@@ -72,7 +76,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 /* ── TOPBAR CHROME: bell + avatar ── */
 .icon-btn{position:relative;width:36px;height:36px;border-radius:10px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;flex-shrink:0;color:var(--text)}
 .icon-btn .badge{position:absolute;top:-5px;right:-5px;background:var(--accent3);color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 4px;font-family:'DM Mono',monospace}
-.avatar-circle{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--t1),var(--t2));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#0d0f14;flex-shrink:0}
+.avatar-circle{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--brand1),var(--brand2));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0}
 
 /* ── PANELS ── */
 .container{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 24px 60px}
@@ -81,39 +85,42 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 
 /* ── SHARED UI COMPONENTS ── */
 .upload-zone{border:2px dashed var(--border);border-radius:16px;padding:44px 32px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface);position:relative;overflow:hidden}
-.upload-zone::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(78,205,196,.05) 0%,transparent 70%);opacity:0;transition:opacity .3s}
-.upload-zone.gold::before{background:radial-gradient(ellipse at center,rgba(232,197,71,.05) 0%,transparent 70%)}
-.upload-zone.amber::before{background:radial-gradient(ellipse at center,rgba(245,158,11,.05) 0%,transparent 70%)}
+.upload-zone::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(91,127,224,.05) 0%,transparent 70%);opacity:0;transition:opacity .3s}
+.upload-zone.gold::before{background:radial-gradient(ellipse at center,rgba(91,127,224,.05) 0%,transparent 70%)}
+.upload-zone.amber::before{background:radial-gradient(ellipse at center,rgba(214,146,59,.05) 0%,transparent 70%)}
 .upload-zone:hover::before,.upload-zone.drag-over::before{opacity:1}
 .upload-zone:hover,.upload-zone.drag-over{border-color:var(--t1);transform:translateY(-2px)}
 .upload-zone.gold:hover,.upload-zone.gold.drag-over{border-color:var(--t2)}
 .upload-zone.amber:hover,.upload-zone.amber.drag-over{border-color:var(--t3)}
-.upload-zone.filled{border-style:solid;border-color:var(--t1);background:rgba(78,205,196,.06)}
-.upload-zone.gold.filled{border-color:var(--t2);background:rgba(232,197,71,.06)}
-.upload-zone.amber.filled{border-color:var(--t3);background:rgba(245,158,11,.06)}
+.upload-zone.filled{border-style:solid;border-color:var(--t1);background:rgba(91,127,224,.06)}
+.upload-zone.gold.filled{border-color:var(--t2);background:rgba(91,127,224,.06)}
+.upload-zone.amber.filled{border-color:var(--t3);background:rgba(214,146,59,.06)}
 .upload-zone.filled h2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.upload-icon{width:58px;height:58px;margin:0 auto 14px;background:var(--surface2);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;border:1px solid var(--border)}
+.upload-icon{width:58px;height:58px;margin:0 auto 14px;background:var(--surface2);border-radius:14px;display:flex;align-items:center;justify-content:center;color:var(--t1);border:1px solid var(--border)}
+.upload-icon svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .upload-zone h2{font-size:17px;font-weight:700;margin-bottom:6px}
 .upload-zone p{color:var(--muted);font-size:13px;font-family:'DM Mono',monospace}
 .upload-zone p span.hl1{color:var(--t1)}.upload-zone p span.hl2{color:var(--t2)}.upload-zone p span.hl3{color:var(--t3)}
 
 .file-info{display:none;margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;align-items:center;gap:12px}
 .file-info.visible{display:flex}
-.file-icon{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
-.file-icon.c1{background:rgba(78,205,196,.15)}.file-icon.c2{background:rgba(232,197,71,.15)}.file-icon.c3{background:rgba(245,158,11,.15)}
+.file-icon{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--t1)}
+.file-icon svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.file-icon.c3{color:var(--warning)}
+.file-icon.c1{background:rgba(91,127,224,.15)}.file-icon.c2{background:rgba(91,127,224,.15)}.file-icon.c3{background:rgba(214,146,59,.15)}
 .file-details{flex:1}
 .file-details .name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .file-details .size{color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;margin-top:2px}
 .remove-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:17px;padding:4px;transition:color .2s}
 .remove-btn:hover{color:var(--accent3)}
 
-.process-btn{display:none;width:100%;margin-top:20px;padding:15px;border:none;border-radius:12px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px;transition:all .2s;position:relative;overflow:hidden}
+.process-btn{display:none;width:100%;margin-top:20px;padding:15px;border:none;border-radius:12px;font-family:'Manrope',sans-serif;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px;transition:all .2s;position:relative;overflow:hidden}
 .process-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);transform:translateX(-100%);transition:transform .5s}
 .process-btn:hover::after{transform:translateX(100%)}
 .process-btn.visible{display:block}
 .process-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
-.btn-c1{background:var(--t1);color:#0d0f14}.btn-c1:hover:not(:disabled){background:#5eede4;transform:translateY(-1px);box-shadow:0 8px 24px rgba(78,205,196,.3)}
-.btn-c2{background:var(--t2);color:#0d0f14}.btn-c2:hover:not(:disabled){background:#f0d050;transform:translateY(-1px);box-shadow:0 8px 24px rgba(232,197,71,.3)}
+.btn-c1{background:var(--t1);color:#fff}.btn-c1:hover:not(:disabled){background:#7093E8;transform:translateY(-1px);box-shadow:0 8px 24px rgba(91,127,224,.3)}
+.btn-c2{background:var(--t2);color:#fff}.btn-c2:hover:not(:disabled){background:#7093E8;transform:translateY(-1px);box-shadow:0 8px 24px rgba(91,127,224,.3)}
 .btn-c3{background:linear-gradient(135deg,var(--t3),#d97706);color:#000}.btn-c3:hover:not(:disabled){opacity:.9;transform:translateY(-1px)}
 
 .progress-section{display:none;margin-top:28px}
@@ -132,24 +139,24 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .results-section.visible{display:block}
 .results-title{font-size:17px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .badge{border-radius:6px;font-size:11px;padding:2px 8px;font-family:'DM Mono',monospace;font-weight:400}
-.badge-c1{background:rgba(78,205,196,.15);color:var(--t1);border:1px solid var(--t1)}
-.badge-c2{background:rgba(232,197,71,.15);color:var(--t2);border:1px solid var(--t2)}
-.badge-c3{background:rgba(245,158,11,.15);color:var(--t3);border:1px solid var(--t3)}
+.badge-c1{background:rgba(91,127,224,.15);color:var(--t1);border:1px solid var(--t1)}
+.badge-c2{background:rgba(91,127,224,.15);color:var(--t2);border:1px solid var(--t2)}
+.badge-c3{background:rgba(214,146,59,.15);color:var(--t3);border:1px solid var(--t3)}
 
-.error-box{display:none;margin-top:16px;background:rgba(255,107,107,.1);border:1px solid var(--accent3);border-radius:12px;padding:14px 18px;color:var(--accent3);font-size:13px;font-family:'DM Mono',monospace}
+.error-box{display:none;margin-top:16px;background:rgba(225,92,92,.1);border:1px solid var(--accent3);border-radius:12px;padding:14px 18px;color:var(--accent3);font-size:13px;font-family:'DM Mono',monospace}
 .error-box.visible{display:block}
 
-.download-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px;background:var(--surface);border-radius:12px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.3px}
-.dl-c1{border:2px solid var(--t1);color:var(--t1)}.dl-c1:hover{background:rgba(78,205,196,.1);transform:translateY(-2px);box-shadow:0 8px 24px rgba(78,205,196,.2)}
-.dl-c2{border:2px solid var(--t2);color:var(--t2)}.dl-c2:hover{background:rgba(232,197,71,.1);transform:translateY(-2px);box-shadow:0 8px 24px rgba(232,197,71,.2)}
-.dl-c3{border:2px solid #10b981;color:#10b981}.dl-c3:not(:disabled):hover{background:rgba(16,185,129,.1);transform:translateY(-2px);box-shadow:0 8px 24px rgba(16,185,129,.2)}
+.download-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px;background:var(--surface);border-radius:12px;font-family:'Manrope',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.3px}
+.dl-c1{border:2px solid var(--t1);color:var(--t1)}.dl-c1:hover{background:rgba(91,127,224,.1);transform:translateY(-2px);box-shadow:0 8px 24px rgba(91,127,224,.2)}
+.dl-c2{border:2px solid var(--t2);color:var(--t2)}.dl-c2:hover{background:rgba(91,127,224,.1);transform:translateY(-2px);box-shadow:0 8px 24px rgba(91,127,224,.2)}
+.dl-c3{border:2px solid #3FB874;color:#3FB874}.dl-c3:not(:disabled):hover{background:rgba(63,184,116,.1);transform:translateY(-2px);box-shadow:0 8px 24px rgba(63,184,116,.2)}
 .dl-c3:disabled{opacity:.33;cursor:not-allowed;transform:none!important}
 
 .note-strip{margin-top:14px;border-radius:10px;padding:11px 14px;font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;line-height:1.7}
 .note-strip strong{color:var(--t1)}
-.note-c1{background:rgba(78,205,196,.07);border:1px solid rgba(78,205,196,.2)}
-.note-c2{background:rgba(232,197,71,.07);border:1px solid rgba(232,197,71,.2)}.note-c2 strong{color:var(--t2)}
-.note-c3{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2)}.note-c3 strong{color:var(--t3)}
+.note-c1{background:rgba(91,127,224,.07);border:1px solid rgba(91,127,224,.2)}
+.note-c2{background:rgba(91,127,224,.07);border:1px solid rgba(91,127,224,.2)}.note-c2 strong{color:var(--t2)}
+.note-c3{background:rgba(214,146,59,.07);border:1px solid rgba(214,146,59,.2)}.note-c3 strong{color:var(--t3)}
 
 /* ── CARDS ── */
 .cards{display:grid;gap:11px;margin-bottom:24px}
@@ -180,7 +187,7 @@ thead tr:first-child th.h-500{color:var(--c500)}thead tr:first-child th.h-1k{col
 thead tr:first-child th.h-25{color:var(--r25)}thead tr:first-child th.h-50r{color:var(--r50)}thead tr:first-child th.h-200r{color:var(--r200)}
 thead tr.subhead th{background:var(--surface2);padding:6px 9px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);border-bottom:1px solid var(--border);font-weight:400}
 tbody tr{border-bottom:1px solid rgba(42,47,61,.6);transition:background .15s}
-tbody tr:hover{background:rgba(78,205,196,.03)}
+tbody tr:hover{background:rgba(91,127,224,.03)}
 tbody tr:last-child{border-bottom:none}
 tbody tr.total-row{background:var(--surface2);border-top:2px solid var(--border)}
 tbody tr.total-row td{font-weight:700;color:var(--text)}
@@ -205,11 +212,11 @@ td.val-25{color:var(--r25)}td.val-50r{color:var(--r50)}td.val-200r{color:var(--r
 
 /* ── PANEL 3: AUDIT ── */
 .actions-row{display:flex;gap:10px;margin-top:20px}
-.btn-go,.btn-dl{flex:1;padding:12px 16px;border-radius:12px;border:none;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .2s}
+.btn-go,.btn-dl{flex:1;padding:12px 16px;border-radius:12px;border:none;font-family:'Manrope',sans-serif;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .2s}
 .btn-go:disabled,.btn-dl:disabled{opacity:.33;cursor:not-allowed;transform:none!important}
-.btn-go{background:linear-gradient(135deg,var(--t3),#d97706);color:#000;box-shadow:0 4px 18px rgba(245,158,11,.2)}
+.btn-go{background:linear-gradient(135deg,var(--t3),#d97706);color:#000;box-shadow:0 4px 18px rgba(214,146,59,.2)}
 .btn-go:not(:disabled):hover{opacity:.9;transform:translateY(-2px)}
-.btn-dl{background:linear-gradient(135deg,#10b981,#059669);color:#fff;box-shadow:0 4px 18px rgba(16,185,129,.2)}
+.btn-dl{background:linear-gradient(135deg,#3FB874,#059669);color:#fff;box-shadow:0 4px 18px rgba(63,184,116,.2)}
 .btn-dl:not(:disabled):hover{opacity:.9;transform:translateY(-2px)}
 
 .loader{display:none;flex-direction:column;align-items:center;gap:12px;padding:32px;text-align:center}
@@ -222,7 +229,7 @@ td.val-25{color:var(--r25)}td.val-50r{color:var(--r50)}td.val-200r{color:var(--r
 .audit-stats.has-ring{grid-template-columns:repeat(4,1fr) 1.3fr}
 .sc{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 10px;text-align:center}
 .sv{font-size:22px;font-weight:800}
-.sv.a{color:var(--t3)}.sv.r{color:#ef4444}.sv.g{color:#10b981}.sv.b{color:#3b82f6}
+.sv.a{color:var(--t3)}.sv.r{color:#E15C5C}.sv.g{color:#3FB874}.sv.b{color:#3b82f6}
 .sl{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-top:3px;letter-spacing:.07em;text-transform:uppercase}
 .ring-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;align-items:center;justify-content:center;gap:12px}
 .ring-card svg{transform:rotate(-90deg);flex-shrink:0}
@@ -242,7 +249,7 @@ td.val-25{color:var(--r25)}td.val-50r{color:var(--r50)}td.val-200r{color:var(--r
 .prev-hint{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)}
 .tscroll{overflow-x:auto;border-radius:8px;border:1px solid rgba(46,63,159,.33)}
 .audit-table{width:100%;border-collapse:collapse;font-size:11px;background:#fff}
-.audit-table .title-row td{background:#1B2A6B;padding:12px;text-align:center;color:#fff;font-weight:800;font-size:12px;letter-spacing:.08em;font-family:'Syne',sans-serif}
+.audit-table .title-row td{background:#1B2A6B;padding:12px;text-align:center;color:#fff;font-weight:800;font-size:12px;letter-spacing:.08em;font-family:'Manrope',sans-serif}
 .audit-table .date-row td{background:#141A4A;padding:6px;text-align:center;color:#AAAACC;font-size:10px;font-style:italic;font-family:'DM Mono',monospace}
 .audit-table thead th{background:#2E3F9F;padding:9px 11px;text-align:center;font-weight:700;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#fff;white-space:nowrap;border:1px solid #C8CCE8}
 .audit-table thead th:nth-child(1),.audit-table thead th:nth-child(2){text-align:left}
@@ -259,7 +266,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 .summary-boxes{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
 .sum-box{border-radius:5px;overflow:hidden;min-width:80px;text-align:center}
 .sum-box-lbl{padding:5px 12px;font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-family:'DM Mono',monospace}
-.sum-box-val{padding:6px 12px;font-size:18px;font-weight:800;font-family:'Syne',sans-serif}
+.sum-box-val{padding:6px 12px;font-size:18px;font-weight:800;font-family:'Manrope',sans-serif}
 
 /* ── EDITABLE STORE/RACK COUNT INPUTS + LIVE STATUS PILLS (preview table) ── */
 .cnt-input{width:52px;padding:5px 4px;border:1px solid #E0B800;border-radius:5px;background:#FFFDE7;color:#1A1A2E;font-family:'DM Mono',monospace;font-size:11px;text-align:center;font-weight:700}
@@ -272,11 +279,11 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 .audit-search{flex:1;min-width:160px;display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:8px 12px}
 .audit-search input{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:'DM Mono',monospace;font-size:12px}
 .audit-search input::placeholder{color:var(--muted)}
-.filter-chip{border:1px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:20px;padding:7px 14px;font-family:'Syne',sans-serif;font-weight:700;font-size:11px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.filter-chip{border:1px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:20px;padding:7px 14px;font-family:'Manrope',sans-serif;font-weight:700;font-size:11px;cursor:pointer;transition:all .15s;white-space:nowrap}
 .filter-chip:hover{border-color:var(--t1);color:var(--t1)}
 .filter-chip.active{background:var(--text);border-color:var(--text);color:var(--bg)}
-.filter-chip.active.f-short{background:#ef4444;border-color:#ef4444;color:#fff}
-.filter-chip.active.f-excess{background:#10b981;border-color:#10b981;color:#fff}
+.filter-chip.active.f-short{background:#E15C5C;border-color:#E15C5C;color:#fff}
+.filter-chip.active.f-excess{background:#3FB874;border-color:#3FB874;color:#fff}
 .filter-chip.active.f-matched{background:#3b82f6;border-color:#3b82f6;color:#fff}
 .audit-table tbody tr.row-hidden{display:none}
 
@@ -284,25 +291,25 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 .photo-cell label{cursor:pointer;font-size:15px}
 .photo-cell input{display:none}
 .photo-cell img{width:22px;height:22px;object-fit:cover;border-radius:4px;vertical-align:middle}
-.repeat-badge{display:inline-block;margin-left:4px;font-size:9px;background:#ef4444;color:#fff;border-radius:8px;padding:1px 5px;font-weight:700;vertical-align:middle}
+.repeat-badge{display:inline-block;margin-left:4px;font-size:9px;background:#E15C5C;color:#fff;border-radius:8px;padding:1px 5px;font-weight:700;vertical-align:middle}
 
 /* ── DRAFT-RESUME BANNER ── */
-.draft-banner{display:none;align-items:center;justify-content:space-between;gap:12px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);border-radius:12px;padding:12px 16px;margin-bottom:14px;flex-wrap:wrap}
+.draft-banner{display:none;align-items:center;justify-content:space-between;gap:12px;background:rgba(214,146,59,.1);border:1px solid rgba(214,146,59,.35);border-radius:12px;padding:12px 16px;margin-bottom:14px;flex-wrap:wrap}
 .draft-banner.on{display:flex}
 .draft-banner .db-txt{font-family:'DM Mono',monospace;font-size:12px;color:var(--t3)}
 .draft-banner .db-btns{display:flex;gap:8px}
-.draft-banner button{border-radius:8px;padding:6px 14px;font-family:'Syne',sans-serif;font-weight:700;font-size:11.5px;cursor:pointer}
+.draft-banner button{border-radius:8px;padding:6px 14px;font-family:'Manrope',sans-serif;font-weight:700;font-size:11.5px;cursor:pointer}
 .db-resume{background:var(--t3);border:none;color:#1a1a2e}
 .db-discard{background:none;border:1px solid var(--border);color:var(--muted)}
 
 /* ── COUNT MODE (one item at a time) ── */
-.count-mode-toggle{border:1px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:20px;padding:7px 14px;font-family:'Syne',sans-serif;font-weight:700;font-size:11px;cursor:pointer;white-space:nowrap}
-.count-mode-toggle.active{background:#818cf8;border-color:#818cf8;color:#fff}
+.count-mode-toggle{border:1px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:20px;padding:7px 14px;font-family:'Manrope',sans-serif;font-weight:700;font-size:11px;cursor:pointer;white-space:nowrap}
+.count-mode-toggle.active{background:#5B7FE0;border-color:#5B7FE0;color:#fff}
 .count-mode-card{display:none;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;margin:14px 0}
 .count-mode-card.on{display:block}
 .cm-progress{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
 .cm-progress-bar{height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;margin-bottom:18px}
-.cm-progress-fill{height:100%;background:#818cf8;transition:width .2s}
+.cm-progress-fill{height:100%;background:#5B7FE0;transition:width .2s}
 .cm-item-name{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
 .cm-pkg-name{font-size:18px;font-weight:800;margin:4px 0 14px;line-height:1.3}
 .cm-readout{display:flex;gap:10px;margin-bottom:18px}
@@ -313,42 +320,42 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 .cm-input-box{flex:1}
 .cm-input-box label{display:block;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:6px;text-align:center}
 .cm-input-box input{width:100%;text-align:center;font-size:24px;font-weight:800;padding:14px;border-radius:10px;border:2px solid var(--border);background:var(--surface2);color:var(--text)}
-.cm-input-box input:focus{outline:none;border-color:#818cf8}
+.cm-input-box input:focus{outline:none;border-color:#5B7FE0}
 .cm-result{text-align:center;margin-bottom:18px;min-height:30px}
 .cm-nav{display:flex;gap:10px}
-.cm-nav button{flex:1;padding:13px;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;border:none}
+.cm-nav button{flex:1;padding:13px;border-radius:10px;font-family:'Manrope',sans-serif;font-weight:700;font-size:13px;cursor:pointer;border:none}
 .cm-prev{background:var(--surface2);color:var(--text)}
-.cm-next{background:#818cf8;color:#fff}
+.cm-next{background:#5B7FE0;color:#fff}
 .cm-next:disabled,.cm-prev:disabled{opacity:.4;cursor:not-allowed}
 .cm-jump{width:100%;margin-top:10px;background:none;border:1px dashed var(--border);color:var(--muted);border-radius:8px;padding:8px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer}
 
 /* ── OFFLINE STATUS BANNER ── */
-#p3OfflineBanner{display:none;position:sticky;top:0;z-index:200;background:#ef4444;color:#fff;text-align:center;padding:8px 14px;font-family:'DM Mono',monospace;font-size:11.5px;font-weight:700}
+#p3OfflineBanner{display:none;position:sticky;top:0;z-index:200;background:#E15C5C;color:#fff;text-align:center;padding:8px 14px;font-family:'DM Mono',monospace;font-size:11.5px;font-weight:700}
 #p3OfflineBanner.on{display:block}
 
 /* ── PETTY CASH ── */
 .pc-label{display:block;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px}
 .pc-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:13px;color:var(--text);outline:none;transition:border-color .2s}
-.pc-input:focus{border-color:#818cf8}
+.pc-input:focus{border-color:#5B7FE0}
 .pc-add-btn{width:100%;margin-top:10px;background:none;border:1px dashed var(--border);color:var(--muted);border-radius:8px;padding:9px;font-family:'DM Mono',monospace;font-size:11.5px;cursor:pointer}
 .pc-expense-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
 .pc-expense-row input:nth-child(1){flex:2;min-width:0}
 .pc-expense-row input:nth-child(2){flex:1;min-width:0}
-.pc-expense-row button{background:none;border:none;color:#ef4444;cursor:pointer;font-size:17px;padding:0 4px;flex-shrink:0}
+.pc-expense-row button{background:none;border:none;color:#E15C5C;cursor:pointer;font-size:17px;padding:0 4px;flex-shrink:0}
 .pc-denom-box{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;text-align:center}
 .pc-denom-box .dv{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:6px}
 .pc-denom-box input{width:100%;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:7px;font-family:'DM Mono',monospace;font-size:14px;font-weight:700;color:var(--text)}
-.pc-denom-box input:focus{outline:none;border-color:#ef4444}
+.pc-denom-box input:focus{outline:none;border-color:#E15C5C}
 .pc-denom-box .dsub{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:5px}
 
 /* ── CLEANLINESS ── */
 .cl-item{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:8px;flex-wrap:wrap}
 .cl-item-name{font-size:13px;font-weight:700;flex:1;min-width:160px}
 .cl-item-rating{display:flex;gap:6px}
-.cl-item-rating button{border:1px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:8px;padding:6px 12px;font-family:'Syne',sans-serif;font-weight:700;font-size:11px;cursor:pointer}
-.cl-item-rating button.sel-good{background:rgba(16,185,129,.15);border-color:#10b981;color:#10b981}
-.cl-item-rating button.sel-average{background:rgba(245,158,11,.15);border-color:#f59e0b;color:#f59e0b}
-.cl-item-rating button.sel-poor{background:rgba(239,68,68,.15);border-color:#ef4444;color:#ef4444}
+.cl-item-rating button{border:1px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:8px;padding:6px 12px;font-family:'Manrope',sans-serif;font-weight:700;font-size:11px;cursor:pointer}
+.cl-item-rating button.sel-good{background:rgba(63,184,116,.15);border-color:#3FB874;color:#3FB874}
+.cl-item-rating button.sel-average{background:rgba(214,146,59,.15);border-color:#D6923B;color:#D6923B}
+.cl-item-rating button.sel-poor{background:rgba(225,92,92,.15);border-color:#E15C5C;color:#E15C5C}
 .cl-photo-btn{display:inline-flex;align-items:center;gap:8px;background:var(--surface2);border:1px dashed var(--border);color:var(--muted);border-radius:9px;padding:9px 14px;font-family:'DM Mono',monospace;font-size:11.5px;cursor:pointer}
 .cl-photo-btn input{display:none}
 .cl-photo-thumb{width:40px;height:40px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-left:8px}
@@ -410,10 +417,10 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 .modal-item-label{flex:1;font-size:13px;color:var(--text);cursor:pointer;line-height:1.4}
 .modal-item-sub{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px}
 .modal-ftr{padding:14px 24px 20px;border-top:1px solid var(--border);display:flex;gap:10px;flex-shrink:0}
-.modal-btn{flex:1;padding:12px;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s}
+.modal-btn{flex:1;padding:12px;border:none;border-radius:10px;font-family:'Manrope',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s}
 .modal-btn-cancel{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
 .modal-btn-cancel:hover{color:var(--text)}
-.modal-btn-dl{background:linear-gradient(135deg,#10b981,#059669);color:#fff;box-shadow:0 4px 18px rgba(16,185,129,.2)}
+.modal-btn-dl{background:linear-gradient(135deg,#3FB874,#059669);color:#fff;box-shadow:0 4px 18px rgba(63,184,116,.2)}
 .modal-btn-dl:hover{opacity:.9;transform:translateY(-1px)}
 .modal-select-all{display:flex;gap:8px;margin-bottom:6px;padding-bottom:10px;border-bottom:1px solid var(--border)}
 .modal-select-all button{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;padding:4px 10px;cursor:pointer;transition:all .15s}
@@ -422,14 +429,14 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 /* ── OWNER LOGIN / AUTH GATE ── */
 #authGate{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:24px}
 .auth-card{position:relative;z-index:1;max-width:380px;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:40px 32px;text-align:center}
-.auth-card .suite-icon{width:52px;height:52px;background:linear-gradient(135deg,var(--t1),var(--t2));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 18px}
+.auth-card .suite-icon{width:52px;height:52px;background:linear-gradient(135deg,var(--brand1),var(--brand2));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 18px}
 .auth-card h1{font-size:23px;font-weight:800;letter-spacing:-.5px;margin-bottom:10px}
 .auth-card h1 span{background:linear-gradient(90deg,var(--t1),var(--t2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .auth-sub{color:var(--muted);font-size:13px;font-family:'DM Mono',monospace;line-height:1.6;margin-bottom:26px}
-.google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;background:#fff;color:#1f1f1f;border:none;border-radius:12px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s}
+.google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;background:#fff;color:#1f1f1f;border:none;border-radius:12px;font-family:'Manrope',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s}
 .google-btn:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(0,0,0,.3)}
 .google-btn:disabled{opacity:.6;cursor:wait}
-.auth-error{color:#ef4444;font-size:11px;font-family:'DM Mono',monospace;margin-top:14px;min-height:14px}
+.auth-error{color:#E15C5C;font-size:11px;font-family:'DM Mono',monospace;margin-top:14px;min-height:14px}
 #appShell{display:none}
 
 /* ── USER CHIP (top-right, shown to everyone once signed in) ── */
@@ -440,8 +447,8 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 .user-chip button:hover{color:var(--accent3);border-color:var(--accent3)}
 
 /* ── OWNER TAB / DASHBOARD (only ever added to the DOM for the owner account) ── */
-.tab.active[data-tab="4"]{background:rgba(255,107,107,.12);color:var(--accent3)}
-.tab[data-tab="4"] .tab-dot{background:var(--accent3)}
+.tab.active[data-tab="4"]{background:rgba(214,146,59,.14);color:var(--warning)}
+.tab[data-tab="4"] .tab-dot{background:var(--warning)}
 .dash-stat-label{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
 .dash-stat-val{font-size:26px;font-weight:800}
 
@@ -450,14 +457,14 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 
 /* ── STATUS PILLS + APPROVE/DENY BUTTONS (owner dashboard) ── */
 .pill{border-radius:20px;padding:3px 10px;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;display:inline-block;white-space:nowrap}
-.pill-pending{background:rgba(245,158,11,.15);color:var(--t3)}
-.pill-approved{background:rgba(16,185,129,.15);color:#10b981}
-.pill-blocked{background:rgba(239,68,68,.15);color:#ef4444}
+.pill-pending{background:rgba(214,146,59,.15);color:var(--t3)}
+.pill-approved{background:rgba(63,184,116,.15);color:#3FB874}
+.pill-blocked{background:rgba(225,92,92,.15);color:#E15C5C}
 .mini-btn{border-radius:8px;padding:5px 11px;font-size:11px;cursor:pointer;background:none;font-family:'DM Mono',monospace;font-weight:700;transition:all .15s;margin-right:4px}
-.mini-btn-ok{border:1px solid #10b981;color:#10b981}
-.mini-btn-ok:hover{background:rgba(16,185,129,.1)}
-.mini-btn-no{border:1px solid #ef4444;color:#ef4444}
-.mini-btn-no:hover{background:rgba(239,68,68,.1)}
+.mini-btn-ok{border:1px solid #3FB874;color:#3FB874}
+.mini-btn-ok:hover{background:rgba(63,184,116,.1)}
+.mini-btn-no{border:1px solid #E15C5C;color:#E15C5C}
+.mini-btn-no:hover{background:rgba(225,92,92,.1)}
 </style>
 </head>
 <body>
@@ -465,7 +472,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 <!-- ══ OWNER LOGIN GATE — shown until someone signs in with Google ══ -->
 <div id="authGate">
   <div class="auth-card">
-    <div class="suite-icon">🥜</div>
+    <div class="suite-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4.5C5 6 3.5 9 4 12.5c.5 3.5 3 6 6.5 6.8 3.7.8 7-.8 8.5-4 1.3-2.8.7-5.8-1.5-7.8"/><path d="M15.5 4.5c1 1.5 1.2 3 .5 4.5"/></svg></div>
     <h1>Bolas <span>Stock Suite</span></h1>
     <p class="auth-sub">Sign in with Google to continue.<br>Sign-ins are logged for the store owner's records.</p>
     <button id="googleSignInBtn" class="google-btn">
@@ -492,47 +499,47 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
 <aside class="sidebar" id="sidebarEl">
   <div class="sidebar-logo">
-    <div class="suite-icon">🥜</div>
+    <div class="suite-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4.5C5 6 3.5 9 4 12.5c.5 3.5 3 6 6.5 6.8 3.7.8 7-.8 8.5-4 1.3-2.8.7-5.8-1.5-7.8"/><path d="M15.5 4.5c1 1.5 1.2 3 .5 4.5"/></svg></div>
     <h1>Bolas <span>Stock Suite</span></h1>
   </div>
   <p class="sidebar-tagline">3-in-1 Tool · Enterprise Inventory Platform</p>
   <div class="nav-label">Main Menu</div>
   <div class="tab-bar">
     <button class="tab active" data-tab="5" onclick="switchTab(5)">
-      <span class="tab-dot"></span><span class="tab-emoji">🏠</span><span class="tab-label">Dashboard</span>
+      <span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></span><span class="tab-label">Dashboard</span>
     </button>
     <button class="tab" data-tab="1" onclick="switchTab(1)">
-      <span class="tab-dot"></span><span class="tab-emoji">🥜</span><span class="tab-label">Kernel Report</span>
+      <span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></span><span class="tab-label">Kernel Report</span>
     </button>
     <button class="tab" data-tab="2" onclick="switchTab(2)">
-      <span class="tab-dot"></span><span class="tab-emoji">📊</span><span class="tab-label">Flavoured Report</span>
+      <span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-6"/></svg></span><span class="tab-label">Flavoured Report</span>
     </button>
     <button class="tab" data-tab="3" onclick="switchTab(3)">
-      <span class="tab-dot"></span><span class="tab-emoji">📋</span><span class="tab-label">Stock Audit</span>
+      <span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 011-1h4a1 1 0 011 1v1"/><path d="M9 12l2 2 4-4"/></svg></span><span class="tab-label">Stock Audit</span>
     </button>
     <button class="tab" data-tab="11" onclick="switchTab(11)">
-      <span class="tab-dot"></span><span class="tab-emoji">💵</span><span class="tab-label">Petty Cash</span>
+      <span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h13a1 1 0 011 1v3"/><path d="M3 7v11a2 2 0 002 2h14a2 2 0 002-2v-8a2 2 0 00-2-2H5"/><circle cx="16" cy="14" r="1.3"/></svg></span><span class="tab-label">Petty Cash</span>
     </button>
     <button class="tab" data-tab="12" onclick="switchTab(12)">
-      <span class="tab-dot"></span><span class="tab-emoji">🧹</span><span class="tab-label">Cleanliness</span>
+      <span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><path d="M12 3l1.4 4.9L18 9l-4.6 1.4L12 15l-1.4-4.6L6 9l4.6-1.1L12 3z"/><path d="M19 16l.7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7L19 16z"/></svg></span><span class="tab-label">Cleanliness</span>
     </button>
     <button class="tab" data-tab="6" onclick="switchTab(6)">
-      <span class="tab-dot"></span><span class="tab-emoji">🕒</span><span class="tab-label">History</span>
+      <span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><span class="tab-label">History</span>
     </button>
     <button class="tab" data-tab="7" onclick="switchTab(7)">
-      <span class="tab-dot"></span><span class="tab-emoji">⚙️</span><span class="tab-label">Settings</span>
+      <span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.4"/><path d="M12 2.5v3M12 18.5v3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M1.5 12h3M19.5 12h3M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1"/></svg></span><span class="tab-label">Settings</span>
     </button>
   </div>
   <div class="nav-label" style="margin-top:18px">Tools</div>
   <div class="tab-bar" id="toolsTabBar">
     <button class="tab" data-tab="8" onclick="switchTab(8)">
-      <span class="tab-dot"></span><span class="tab-emoji">💰</span><span class="tab-label">Rate Manager</span>
+      <span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><path d="M12.6 2H4a2 2 0 00-2 2v8.6a2 2 0 00.6 1.4l9 9a2 2 0 002.8 0l7-7a2 2 0 000-2.8l-9-9A2 2 0 0012.6 2z"/><circle cx="7.5" cy="7.5" r="1.1"/></svg></span><span class="tab-label">Rate Manager</span>
     </button>
     <button class="tab" data-tab="9" onclick="switchTab(9)">
-      <span class="tab-dot"></span><span class="tab-emoji">🏬</span><span class="tab-label">Outlet Manager</span>
+      <span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><path d="M3 9l1-5h16l1 5"/><path d="M4 9v11h16V9"/><path d="M9.5 20v-6h5v6"/></svg></span><span class="tab-label">Outlet Manager</span>
     </button>
     <button class="tab" data-tab="10" onclick="switchTab(10)">
-      <span class="tab-dot"></span><span class="tab-emoji">📜</span><span class="tab-label">Audit History</span>
+      <span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg></span><span class="tab-label">Audit History</span>
     </button>
     <!-- Owner Dashboard button is appended here by JS, owner account only -->
   </div>
@@ -568,13 +575,13 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
   </div>
 
   <div class="upload-zone" id="p1UploadZone">
-    <div class="upload-icon" id="p1ZoneIcon">📊</div>
+    <div class="upload-icon" id="p1ZoneIcon"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></div>
     <h2 id="p1ZoneTitle">Drop your Stock Report here</h2>
     <p id="p1ZoneSub">Drag & drop or <span class="hl1">click to browse</span> · Supports .xls and .xlsx</p>
     <input type="file" id="p1FileInput" accept=".xls,.xlsx" style="display:none">
   </div>
   <div class="file-info" id="p1FileInfo">
-    <div class="file-icon c1">📄</div>
+    <div class="file-icon c1"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg></div>
     <div class="file-details"><div class="name" id="p1FileName"></div><div class="size" id="p1FileSize"></div></div>
     <button class="remove-btn" id="p1RemoveBtn" aria-label="Remove file">✕</button>
   </div>
@@ -582,7 +589,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
   <button class="process-btn btn-c1" id="p1ProcessBtn">⚡ Process & Generate Excel</button>
 
   <details class="products-panel">
-    <summary id="p1ProductsSummary">📦 View mapped products (auto-detected after processing)</summary>
+    <summary id="p1ProductsSummary">View mapped products (auto-detected after processing)</summary>
     <div class="products-grid" id="p1ProductsGrid"></div>
   </details>
 
@@ -620,13 +627,13 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
   </div>
 
   <div class="upload-zone gold" id="p2UploadZone">
-    <div class="upload-icon" id="p2ZoneIcon">📊</div>
+    <div class="upload-icon" id="p2ZoneIcon"><svg viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-6"/></svg></div>
     <h2 id="p2ZoneTitle">Drop your Stock Report here</h2>
     <p id="p2ZoneSub">Drag & drop or <span class="hl2">click to browse</span> · Supports .xls and .xlsx</p>
     <input type="file" id="p2FileInput" accept=".xls,.xlsx" style="display:none">
   </div>
   <div class="file-info" id="p2FileInfo">
-    <div class="file-icon c2">📄</div>
+    <div class="file-icon c2"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg></div>
     <div class="file-details"><div class="name" id="p2FileName"></div><div class="size" id="p2FileSize"></div></div>
     <button class="remove-btn" id="p2RemoveBtn" aria-label="Remove file">✕</button>
   </div>
@@ -671,7 +678,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     <div class="setup-card">
       <div class="setup-card-hdr"><div class="setup-num" style="background:var(--t1)">1</div><h3>Upload Stock Report</h3></div>
       <div class="upload-zone amber" id="p3dz">
-        <div class="upload-icon" id="p3ZoneIcon">📦</div>
+        <div class="upload-icon" id="p3ZoneIcon"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 011-1h4a1 1 0 011 1v1"/><path d="M9 12l2 2 4-4"/></svg></div>
         <h2 id="p3ZoneTitle">Drop your Stock Report here</h2>
         <p id="p3ZoneSub">Drag & drop or <span class="hl3">click to browse</span> · Supports .xls and .xlsx</p>
         <input type="file" id="p3FileInput" style="display:none">
@@ -684,8 +691,8 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     </div>
 
     <div class="setup-card">
-      <div class="setup-card-hdr"><div class="setup-num" style="background:#10b981">2</div><h3>Outlet Details</h3></div>
-      <label style="display:block;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;">🏪 Outlet Name <span style="color:var(--t3)">*</span></label>
+      <div class="setup-card-hdr"><div class="setup-num" style="background:#3FB874">2</div><h3>Outlet Details</h3></div>
+      <label style="display:block;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;">Outlet Name <span style="color:var(--t3)">*</span></label>
       <input type="text" id="p3OutletName" list="p3OutletDatalist" placeholder="e.g. 053 Bangalore Vijayanagar" autocomplete="off"
         style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:13px;color:var(--text);outline:none;transition:border-color .2s;"
         oninput="p3UpdateOutletPreview()"
@@ -694,12 +701,12 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
       >
       <datalist id="p3OutletDatalist"></datalist>
       <div id="p3OutletPreview" style="margin-top:8px;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);display:none;">
-        📋 Sheet title will read: <span id="p3OutletPreviewText" style="color:var(--t3);font-weight:700;"></span>
+        Sheet title will read: <span id="p3OutletPreviewText" style="color:var(--t3);font-weight:700;"></span>
       </div>
       <div id="p3SaveOutletRow" style="margin-top:8px;display:none;">
         <button type="button" onclick="p3SaveCurrentOutlet()" style="background:none;border:1px dashed var(--border);color:var(--muted);border-radius:7px;padding:5px 11px;font-family:'DM Mono',monospace;font-size:10.5px;cursor:pointer;">+ Save "<span id="p3SaveOutletName"></span>" to Outlet Manager</button>
       </div>
-      <label style="display:block;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin:14px 0 8px;">✍️ Verified By <span style="font-weight:400;color:var(--muted)">(outlet staff, optional)</span></label>
+      <label style="display:block;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin:14px 0 8px;">Verified By <span style="font-weight:400;color:var(--muted)">(outlet staff, optional)</span></label>
       <input type="text" id="p3VerifiedBy" placeholder="Staff name at the outlet"
         style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:13px;color:var(--text);outline:none;transition:border-color .2s;"
         onfocus="this.style.borderColor='var(--t3)'"
@@ -711,7 +718,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
       <div class="setup-card-hdr"><div class="setup-num" style="background:var(--t3)">3</div><h3>Upload Rate PDF<span class="opt-tag">(Optional)</span></h3></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
         <label style="font-size:10.5px;font-family:'DM Mono',monospace;color:var(--muted);">Auto-fills billing &amp; selling prices</label>
-        <button id="p3RatePdfToggle" onclick="p3ToggleRatePdf()" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:8px;color:var(--t3);font-family:'DM Mono',monospace;font-size:11px;padding:4px 12px;cursor:pointer;">+ Upload PDF</button>
+        <button id="p3RatePdfToggle" onclick="p3ToggleRatePdf()" style="background:rgba(214,146,59,.12);border:1px solid rgba(214,146,59,.3);border-radius:8px;color:var(--t3);font-family:'DM Mono',monospace;font-size:11px;padding:4px 12px;cursor:pointer;">+ Upload PDF</button>
       </div>
       <div id="p3RatePdfArea" style="display:none;">
         <div class="upload-zone amber" id="p3RatePdfZone" style="padding:20px 16px;" onclick="document.getElementById('p3RatePdfInput').click()">
@@ -742,7 +749,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     <div class="ring-card">
       <svg width="52" height="52" viewBox="0 0 52 52">
         <circle cx="26" cy="26" r="22" fill="none" stroke="var(--border)" stroke-width="6"/>
-        <circle id="p3RingArc" cx="26" cy="26" r="22" fill="none" stroke="#10b981" stroke-width="6" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="138.2"/>
+        <circle id="p3RingArc" cx="26" cy="26" r="22" fill="none" stroke="#3FB874" stroke-width="6" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="138.2"/>
       </svg>
       <div class="ring-txt"><div class="rv" id="p3RingPct">0%</div><div class="rl">Accuracy</div></div>
     </div>
@@ -806,11 +813,11 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     <!-- Sheet tabs -->
     <div style="display:flex;gap:0;margin-bottom:0;border-bottom:2px solid #C8CCE8;">
       <button id="p3Tab1Btn" onclick="p3SwitchPreviewTab(1)"
-        style="padding:7px 18px;border:1px solid #C8CCE8;border-bottom:none;border-radius:6px 6px 0 0;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer;background:#2E3F9F;color:#fff;margin-right:4px;">
-        📋 Stock Audit
+        style="padding:7px 18px;border:1px solid #C8CCE8;border-bottom:none;border-radius:6px 6px 0 0;font-family:'Manrope',sans-serif;font-weight:700;font-size:12px;cursor:pointer;background:#2E3F9F;color:#fff;margin-right:4px;">
+        Stock Audit
       </button>
       <button id="p3Tab2Btn" onclick="p3SwitchPreviewTab(2)"
-        style="padding:7px 18px;border:1px solid #C8CCE8;border-bottom:none;border-radius:6px 6px 0 0;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer;background:#f0f0f0;color:#555;margin-right:4px;">
+        style="padding:7px 18px;border:1px solid #C8CCE8;border-bottom:none;border-radius:6px 6px 0 0;font-family:'Manrope',sans-serif;font-weight:700;font-size:12px;cursor:pointer;background:#f0f0f0;color:#555;margin-right:4px;">
         💰 Short &amp; Excess Pricing
       </button>
     </div>
@@ -833,6 +840,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
   <button class="download-btn" id="ownerRefreshBtn" style="margin-bottom:20px;max-width:220px;border:2px solid var(--accent3);color:var(--accent3)">↻ Refresh Data</button>
   <div id="ownerPendingWrap" style="margin-bottom:28px"></div>
   <div id="ownerPackWrap" style="margin-bottom:28px"></div>
+  <div id="ownerP1PackWrap" style="margin-bottom:28px"></div>
   <div id="ownerDashWrap"></div>
 </div>
 
@@ -841,31 +849,31 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 ══════════════════════════════════════════════════════ -->
 <div class="panel active" id="panel5">
   <div class="section-head">
-    <span class="dot" style="background:#818cf8"></span>
+    <span class="dot" style="background:#5B7FE0"></span>
     <div><h2>Dashboard</h2><p>Quick access to your tools, and what you've been up to</p></div>
   </div>
   <div id="dashWelcome" style="margin-bottom:20px;font-family:'DM Mono',monospace;font-size:13px;color:var(--muted)"></div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:28px">
     <div class="setup-card" style="cursor:pointer" onclick="switchTab(1)">
-      <div style="font-size:24px;margin-bottom:8px">🥜</div>
+      <div class="dash-card-icon"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></div>
       <h3 style="font-size:14px;font-weight:800;margin-bottom:4px">Kernel Report</h3>
       <p style="font-size:11.5px;color:var(--muted);font-family:'DM Mono',monospace">Cashew kernel stock — auto-detects SKUs</p>
     </div>
     <div class="setup-card" style="cursor:pointer" onclick="switchTab(2)">
-      <div style="font-size:24px;margin-bottom:8px">📊</div>
+      <div class="dash-card-icon"><svg viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-6"/></svg></div>
       <h3 style="font-size:14px;font-weight:800;margin-bottom:4px">Flavoured Report</h3>
       <p style="font-size:11.5px;color:var(--muted);font-family:'DM Mono',monospace">Flavoured cashew stock report</p>
     </div>
     <div class="setup-card" style="cursor:pointer" onclick="switchTab(3)">
-      <div style="font-size:24px;margin-bottom:8px">📋</div>
+      <div class="dash-card-icon"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 011-1h4a1 1 0 011 1v1"/><path d="M9 12l2 2 4-4"/></svg></div>
       <h3 style="font-size:14px;font-weight:800;margin-bottom:4px">Stock Audit</h3>
       <p style="font-size:11.5px;color:var(--muted);font-family:'DM Mono',monospace">Physical count → colour-coded audit sheet</p>
     </div>
   </div>
   <div class="setup-card" style="margin-bottom:28px;max-width:520px">
-    <div class="setup-card-hdr"><div class="setup-num" style="background:#10b981">⬇</div><h3>Download All Reports</h3></div>
+    <div class="setup-card-hdr"><div class="setup-num" style="background:#3FB874">⬇</div><h3>Download All Reports</h3></div>
     <p style="font-size:11.5px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:14px">One Excel file, four sheets — Stock Audit History, Rate List, Petty Cash, Cleanliness</p>
-    <button class="download-btn" id="dashDownloadAllBtn" onclick="downloadAllReports()" style="max-width:260px;border:2px solid #10b981;color:#10b981">⬇ Download All Reports</button>
+    <button class="download-btn" id="dashDownloadAllBtn" onclick="downloadAllReports()" style="max-width:260px;border:2px solid #3FB874;color:#3FB874">⬇ Download All Reports</button>
     <div id="dashDownloadAllMsg" style="margin-top:8px;font-family:'DM Mono',monospace;font-size:11.5px"></div>
   </div>
   <div class="results-title">Your Recent Activity</div>
@@ -877,7 +885,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 ══════════════════════════════════════════════════════ -->
 <div class="panel" id="panel6">
   <div class="section-head">
-    <span class="dot" style="background:#818cf8"></span>
+    <span class="dot" style="background:#5B7FE0"></span>
     <div><h2>History</h2><p>Your own sign-ins, files processed, and downloads</p></div>
   </div>
   <div id="historyWrap"><p style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">Loading…</p></div>
@@ -888,7 +896,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 ══════════════════════════════════════════════════════ -->
 <div class="panel" id="panel7">
   <div class="section-head">
-    <span class="dot" style="background:#818cf8"></span>
+    <span class="dot" style="background:#5B7FE0"></span>
     <div><h2>Settings</h2><p>Your account on Bolas Stock Suite</p></div>
   </div>
   <div id="settingsWrap" class="setup-card" style="max-width:440px"></div>
@@ -899,12 +907,12 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 ══════════════════════════════════════════════════════ -->
 <div class="panel" id="panel8">
   <div class="section-head">
-    <span class="dot" style="background:#818cf8"></span>
+    <span class="dot" style="background:#5B7FE0"></span>
     <div><h2>Rate Manager</h2><p>Saved prices, shared with the whole team — updates when anyone uploads a Rate PDF in Stock Audit</p></div>
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px">
-    <button class="download-btn" id="rateRefreshBtn" style="max-width:200px;border:2px solid #818cf8;color:#818cf8">↻ Refresh</button>
-    <button class="download-btn" id="rateDownloadBtn" onclick="rateManagerDownloadExcel()" style="max-width:200px;border:2px solid #10b981;color:#10b981">⬇ Download Excel</button>
+    <button class="download-btn" id="rateRefreshBtn" style="max-width:200px;border:2px solid #5B7FE0;color:#5B7FE0">↻ Refresh</button>
+    <button class="download-btn" id="rateDownloadBtn" onclick="rateManagerDownloadExcel()" style="max-width:200px;border:2px solid #3FB874;color:#3FB874">⬇ Download Excel</button>
   </div>
   <div id="rateManagerWrap"></div>
 </div>
@@ -914,16 +922,16 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 ══════════════════════════════════════════════════════ -->
 <div class="panel" id="panel9">
   <div class="section-head">
-    <span class="dot" style="background:#818cf8"></span>
+    <span class="dot" style="background:#5B7FE0"></span>
     <div><h2>Outlet Manager</h2><p>Save outlet names once, reuse them in Stock Audit</p></div>
   </div>
   <div class="setup-card" style="max-width:460px;margin-bottom:24px">
     <label style="display:block;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;">Add Outlet</label>
     <div style="display:flex;gap:8px">
       <input type="text" id="outletNewName" placeholder="e.g. 053 Bangalore Vijayanagar" style="flex:1;min-width:0;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:13px;color:var(--text);outline:none">
-      <button class="download-btn" onclick="addOutlet()" style="width:auto;padding:10px 18px;border:2px solid #818cf8;color:#818cf8">+ Add</button>
+      <button class="download-btn" onclick="addOutlet()" style="width:auto;padding:10px 18px;border:2px solid #5B7FE0;color:#5B7FE0">+ Add</button>
     </div>
-    <div id="outletAddErr" style="color:#ef4444;font-size:11px;font-family:'DM Mono',monospace;margin-top:8px;min-height:14px"></div>
+    <div id="outletAddErr" style="color:#E15C5C;font-size:11px;font-family:'DM Mono',monospace;margin-top:8px;min-height:14px"></div>
   </div>
   <div class="results-title">Saved Outlets</div>
   <div id="outletListWrap"><p style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">Loading…</p></div>
@@ -934,7 +942,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 ══════════════════════════════════════════════════════ -->
 <div class="panel" id="panel10">
   <div class="section-head">
-    <span class="dot" style="background:#818cf8"></span>
+    <span class="dot" style="background:#5B7FE0"></span>
     <div><h2>Audit History</h2><p>Every Stock Audit sheet generated, saved automatically at download</p></div>
   </div>
   <div id="auditHistoryWrap"><p style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">Loading…</p></div>
@@ -945,16 +953,16 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 ══════════════════════════════════════════════════════ -->
 <div class="panel" id="panel11">
   <div class="section-head">
-    <span class="dot" style="background:#818cf8"></span>
+    <span class="dot" style="background:#5B7FE0"></span>
     <div><h2>Petty Cash Report</h2><p>Opening → Sales → Deposits → Expenditure → Closing Balance, reconciled against physical denominations</p></div>
   </div>
 
   <div class="setup-cards" style="grid-template-columns:1fr 1fr">
     <div class="setup-card">
-      <div class="setup-card-hdr"><div class="setup-num" style="background:#818cf8">1</div><h3>Outlet &amp; Balances</h3></div>
-      <label class="pc-label">🏪 Outlet Name</label>
+      <div class="setup-card-hdr"><div class="setup-num" style="background:#5B7FE0">1</div><h3>Outlet &amp; Balances</h3></div>
+      <label class="pc-label">Outlet Name</label>
       <input type="text" id="pcOutletName" list="p3OutletDatalist" placeholder="e.g. 053 Bangalore Vijayanagar" class="pc-input" autocomplete="off">
-      <label class="pc-label" style="margin-top:12px">📅 Date</label>
+      <label class="pc-label" style="margin-top:12px">Date</label>
       <input type="date" id="pcDate" class="pc-input">
       <label class="pc-label" style="margin-top:12px">Opening Balance (₹)</label>
       <input type="number" id="pcOpening" min="0" class="pc-input" oninput="pcRecalc()">
@@ -964,14 +972,14 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
       <input type="number" id="pcDeposited" min="0" class="pc-input" oninput="pcRecalc()">
     </div>
     <div class="setup-card">
-      <div class="setup-card-hdr"><div class="setup-num" style="background:#f59e0b">2</div><h3>Less: Expenditure</h3></div>
+      <div class="setup-card-hdr"><div class="setup-num" style="background:#D6923B">2</div><h3>Less: Expenditure</h3></div>
       <div id="pcExpenseRows"></div>
       <button type="button" onclick="pcAddExpenseRow()" class="pc-add-btn">+ Add expense</button>
     </div>
   </div>
 
   <div class="setup-card" style="margin:16px 0">
-    <div class="setup-card-hdr"><div class="setup-num" style="background:#ef4444">3</div><h3>Denominations — count what's physically in the till</h3></div>
+    <div class="setup-card-hdr"><div class="setup-num" style="background:#E15C5C">3</div><h3>Denominations — count what's physically in the till</h3></div>
     <div id="pcDenomRows" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px"></div>
   </div>
 
@@ -985,11 +993,11 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
   <div class="setup-card" style="margin-bottom:20px;max-width:520px">
     <label class="pc-label">Remarks</label>
     <textarea id="pcRemarks" rows="2" class="pc-input" style="resize:vertical"></textarea>
-    <label class="pc-label" style="margin-top:12px">✍️ Verified By</label>
+    <label class="pc-label" style="margin-top:12px">Verified By</label>
     <input type="text" id="pcVerifiedBy" class="pc-input" placeholder="Staff name at the outlet">
   </div>
 
-  <button class="download-btn" id="pcSaveBtn" onclick="pcSaveAudit()" style="max-width:300px;border:2px solid #818cf8;color:#818cf8">💾 Save &amp; Download Excel</button>
+  <button class="download-btn" id="pcSaveBtn" onclick="pcSaveAudit()" style="max-width:300px;border:2px solid #5B7FE0;color:#5B7FE0">Save &amp; Download Excel</button>
   <div id="pcSaveMsg" style="margin-top:8px;font-family:'DM Mono',monospace;font-size:11.5px"></div>
 
   <div class="results-title" style="margin-top:30px">Recent Petty Cash Audits</div>
@@ -1001,12 +1009,12 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 ══════════════════════════════════════════════════════ -->
 <div class="panel" id="panel12">
   <div class="section-head">
-    <span class="dot" style="background:#818cf8"></span>
+    <span class="dot" style="background:#5B7FE0"></span>
     <div><h2>Cleanliness Audit</h2><p>Quick checklist, rate each area, attach a photo if something needs fixing</p></div>
   </div>
 
   <div class="setup-card" style="max-width:460px;margin-bottom:20px">
-    <label class="pc-label">🏪 Outlet Name</label>
+    <label class="pc-label">Outlet Name</label>
     <input type="text" id="clOutletName" list="p3OutletDatalist" placeholder="e.g. 053 Bangalore Vijayanagar" class="pc-input" autocomplete="off">
   </div>
 
@@ -1027,11 +1035,11 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
   <div class="setup-card" style="margin-bottom:20px;max-width:520px">
     <label class="pc-label">Remarks</label>
     <textarea id="clRemarks" rows="2" class="pc-input" style="resize:vertical"></textarea>
-    <label class="pc-label" style="margin-top:12px">✍️ Verified By</label>
+    <label class="pc-label" style="margin-top:12px">Verified By</label>
     <input type="text" id="clVerifiedBy" class="pc-input" placeholder="Staff name at the outlet">
   </div>
 
-  <button class="download-btn" id="clSaveBtn" onclick="clSaveAudit()" style="max-width:260px;border:2px solid #818cf8;color:#818cf8">💾 Save Cleanliness Audit</button>
+  <button class="download-btn" id="clSaveBtn" onclick="clSaveAudit()" style="max-width:260px;border:2px solid #5B7FE0;color:#5B7FE0">Save Cleanliness Audit</button>
   <div id="clSaveMsg" style="margin-top:8px;font-family:'DM Mono',monospace;font-size:11.5px"></div>
 
   <div class="results-title" style="margin-top:30px">Recent Cleanliness Audits</div>
@@ -1059,13 +1067,13 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
         <button onclick="p3SelectAll(false)">✗ Deselect All</button>
       </div>
 
-      <div class="modal-section-lbl">📦 Delivery Services</div>
+      <div class="modal-section-lbl">Delivery Services</div>
       <label class="modal-item">
         <input type="checkbox" id="chk_delivery_nec1" checked>
         <div><div class="modal-item-label">Other Delivery Services N.E.C</div><div class="modal-item-sub">All delivery service items</div></div>
       </label>
 
-      <div class="modal-section-lbl">🛍️ Cloth Carry Bags</div>
+      <div class="modal-section-lbl">Cloth Carry Bags</div>
       <label class="modal-item">
         <input type="checkbox" id="chk_cloth_small" checked>
         <div><div class="modal-item-label">Cloth Carry Bag — Small</div><div class="modal-item-sub">Small-size cloth bags</div></div>
@@ -1075,7 +1083,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
         <div><div class="modal-item-label">Cloth Carry Bag — Large</div><div class="modal-item-sub">Large-size cloth bags</div></div>
       </label>
 
-      <div class="modal-section-lbl">🛍️ Bolas Cloth Carry Bags</div>
+      <div class="modal-section-lbl">Bolas Cloth Carry Bags</div>
       <label class="modal-item">
         <input type="checkbox" id="chk_bolas_small" checked>
         <div><div class="modal-item-label">Bolas Cloth Carry Bag — Small</div><div class="modal-item-sub">Bolas brand, small size</div></div>
@@ -1124,6 +1132,15 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 
 <script>
 // ══════════════════════════════════════════════════════════════
+// SHARED ICON MARKUP (kept as constants so the empty/loaded states
+// of each upload zone always match the same line-icon style)
+// ══════════════════════════════════════════════════════════════
+const ICON_PACKAGE = '<svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>';
+const ICON_BARCHART = '<svg viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-6"/></svg>';
+const ICON_CLIPBOARD = '<svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 011-1h4a1 1 0 011 1v1"/><path d="M9 12l2 2 4-4"/></svg>';
+const ICON_CHECK = '<svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg>';
+
+// ══════════════════════════════════════════════════════════════
 // TAB SWITCHING
 // ══════════════════════════════════════════════════════════════
 function switchTab(n) {
@@ -1166,7 +1183,7 @@ $1('p1RemoveBtn').addEventListener('click', () => {
   p1File=null; p1Period=''; $1('p1FileInfo').classList.remove('visible'); $1('p1ProcessBtn').classList.remove('visible'); p1ResetResults();
   $1('p1FileInput').value = '';
   $1('p1UploadZone').classList.remove('filled');
-  $1('p1ZoneIcon').textContent = '📊';
+  $1('p1ZoneIcon').innerHTML = ICON_PACKAGE;
   $1('p1ZoneTitle').textContent = 'Drop your Stock Report here';
   $1('p1ZoneSub').innerHTML = 'Drag & drop or <span class="hl1">click to browse</span> · Supports .xls and .xlsx';
 });
@@ -1182,7 +1199,7 @@ function p1SetFile(f) {
   $1('p1FileInfo').classList.add('visible');
   $1('p1ProcessBtn').classList.add('visible');
   $1('p1UploadZone').classList.add('filled');
-  $1('p1ZoneIcon').textContent = '✅';
+  $1('p1ZoneIcon').innerHTML = ICON_CHECK;
   $1('p1ZoneTitle').textContent = f.name;
   $1('p1ZoneSub').innerHTML = 'File selected — <span class="hl1">click to choose a different file</span>';
   p1HideError();
@@ -1206,6 +1223,59 @@ function p1Log(type, msg) {
 }
 function p1ShowError(m) { $1('p1ErrorBox').textContent = m; $1('p1ErrorBox').classList.add('visible'); }
 function p1HideError() { $1('p1ErrorBox').classList.remove('visible'); }
+
+// ══════════════════════════════════════════════════════════════
+// KERNEL REPORT PACK SIZE OVERRIDES (Panel 1 only — separate from
+// Stock Audit's own override system in every way: own Firestore
+// collection, own Owner Dashboard section, own key/map.)
+// Same underlying problem as Stock Audit: p1ParseWeight below can't
+// know that "Salted Cashew 25g Pack Of 10" is a 250g carton of 10
+// packs — it just finds the first weight in the text (25g). Every
+// new product gets flagged here for the owner to confirm/correct.
+// ══════════════════════════════════════════════════════════════
+function p1PackKey(name){ return String(name||'').toLowerCase().replace(/\s+/g,''); }
+window.p1PackOverrideMap = window.p1PackOverrideMap || new Map(); // key -> {packageName, cartonGrams, packQty, assigned, autoDetected}
+let p1PackOverridesLoaded = false;
+async function p1LoadPackOverrides(){
+  if (p1PackOverridesLoaded) return;
+  try{
+    const snap = await db.collection('p1_pack_overrides').limit(3000).get();
+    window.p1PackOverrideMap = new Map(snap.docs.map(d=>[d.id, d.data()]));
+    p1PackOverridesLoaded = true;
+  }catch(e){ console.warn('p1LoadPackOverrides failed:', e); }
+}
+let p1NewPackProducts = [];
+async function p1RegisterNewPackProducts(){
+  const queue = p1NewPackProducts; p1NewPackProducts = [];
+  if (!queue.length || !currentUser) return;
+  const CHUNK = 450;
+  for (let i=0; i<queue.length; i+=CHUNK) {
+    const batch = db.batch();
+    queue.slice(i,i+CHUNK).forEach(item => {
+      const ref = db.collection('p1_pack_overrides').doc(item.key);
+      batch.set(ref, {
+        packageName: item.packageName, cartonGrams: item.autoCartonGrams, packQty: item.autoPackQty,
+        autoDetected: item.autoCartonGrams, packType: item.packType, assigned: false,
+        firstSeenAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: currentUser.displayName||currentUser.email
+      }, { merge: true });
+      window.p1PackOverrideMap.set(item.key, { packageName: item.packageName, cartonGrams: item.autoCartonGrams, packQty: item.autoPackQty, assigned: false });
+    });
+    try { await batch.commit(); } catch(e) { console.warn('p1RegisterNewPackProducts batch failed:', e); }
+  }
+}
+// Converts a saved override into the exact same {type,kg,cartonKg,packKg} shape
+// p1ParseWeight returns, so every downstream function (bucket key, label,
+// aggregation, Excel output) treats it identically to an auto-detected result.
+function p1OverrideToParsed(o){
+  const cartonKg = (o.cartonGrams||0) / 1000;
+  const qty = o.packQty && o.packQty > 1 ? o.packQty : 1;
+  if (qty > 1) {
+    const packKg = parseFloat((cartonKg / qty).toFixed(6));
+    return { type:'carton', kg:cartonKg, cartonKg, packKg };
+  }
+  return { type:'weight', kg: cartonKg };
+}
 
 // ── Weight / carton parser ────────────────────────────────────
 // Returns { type:'weight'|'carton'|'numbers'|'unknown', kg, cartonKg, packKg }
@@ -1298,9 +1368,11 @@ $1('p1ProcessBtn').addEventListener('click', async () => {
     p1SetProgress(40, 'Detecting dates…');
     const {dates, period} = p1BuildDateList(rows);
     p1Period = period;
-    p1Log('info', `📅 ${dates.length} dates · Period: ${period}`);
+    p1Log('info', `${dates.length} dates · Period: ${period}`);
     p1SetProgress(55, 'Auto-detecting SKUs…');
+    if (typeof p1LoadPackOverrides === 'function') await p1LoadPackOverrides();
     const {products, bucketMap} = p1DiscoverProducts(rows);
+    if (typeof p1RegisterNewPackProducts === 'function') p1RegisterNewPackProducts();
     p1Log('ok', `🔍 Found ${products.length} SKUs across ${Object.keys(bucketMap).length} weight buckets`);
     p1SetProgress(70, 'Aggregating data…');
     const {result, buckets} = p1AggregateData(rows, dates, products, bucketMap);
@@ -1344,7 +1416,20 @@ function p1DiscoverProducts(rows) {
     const name = col1.trim();
     if (seen.has(name.toLowerCase())) continue;
     seen.add(name.toLowerCase());
-    const parsed = p1ParseWeight(name);
+    const packKey = p1PackKey(name);
+    const savedOverride = window.p1PackOverrideMap.get(packKey);
+    let parsed;
+    if (savedOverride && savedOverride.cartonGrams > 0) {
+      parsed = p1OverrideToParsed(savedOverride);
+    } else {
+      parsed = p1ParseWeight(name);
+      if (!savedOverride && parsed.type !== 'numbers') {
+        const autoCartonGrams = parsed.type==='carton' ? Math.round(parsed.cartonKg*1000) : (parsed.type==='weight' ? Math.round(parsed.kg*1000) : null);
+        const autoPackQty = parsed.type==='carton' ? Math.round(parsed.cartonKg/parsed.packKg) : 1;
+        p1NewPackProducts.push({ key: packKey, packageName: name, autoCartonGrams, autoPackQty, packType: parsed.type });
+        window.p1PackOverrideMap.set(packKey, { packageName: name, cartonGrams: autoCartonGrams, packQty: autoPackQty, assigned: false }); // avoid re-queuing within one file
+      }
+    }
     const key = p1BucketKey(parsed, name);
     if (!bucketMap[key]) {
       bucketMap[key] = { key, label: p1BucketLabel(key, parsed), type: parsed.type,
@@ -1458,7 +1543,7 @@ function p1RefreshProductsPanel(products, bucketMap) {
   grid.innerHTML = '';
   // Update the summary count
   const summary = $1('p1ProductsSummary');
-  if (summary) summary.textContent = `📦 View detected products (${products.length} SKUs across ${Object.keys(bucketMap).length} weight buckets)`;
+  if (summary) summary.textContent = `View detected products (${products.length} SKUs across ${Object.keys(bucketMap).length} weight buckets)`;
   // Sort products by bucket key label
   const sorted = [...products].sort((a,b)=>bucketMap[a.key].label.localeCompare(bucketMap[b.key].label));
   sorted.forEach((p,idx) => {
@@ -1698,7 +1783,7 @@ $2('p2RemoveBtn').addEventListener('click', () => {
   p2ResetResults();
   $2('p2FileInput').value = '';
   $2('p2UploadZone').classList.remove('filled');
-  $2('p2ZoneIcon').textContent = '📊';
+  $2('p2ZoneIcon').innerHTML = ICON_BARCHART;
   $2('p2ZoneTitle').textContent = 'Drop your Stock Report here';
   $2('p2ZoneSub').innerHTML = 'Drag & drop or <span class="hl2">click to browse</span> · Supports .xls and .xlsx';
 });
@@ -1715,7 +1800,7 @@ function p2SetFile(f) {
   $2('p2FileInfo').classList.add('visible');
   $2('p2ProcessBtn').classList.add('visible');
   $2('p2UploadZone').classList.add('filled');
-  $2('p2ZoneIcon').textContent = '✅';
+  $2('p2ZoneIcon').innerHTML = ICON_CHECK;
   $2('p2ZoneTitle').textContent = f.name;
   $2('p2ZoneSub').innerHTML = 'File selected — <span class="hl2">click to choose a different file</span>';
   p2HideError();
@@ -1783,7 +1868,7 @@ $2('p2ProcessBtn').addEventListener('click', async () => {
     if (!allDates.length) throw new Error('No date rows found. Is this the correct Stock Report file?');
     if (!period) period = `${allDates[0]} to ${allDates[allDates.length - 1]}`;
     p2Period = period;
-    p2Log('info', `📅 ${allDates.length} dates · Period: ${period}`);
+    p2Log('info', `${allDates.length} dates · Period: ${period}`);
 
     p2SetProgress(60, 'Auto-detecting SKUs…');
     const products = p2DiscoverProducts(rows);
@@ -2123,7 +2208,7 @@ function p3LoadFile(file){
     p3On($3('p3FileBar'));$3('p3BtnGo').disabled=false;$3('p3BtnDl').disabled=true;
     p3AuditRows=[];p3XlBlob=null;p3Off($3('p3Stats'));p3Off($3('p3PrevWrap'));p3Off($3('p3InfoStrip'));p3Off($3('p3ErrBox'));
     $3('p3dz').classList.add('filled');
-    $3('p3ZoneIcon').textContent='✅';
+    $3('p3ZoneIcon').innerHTML=ICON_CHECK;
     $3('p3ZoneTitle').textContent=file.name||'Stock Report';
     $3('p3ZoneSub').innerHTML='File selected — <span class="hl3">click to choose a different file</span>';
   };
@@ -2134,7 +2219,7 @@ function p3ResetAll(){
   p3Off($3('p3FileBar'));p3Off($3('p3Stats'));p3Off($3('p3PrevWrap'));p3Off($3('p3InfoStrip'));p3Off($3('p3ErrBox'));
   p3Done();$3('p3BtnGo').disabled=true;$3('p3BtnDl').disabled=true;
   $3('p3dz').classList.remove('filled');
-  $3('p3ZoneIcon').textContent='📦';
+  $3('p3ZoneIcon').innerHTML=ICON_CLIPBOARD;
   $3('p3ZoneTitle').textContent='Drop your Stock Report here';
   $3('p3ZoneSub').innerHTML='Drag & drop or <span class="hl3">click to browse</span> · Supports .xls and .xlsx';
   if (typeof p3ExitCountModeIfActive === 'function') p3ExitCountModeIfActive();
@@ -2221,7 +2306,7 @@ function p3ProcessFile(){
     $3('p3ErrBox').textContent = '⚠ Please enter the Outlet Name before generating the audit sheet.';
     p3On($3('p3ErrBox'));
     $3('p3OutletName').focus();
-    $3('p3OutletName').style.borderColor = '#ef4444';
+    $3('p3OutletName').style.borderColor = '#E15C5C';
     setTimeout(()=>{ if($3('p3OutletName')) $3('p3OutletName').style.borderColor='var(--border)'; }, 2000);
     return;
   }
@@ -2937,7 +3022,7 @@ function p3RestoreCheckboxState() {
 }
 
 // Show a brief inline toast message near the download button
-function p3Toast(msg, color='#f59e0b') {
+function p3Toast(msg, color='#D6923B') {
   let t = document.getElementById('p3Toast');
   if (!t) {
     t = document.createElement('div');
@@ -2946,7 +3031,7 @@ function p3Toast(msg, color='#f59e0b') {
     const actionsRow = document.getElementById('p3BtnDl').parentElement;
     actionsRow.after(t);
   }
-  t.style.background = color === '#f59e0b' ? 'rgba(245,158,11,.12)' : 'rgba(239,68,68,.12)';
+  t.style.background = color === '#D6923B' ? 'rgba(214,146,59,.12)' : 'rgba(225,92,92,.12)';
   t.style.border = `1px solid ${color}44`;
   t.style.color = color;
   t.style.opacity = '1';
@@ -3039,7 +3124,7 @@ async function p3ConfirmDownload() {
   // Re-build excel with filtered rows
   const filtered = p3FilterRows(p3AuditRows);
   if (!filtered.length) {
-    p3Toast('⚠ No rows to download — all items are unticked. Please tick at least some items.', '#ef4444');
+    p3Toast('⚠ No rows to download — all items are unticked. Please tick at least some items.', '#E15C5C');
     return;
   }
   // Show loader briefly
@@ -3208,7 +3293,7 @@ function p3UpdateAccuracyRing(frac){
   if(!arc||!pct) return;
   const circumference=138.2, pctVal=Math.round(frac*100);
   arc.setAttribute('stroke-dashoffset', String(circumference-(frac*circumference)));
-  arc.setAttribute('stroke', pctVal>=95?'#10b981':pctVal>=80?'#f59e0b':'#ef4444');
+  arc.setAttribute('stroke', pctVal>=95?'#3FB874':pctVal>=80?'#D6923B':'#E15C5C');
   pct.textContent=pctVal+'%';
 }
 
@@ -3464,16 +3549,16 @@ async function p3HandleRatePdf(file) {
     let rebuildNote = '';
     if (p3AuditRows.length) {
       await p3RebuildExcel();
-      rebuildNote = '<br><span style="color:#10b981;font-size:11px;">✓ Your already-generated Excel was refreshed with these rates — just re-download it.</span>';
+      rebuildNote = '<br><span style="color:#3FB874;font-size:11px;">✓ Your already-generated Excel was refreshed with these rates — just re-download it.</span>';
     }
 
     loadEl.style.display = 'none';
     statusEl.style.display = 'block';
-    statusEl.innerHTML = `<span style="color:#10b981;font-weight:700;">\u2713 Rates loaded from PDF</span> \u2014 <strong>${window.p3RateMap.size}</strong> products found.<br>
+    statusEl.innerHTML = `<span style="color:#3FB874;font-weight:700;">\u2713 Rates loaded from PDF</span> \u2014 <strong>${window.p3RateMap.size}</strong> products found.<br>
       <span style="color:var(--muted);font-size:11px;">These will auto-fill Billing &amp; Selling Price columns in the Excel when you download.</span>${rebuildNote}<br><br>
       <details style="margin-top:6px;"><summary style="cursor:pointer;color:var(--t3);font-size:11px;">\u25b6 Preview loaded rates</summary>
       <div style="margin-top:6px;max-height:200px;overflow-y:auto;">
-        ${entries.slice(0,40).map(e=>`<div style="padding:3px 0;border-bottom:1px solid var(--border);font-size:11px;display:flex;justify-content:space-between;gap:8px;"><span style="color:var(--text);flex:1">${e.name}</span><span style="color:#ef4444;white-space:nowrap">\u20b9${e.billing}</span><span style="color:#10b981;white-space:nowrap">\u20b9${e.selling}</span></div>`).join('')}
+        ${entries.slice(0,40).map(e=>`<div style="padding:3px 0;border-bottom:1px solid var(--border);font-size:11px;display:flex;justify-content:space-between;gap:8px;"><span style="color:var(--text);flex:1">${e.name}</span><span style="color:#E15C5C;white-space:nowrap">\u20b9${e.billing}</span><span style="color:#3FB874;white-space:nowrap">\u20b9${e.selling}</span></div>`).join('')}
         ${entries.length>40?`<div style="color:var(--muted);font-size:10px;padding-top:4px;">...and ${entries.length-40} more</div>`:''}
         <div style="font-size:10px;color:var(--muted);margin-top:6px;">Red = Billing Price &nbsp; Green = Selling Price (Retail As Per Outlet)</div>
       </div></details>`;
@@ -3485,7 +3570,7 @@ async function p3HandleRatePdf(file) {
   } catch(err) {
     loadEl.style.display = 'none';
     statusEl.style.display = 'block';
-    statusEl.innerHTML = `<span style="color:#ef4444;">\u2717 Error: ${err.message}</span><br><span style="color:var(--muted);font-size:11px;">Prices will remain blank (ivory cells) in the Excel \u2014 fill manually.</span>`;
+    statusEl.innerHTML = `<span style="color:#E15C5C;">\u2717 Error: ${err.message}</span><br><span style="color:var(--muted);font-size:11px;">Prices will remain blank (ivory cells) in the Excel \u2014 fill manually.</span>`;
     console.error('PDF parse error:', err);
   }
 }
@@ -3697,19 +3782,20 @@ function addOwnerTab() {
   const btn = document.createElement('button');
   btn.className = 'tab'; btn.dataset.tab = '4';
   btn.setAttribute('onclick', 'switchTab(4)');
-  btn.innerHTML = `<span class="tab-dot"></span><span class="tab-emoji">🔒</span><span class="tab-label">Owner Dashboard</span>`;
+  btn.innerHTML = `<span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><path d="M12 2.5l7.5 3.4v5.4c0 4.8-3.2 8-7.5 9.6-4.3-1.6-7.5-4.8-7.5-9.6V5.9L12 2.5z"/></svg></span><span class="tab-label">Owner Dashboard</span>`;
   bar.appendChild(btn);
 }
 document.getElementById('ownerRefreshBtn')?.addEventListener('click', loadOwnerDashboard);
 
 // ---- Owner dashboard: live-updating usage + approval data ----
-let ownerUsersUnsub = null, ownerActUnsub = null, ownerPackUnsub = null;
+let ownerUsersUnsub = null, ownerActUnsub = null, ownerPackUnsub = null, ownerP1PackUnsub = null;
 let ownerLatestUsers = null, ownerLatestActs = null;
 
 function stopOwnerDashboard() {
   if (ownerUsersUnsub) { ownerUsersUnsub(); ownerUsersUnsub = null; }
   if (ownerActUnsub) { ownerActUnsub(); ownerActUnsub = null; }
   if (ownerPackUnsub) { ownerPackUnsub(); ownerPackUnsub = null; }
+  if (ownerP1PackUnsub) { ownerP1PackUnsub(); ownerP1PackUnsub = null; }
   ownerLatestUsers = null; ownerLatestActs = null;
 }
 
@@ -3718,9 +3804,10 @@ function loadOwnerDashboard() {
   const pendWrap = document.getElementById('ownerPendingWrap');
   const wrap = document.getElementById('ownerDashWrap');
   const packWrap = document.getElementById('ownerPackWrap');
+  const p1PackWrap = document.getElementById('ownerP1PackWrap');
   if (!wrap) return;
   const loadingMsg = '<p style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:12px;">Loading…</p>';
-  pendWrap.innerHTML = loadingMsg; wrap.innerHTML = loadingMsg; if(packWrap) packWrap.innerHTML = loadingMsg;
+  pendWrap.innerHTML = loadingMsg; wrap.innerHTML = loadingMsg; if(packWrap) packWrap.innerHTML = loadingMsg; if(p1PackWrap) p1PackWrap.innerHTML = loadingMsg;
 
   ownerPackUnsub = db.collection('pack_overrides').limit(1000)
     .onSnapshot(snap => {
@@ -3728,7 +3815,16 @@ function loadOwnerDashboard() {
       renderOwnerPackSizes(items);
     }, err => {
       console.error('pack_overrides listener failed:', err);
-      if(packWrap) packWrap.innerHTML = `<p style="color:#ef4444;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load product pack sizes: ${escHtml(err.message)}</p>`;
+      if(packWrap) packWrap.innerHTML = `<p style="color:#E15C5C;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load product pack sizes: ${escHtml(err.message)}</p>`;
+    });
+
+  ownerP1PackUnsub = db.collection('p1_pack_overrides').limit(1000)
+    .onSnapshot(snap => {
+      const items = snap.docs.filter(d=>d.id!=='_meta').map(d => ({ key: d.id, ...d.data() }));
+      renderOwnerP1PackSizes(items);
+    }, err => {
+      console.error('p1_pack_overrides listener failed:', err);
+      if(p1PackWrap) p1PackWrap.innerHTML = `<p style="color:#E15C5C;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load Kernel Report pack sizes: ${escHtml(err.message)}</p>`;
     });
 
   ownerUsersUnsub = db.collection('users').orderBy('lastLogin', 'desc').limit(200)
@@ -3737,7 +3833,7 @@ function loadOwnerDashboard() {
       renderOwnerDashboard();
     }, err => {
       console.error('users listener failed:', err);
-      wrap.innerHTML = `<p style="color:#ef4444;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load users: ${escHtml(err.message)}</p>`;
+      wrap.innerHTML = `<p style="color:#E15C5C;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load users: ${escHtml(err.message)}</p>`;
     });
 
   ownerActUnsub = db.collection('activity').orderBy('ts', 'desc').limit(150)
@@ -3764,30 +3860,70 @@ async function setUserStatus(uid, newStatus) {
 function renderOwnerPackSizes(items) {
   const wrap = document.getElementById('ownerPackWrap');
   if (!wrap) return;
+
+  const addForm = `
+    <div class="setup-card" style="margin-bottom:16px;max-width:560px">
+      <div class="setup-card-hdr"><div class="setup-num" style="background:#3FB874">+</div><h3>Add New Package</h3></div>
+      <p style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:12px">Type the Package Name exactly as it appears in the Stock Report's "Package Name" column (capitalization and spacing don't matter, but the words and numbers must match).</p>
+      <label class="pc-label">Package Name</label>
+      <input type="text" id="packNewName" class="pc-input" placeholder="e.g. Bolas Pepper Cashews 25g Pack Of 10">
+      <label class="pc-label" style="margin-top:12px">Divide By (grams)</label>
+      <input type="number" min="1" id="packNewGrams" class="pc-input" placeholder="e.g. 250">
+      <button id="packAddBtn" style="margin-top:12px;background:#3FB874;border:none;color:#fff;border-radius:8px;padding:10px 18px;font-family:'Manrope',sans-serif;font-weight:700;font-size:12px;cursor:pointer">+ Add Package</button>
+      <div id="packAddMsg" style="margin-top:8px;font-family:'DM Mono',monospace;font-size:11.5px"></div>
+    </div>`;
+
   if (!items.length) {
-    wrap.innerHTML = `<div class="results-title">📦 Product Pack Sizes</div><div class="table-wrap" style="padding:16px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No products processed yet — they'll appear here the first time anyone runs a Stock Audit.</div>`;
+    wrap.innerHTML = `<div class="results-title">Product Pack Sizes</div>${addForm}<div class="table-wrap" style="padding:16px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No products processed yet — they'll appear here the first time anyone runs a Stock Audit, or add one directly above.</div>`;
+    document.getElementById('packAddBtn').addEventListener('click', addManualPackOverride);
     return;
   }
   // Unconfirmed products first, since those are the ones that actually need a look
   items.sort((a,b) => (a.assigned===b.assigned) ? String(a.packageName||'').localeCompare(String(b.packageName||'')) : (a.assigned?1:-1));
   const newCount = items.filter(i=>!i.assigned).length;
-  let h = `<div class="results-title">📦 Product Pack Sizes${newCount?` <span style="color:#f59e0b">(${newCount} new)</span>`:''}</div>`;
+  let h = `<div class="results-title">Product Pack Sizes${newCount?` <span style="color:#D6923B">(${newCount} new)</span>`:''}</div>`;
+  h += addForm;
   h += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Package Name</th><th>Auto-Detected</th><th>Divide By (g)</th><th>Status</th><th>Save</th></tr></thead><tbody>`;
   items.forEach(item => {
     const autoTxt = item.autoDetectedGrams!=null ? item.autoDetectedGrams+' g' : (item.packType==='unknown' ? '? unknown' : '—');
     const pill = item.assigned
-      ? `<span class="remark-pill" style="background:#E8F5E9;color:#1E8449">✅ Confirmed</span>`
+      ? `<span class="remark-pill" style="background:#E8F5E9;color:#1E8449">✓ Confirmed</span>`
       : `<span class="remark-pill" style="background:#FDECEA;color:#C0392B">🆕 New</span>`;
     h += `<tr><td style="text-align:left">${escHtml(item.packageName||item.key)}</td><td>${escHtml(autoTxt)}</td>`
        + `<td><input type="number" min="1" class="packDivideInput" data-key="${escHtml(item.key)}" value="${item.divideByGrams!=null?item.divideByGrams:''}" style="width:80px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px;font-family:'DM Mono',monospace;color:var(--text)"></td>`
        + `<td>${pill}</td>`
-       + `<td><button class="packSaveBtn" data-key="${escHtml(item.key)}" style="background:var(--t3);border:none;color:#1a1a2e;border-radius:6px;padding:5px 12px;font-family:'Syne',sans-serif;font-weight:700;font-size:11px;cursor:pointer">Save</button></td></tr>`;
+       + `<td><button class="packSaveBtn" data-key="${escHtml(item.key)}" style="background:var(--t3);border:none;color:#1a1a2e;border-radius:6px;padding:5px 12px;font-family:'Manrope',sans-serif;font-weight:700;font-size:11px;cursor:pointer">Save</button></td></tr>`;
   });
   h += `</tbody></table></div></div>`;
   wrap.innerHTML = h;
   wrap.querySelectorAll('.packSaveBtn').forEach(btn => {
     btn.addEventListener('click', () => savePackOverride(btn.dataset.key));
   });
+  document.getElementById('packAddBtn').addEventListener('click', addManualPackOverride);
+}
+
+async function addManualPackOverride() {
+  const nameEl = document.getElementById('packNewName');
+  const gramsEl = document.getElementById('packNewGrams');
+  const msg = document.getElementById('packAddMsg');
+  const name = (nameEl.value||'').trim();
+  const grams = parseFloat(gramsEl.value);
+  if (!name) { msg.style.color='#E15C5C'; msg.textContent='Enter the package name first.'; return; }
+  if (!grams || grams <= 0) { msg.style.color='#E15C5C'; msg.textContent='Enter a valid weight in grams.'; return; }
+  const key = p3PackKey(name);
+  msg.style.color='var(--muted)'; msg.textContent='Saving…';
+  try {
+    await db.collection('pack_overrides').doc(key).set({
+      packageName: name, divideByGrams: grams, autoDetectedGrams: null, packType: 'weight', assigned: true,
+      firstSeenAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: currentUser.displayName||currentUser.email
+    }, { merge: true });
+    if (window.p3PackOverrideMap) window.p3PackOverrideMap.set(key, { packageName: name, divideByGrams: grams, autoDetectedGrams: null, assigned: true });
+    msg.style.color='#3FB874'; msg.textContent='✓ Added — it will apply the next time this product appears in a Stock Audit.';
+    nameEl.value=''; gramsEl.value='';
+  } catch(e) {
+    msg.style.color='#E15C5C'; msg.textContent="Couldn't save: " + e.message;
+  }
 }
 
 async function savePackOverride(key) {
@@ -3803,6 +3939,101 @@ async function savePackOverride(key) {
     if (window.p3PackOverrideMap && window.p3PackOverrideMap.has(key)) {
       const existing = window.p3PackOverrideMap.get(key);
       window.p3PackOverrideMap.set(key, { ...existing, divideByGrams: grams, assigned: true });
+    }
+  } catch(e) {
+    alert("Couldn't save: " + e.message);
+  }
+}
+
+// ── Kernel Report (Panel 1) pack sizes — separate system, same idea ──
+function renderOwnerP1PackSizes(items) {
+  const wrap = document.getElementById('ownerP1PackWrap');
+  if (!wrap) return;
+
+  const addForm = `
+    <div class="setup-card" style="margin-bottom:16px;max-width:620px">
+      <div class="setup-card-hdr"><div class="setup-num" style="background:#3FB874">+</div><h3>Add New Package (Kernel Report)</h3></div>
+      <p style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:12px">Type the product name exactly as it appears in the Kernel Report's "Group Name" column.</p>
+      <label class="pc-label">Package Name</label>
+      <input type="text" id="p1PackNewName" class="pc-input" placeholder="e.g. Salted Cashew 25g Pack Of 10">
+      <div style="display:flex;gap:12px;margin-top:12px">
+        <div style="flex:1"><label class="pc-label">Carton/Total Weight (g)</label><input type="number" min="1" id="p1PackNewGrams" class="pc-input" placeholder="e.g. 250"></div>
+        <div style="flex:1"><label class="pc-label">Packs Per Carton</label><input type="number" min="1" id="p1PackNewQty" class="pc-input" placeholder="e.g. 10 (leave as 1 if not a carton)" value="1"></div>
+      </div>
+      <button id="p1PackAddBtn" style="margin-top:12px;background:#3FB874;border:none;color:#fff;border-radius:8px;padding:10px 18px;font-family:'Manrope',sans-serif;font-weight:700;font-size:12px;cursor:pointer">+ Add Package</button>
+      <div id="p1PackAddMsg" style="margin-top:8px;font-family:'DM Mono',monospace;font-size:11.5px"></div>
+    </div>`;
+
+  if (!items.length) {
+    wrap.innerHTML = `<div class="results-title">Kernel Report Pack Sizes</div>${addForm}<div class="table-wrap" style="padding:16px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No products processed yet — they'll appear here the first time anyone runs the Kernel Report, or add one directly above.</div>`;
+    document.getElementById('p1PackAddBtn').addEventListener('click', addManualP1PackOverride);
+    return;
+  }
+  items.sort((a,b) => (a.assigned===b.assigned) ? String(a.packageName||'').localeCompare(String(b.packageName||'')) : (a.assigned?1:-1));
+  const newCount = items.filter(i=>!i.assigned).length;
+  let h = `<div class="results-title">Kernel Report Pack Sizes${newCount?` <span style="color:#D6923B">(${newCount} new)</span>`:''}</div>`;
+  h += addForm;
+  h += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Package Name</th><th>Auto-Detected</th><th>Carton (g)</th><th>Packs/Carton</th><th>Status</th><th>Save</th></tr></thead><tbody>`;
+  items.forEach(item => {
+    const autoTxt = item.autoDetected!=null ? item.autoDetected+' g' : (item.packType==='unknown' ? '? unknown' : '—');
+    const pill = item.assigned
+      ? `<span class="remark-pill" style="background:#E8F5E9;color:#1E8449">✓ Confirmed</span>`
+      : `<span class="remark-pill" style="background:#FDECEA;color:#C0392B">🆕 New</span>`;
+    h += `<tr><td style="text-align:left">${escHtml(item.packageName||item.key)}</td><td>${escHtml(autoTxt)}</td>`
+       + `<td><input type="number" min="1" class="p1PackGramsInput" data-key="${escHtml(item.key)}" value="${item.cartonGrams!=null?item.cartonGrams:''}" style="width:70px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px;font-family:'DM Mono',monospace;color:var(--text)"></td>`
+       + `<td><input type="number" min="1" class="p1PackQtyInput" data-key="${escHtml(item.key)}" value="${item.packQty!=null?item.packQty:1}" style="width:60px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px;font-family:'DM Mono',monospace;color:var(--text)"></td>`
+       + `<td>${pill}</td>`
+       + `<td><button class="p1PackSaveBtn" data-key="${escHtml(item.key)}" style="background:var(--t3);border:none;color:#1a1a2e;border-radius:6px;padding:5px 12px;font-family:'Manrope',sans-serif;font-weight:700;font-size:11px;cursor:pointer">Save</button></td></tr>`;
+  });
+  h += `</tbody></table></div></div>`;
+  wrap.innerHTML = h;
+  wrap.querySelectorAll('.p1PackSaveBtn').forEach(btn => {
+    btn.addEventListener('click', () => saveP1PackOverride(btn.dataset.key));
+  });
+  document.getElementById('p1PackAddBtn').addEventListener('click', addManualP1PackOverride);
+}
+
+async function addManualP1PackOverride() {
+  const nameEl = document.getElementById('p1PackNewName');
+  const gramsEl = document.getElementById('p1PackNewGrams');
+  const qtyEl = document.getElementById('p1PackNewQty');
+  const msg = document.getElementById('p1PackAddMsg');
+  const name = (nameEl.value||'').trim();
+  const grams = parseFloat(gramsEl.value);
+  const qty = parseFloat(qtyEl.value) || 1;
+  if (!name) { msg.style.color='#E15C5C'; msg.textContent='Enter the package name first.'; return; }
+  if (!grams || grams <= 0) { msg.style.color='#E15C5C'; msg.textContent='Enter a valid weight in grams.'; return; }
+  const key = p1PackKey(name);
+  msg.style.color='var(--muted)'; msg.textContent='Saving…';
+  try {
+    await db.collection('p1_pack_overrides').doc(key).set({
+      packageName: name, cartonGrams: grams, packQty: qty, autoDetected: null, packType: qty>1?'carton':'weight', assigned: true,
+      firstSeenAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: currentUser.displayName||currentUser.email
+    }, { merge: true });
+    if (window.p1PackOverrideMap) window.p1PackOverrideMap.set(key, { packageName: name, cartonGrams: grams, packQty: qty, assigned: true });
+    msg.style.color='#3FB874'; msg.textContent='✓ Added — it will apply the next time this product appears in the Kernel Report.';
+    nameEl.value=''; gramsEl.value=''; qtyEl.value='1';
+  } catch(e) {
+    msg.style.color='#E15C5C'; msg.textContent="Couldn't save: " + e.message;
+  }
+}
+
+async function saveP1PackOverride(key) {
+  const gramsInput = document.querySelector(`.p1PackGramsInput[data-key="${CSS.escape(key)}"]`);
+  const qtyInput = document.querySelector(`.p1PackQtyInput[data-key="${CSS.escape(key)}"]`);
+  if (!gramsInput || !qtyInput) return;
+  const grams = parseFloat(gramsInput.value);
+  const qty = parseFloat(qtyInput.value) || 1;
+  if (!grams || grams <= 0) { alert('Enter a valid weight in grams first.'); return; }
+  try {
+    await db.collection('p1_pack_overrides').doc(key).set({
+      cartonGrams: grams, packQty: qty, assigned: true,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: currentUser.displayName||currentUser.email
+    }, { merge: true });
+    if (window.p1PackOverrideMap && window.p1PackOverrideMap.has(key)) {
+      const existing = window.p1PackOverrideMap.get(key);
+      window.p1PackOverrideMap.set(key, { ...existing, cartonGrams: grams, packQty: qty, assigned: true });
     }
   } catch(e) {
     alert("Couldn't save: " + e.message);
@@ -3916,7 +4147,7 @@ async function loadDashboardPanel() {
   const wrap = document.getElementById('dashRecentWrap');
   if (!wrap) return;
   const rows = await myRecentActivity(5);
-  if (rows === null) { wrap.innerHTML = `<p style="color:#ef4444;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load recent activity.</p>`; return; }
+  if (rows === null) { wrap.innerHTML = `<p style="color:#E15C5C;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load recent activity.</p>`; return; }
   if (!rows.length) { wrap.innerHTML = `<p style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">Nothing yet — once you use a tool, it'll show up here.</p>`; return; }
   wrap.innerHTML = activityTableHtml(rows);
 }
@@ -3927,7 +4158,7 @@ async function loadHistoryPanel() {
   if (!wrap) return;
   wrap.innerHTML = '<p style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:12px;">Loading…</p>';
   const rows = await myRecentActivity(150);
-  if (rows === null) { wrap.innerHTML = `<p style="color:#ef4444;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load your history.</p>`; return; }
+  if (rows === null) { wrap.innerHTML = `<p style="color:#E15C5C;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load your history.</p>`; return; }
   if (!rows.length) { wrap.innerHTML = `<p style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No activity logged yet.</p>`; return; }
   wrap.innerHTML = activityTableHtml(rows);
 }
@@ -4136,10 +4367,10 @@ async function downloadAllReports(){
     document.body.appendChild(a); a.click();
     setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 1000);
     if (typeof logActivity==='function') logActivity('download_file', 5, 'All Reports (4 sheets)');
-    if(msg){ msg.style.color='#10b981'; msg.textContent=`✓ Downloaded — ${audits.length} audits, ${rates.length} rates, ${pettyCash.length} petty cash reports, ${cleanliness.length} cleanliness reports.`; }
+    if(msg){ msg.style.color='#3FB874'; msg.textContent=`✓ Downloaded — ${audits.length} audits, ${rates.length} rates, ${pettyCash.length} petty cash reports, ${cleanliness.length} cleanliness reports.`; }
   }catch(e){
     console.error('downloadAllReports failed:', e);
-    if(msg){ msg.style.color='#ef4444'; msg.textContent="Couldn't build the file: "+e.message; }
+    if(msg){ msg.style.color='#E15C5C'; msg.textContent="Couldn't build the file: "+e.message; }
   }finally{
     if(btn){ btn.disabled=false; btn.textContent='⬇ Download All Reports'; }
   }
@@ -4218,7 +4449,7 @@ async function loadOutletsPanel() {
     wrap.innerHTML = h;
   } catch (e) {
     console.error('loadOutletsPanel failed:', e);
-    wrap.innerHTML = `<p style="color:#ef4444;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load outlets: ${escHtml(e.message)}</p>`;
+    wrap.innerHTML = `<p style="color:#E15C5C;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load outlets: ${escHtml(e.message)}</p>`;
   }
 }
 async function addOutlet() {
@@ -4295,10 +4526,10 @@ async function loadAuditHistoryPanel() {
       html += `<div class="results-title">⚠️ Needs Attention</div>`;
       html += `<div class="table-wrap" style="margin-bottom:26px"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th style="text-align:left">Issue</th></tr></thead><tbody>`;
       stale.forEach(o => {
-        html += `<tr><td style="text-align:left">${escHtml(o.name)}</td><td style="text-align:left;color:#f59e0b">${o.daysSince === null ? 'Never audited yet' : `Not audited in ${o.daysSince} days`}</td></tr>`;
+        html += `<tr><td style="text-align:left">${escHtml(o.name)}</td><td style="text-align:left;color:#D6923B">${o.daysSince === null ? 'Never audited yet' : `Not audited in ${o.daysSince} days`}</td></tr>`;
       });
       repeats.forEach(o => {
-        html += `<tr><td style="text-align:left">${escHtml(o.name)}</td><td style="text-align:left;color:#ef4444">${o.count} item(s) short/excess two visits running</td></tr>`;
+        html += `<tr><td style="text-align:left">${escHtml(o.name)}</td><td style="text-align:left;color:#E15C5C">${o.count} item(s) short/excess two visits running</td></tr>`;
       });
       html += `</tbody></table></div></div>`;
     }
@@ -4311,13 +4542,13 @@ async function loadAuditHistoryPanel() {
     html += `<div class="results-title">All Audits</div>`;
     html += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th>Total</th><th>Matched</th><th>Short</th><th>Excess</th><th style="text-align:left">Verified By</th><th style="text-align:left">Generated By</th><th>When</th></tr></thead><tbody>`;
     audits.forEach(a => {
-      html += `<tr><td style="text-align:left">${escHtml(a.outletName || '—')}</td><td>${a.total ?? '—'}</td><td style="color:#10b981;font-weight:700">${a.matched ?? '—'}</td><td style="color:#ef4444;font-weight:700">${a.short ?? '—'}</td><td style="color:#f59e0b;font-weight:700">${a.excess ?? '—'}</td><td style="text-align:left">${escHtml(a.verifiedBy || '—')}</td><td style="text-align:left">${escHtml(a.generatedByName || '—')}</td><td>${fmtTs(a.ts)}</td></tr>`;
+      html += `<tr><td style="text-align:left">${escHtml(a.outletName || '—')}</td><td>${a.total ?? '—'}</td><td style="color:#3FB874;font-weight:700">${a.matched ?? '—'}</td><td style="color:#E15C5C;font-weight:700">${a.short ?? '—'}</td><td style="color:#D6923B;font-weight:700">${a.excess ?? '—'}</td><td style="text-align:left">${escHtml(a.verifiedBy || '—')}</td><td style="text-align:left">${escHtml(a.generatedByName || '—')}</td><td>${fmtTs(a.ts)}</td></tr>`;
     });
     html += `</tbody></table></div></div>`;
     wrap.innerHTML = html;
   } catch (e) {
     console.error('loadAuditHistoryPanel failed:', e);
-    wrap.innerHTML = `<p style="color:#ef4444;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load audit history: ${escHtml(e.message)}</p>`;
+    wrap.innerHTML = `<p style="color:#E15C5C;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load audit history: ${escHtml(e.message)}</p>`;
   }
 }
 function saveAuditRecord(stats, shortItems, excessItems) {
@@ -4539,8 +4770,8 @@ function pcRecalc(){
 async function pcSaveAudit(){
   const outlet = document.getElementById('pcOutletName').value.trim();
   const msg = document.getElementById('pcSaveMsg');
-  if(!outlet){ msg.style.color='#ef4444'; msg.textContent='Enter an outlet name first.'; return; }
-  if(!currentUser){ msg.style.color='#ef4444'; msg.textContent='Not signed in.'; return; }
+  if(!outlet){ msg.style.color='#E15C5C'; msg.textContent='Enter an outlet name first.'; return; }
+  if(!currentUser){ msg.style.color='#E15C5C'; msg.textContent='Not signed in.'; return; }
   const calc = pcRecalc();
   const dateVal = document.getElementById('pcDate').value || new Date().toISOString().slice(0,10);
   msg.style.color='var(--muted)'; msg.textContent='Saving…';
@@ -4556,13 +4787,13 @@ async function pcSaveAudit(){
   };
   try{
     await db.collection('petty_cash_audits').add(payload);
-    msg.style.color='#10b981'; msg.textContent='✓ Saved.';
+    msg.style.color='#3FB874'; msg.textContent='✓ Saved.';
     if (typeof logActivity === 'function') logActivity('petty_cash_audit', 11, outlet);
     pcLoadHistory();
   }catch(e){
     console.warn('pcSaveAudit failed, queued to retry once back online:', e);
     p3PendingWrites.push(() => db.collection('petty_cash_audits').add(payload));
-    msg.style.color='#f59e0b'; msg.textContent="⏳ Couldn't reach the server — saved locally, will sync once you're back online. Keep this tab open.";
+    msg.style.color='#D6923B'; msg.textContent="⏳ Couldn't reach the server — saved locally, will sync once you're back online. Keep this tab open.";
   }
   // Excel generation is entirely client-side, so it always runs regardless of
   // whether the cloud save above succeeded or got queued for later.
@@ -4578,14 +4809,14 @@ async function pcLoadHistory(){
     if(!rows.length){ wrap.innerHTML = `<div class="table-wrap" style="padding:18px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No petty cash audits saved yet.</div>`; return; }
     let h = `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th>Date</th><th>Closing Balance</th><th>Denom Total</th><th>Diff</th><th style="text-align:left">Verified By</th><th>When</th></tr></thead><tbody>`;
     rows.forEach(a=>{
-      const diffColor = Math.abs(a.difference||0)<0.01 ? 'var(--text)' : (a.difference<0 ? '#ef4444' : '#10b981');
+      const diffColor = Math.abs(a.difference||0)<0.01 ? 'var(--text)' : (a.difference<0 ? '#E15C5C' : '#3FB874');
       h += `<tr><td style="text-align:left">${escHtml(a.outletName||'—')}</td><td>${escHtml(a.date||'—')}</td><td>₹${(a.closingBalance||0).toFixed(2)}</td><td>₹${(a.denomTotal||0).toFixed(2)}</td><td style="color:${diffColor};font-weight:700">₹${(a.difference||0).toFixed(2)}</td><td style="text-align:left">${escHtml(a.verifiedBy||'—')}</td><td>${fmtTs(a.ts)}</td></tr>`;
     });
     h += `</tbody></table></div></div>`;
     wrap.innerHTML = h;
   }catch(e){
     console.error('pcLoadHistory failed:', e);
-    wrap.innerHTML = `<p style="color:#ef4444;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load: ${escHtml(e.message)}</p>`;
+    wrap.innerHTML = `<p style="color:#E15C5C;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load: ${escHtml(e.message)}</p>`;
   }
 }
 
@@ -4723,9 +4954,9 @@ async function clUploadPhoto(file){
 async function clSaveAudit(){
   const outlet = document.getElementById('clOutletName').value.trim();
   const msg = document.getElementById('clSaveMsg');
-  if(!outlet){ msg.style.color='#ef4444'; msg.textContent='Enter an outlet name first.'; return; }
-  if(!currentUser){ msg.style.color='#ef4444'; msg.textContent='Not signed in.'; return; }
-  if(!Object.keys(clRatings).length){ msg.style.color='#ef4444'; msg.textContent='Rate at least one area first.'; return; }
+  if(!outlet){ msg.style.color='#E15C5C'; msg.textContent='Enter an outlet name first.'; return; }
+  if(!currentUser){ msg.style.color='#E15C5C'; msg.textContent='Not signed in.'; return; }
+  if(!Object.keys(clRatings).length){ msg.style.color='#E15C5C'; msg.textContent='Rate at least one area first.'; return; }
   msg.style.color='var(--muted)'; msg.textContent='Saving…';
   const scoreEl = document.getElementById('clScore').textContent;
   const payload = {
@@ -4737,13 +4968,13 @@ async function clSaveAudit(){
   };
   try{
     await db.collection('cleanliness_audits').add(payload);
-    msg.style.color='#10b981'; msg.textContent='✓ Saved.';
+    msg.style.color='#3FB874'; msg.textContent='✓ Saved.';
     if (typeof logActivity === 'function') logActivity('cleanliness_audit', 12, outlet);
     clLoadHistory();
   }catch(e){
     console.warn('clSaveAudit failed, queued to retry once back online:', e);
     p3PendingWrites.push(() => db.collection('cleanliness_audits').add(payload));
-    msg.style.color='#f59e0b'; msg.textContent="⏳ Couldn't reach the server — will save automatically once you're back online. Keep this tab open.";
+    msg.style.color='#D6923B'; msg.textContent="⏳ Couldn't reach the server — will save automatically once you're back online. Keep this tab open.";
   }
 }
 async function clLoadHistory(){
@@ -4761,7 +4992,7 @@ async function clLoadHistory(){
     wrap.innerHTML = h;
   }catch(e){
     console.error('clLoadHistory failed:', e);
-    wrap.innerHTML = `<p style="color:#ef4444;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load: ${escHtml(e.message)}</p>`;
+    wrap.innerHTML = `<p style="color:#E15C5C;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load: ${escHtml(e.message)}</p>`;
   }
 }
 
@@ -4907,7 +5138,7 @@ function p3CmJumpUnfilled(){
   const el = document.getElementById('cmResult');
   if (el) {
     const prevHTML = el.innerHTML;
-    el.innerHTML = `<span style="color:#10b981;font-family:'DM Mono',monospace;font-size:12px">✓ Every item has a count — nothing left to jump to</span>`;
+    el.innerHTML = `<span style="color:#3FB874;font-family:'DM Mono',monospace;font-size:12px">✓ Every item has a count — nothing left to jump to</span>`;
     setTimeout(() => { if (document.getElementById('cmResult')) p3CmRenderResult(p3AuditRows[p3CmIndex]); }, 1800);
   }
 }
