@@ -5024,11 +5024,16 @@ async function odFileToImageB64(file) {
     const buf = await file.arrayBuffer();
     const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
     const page = await pdf.getPage(1);
-    const vp = page.getViewport({ scale: 2 });
+    const base = page.getViewport({ scale: 1 });
+    const cap = 1800; // longest side, px — keeps a scanned high-DPI page from producing a canvas too big for a phone browser to export
+    const scale = Math.min(2, cap / Math.max(base.width, base.height));
+    const vp = page.getViewport({ scale: Math.max(scale, 0.1) }); // 0.1 is just a sanity floor, not a target — the cap above does the real work
     const canvas = document.createElement('canvas');
-    canvas.width = vp.width; canvas.height = vp.height;
+    canvas.width = Math.round(vp.width); canvas.height = Math.round(vp.height);
     await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
-    return { b64: canvas.toDataURL('image/jpeg', 0.9).split(',')[1], isPdf: true };
+    const durl = canvas.toDataURL('image/jpeg', 0.85);
+    if (!durl || durl.length < 100) throw new Error('This PDF page came out blank — try a different file, or upload it as a photo instead.');
+    return { b64: durl.split(',')[1], isPdf: true };
   }
   const b64 = await new Promise((res, rej) => {
     const r = new FileReader();
@@ -5043,7 +5048,10 @@ async function odUploadFile(file) {
   const form = new FormData(); form.append('image', b64);
   const resp = await fetch(`https://api.imgbb.com/1/upload?key=${P3_IMGBB_KEY}`, { method: 'POST', body: form });
   const data = await resp.json();
-  if (!data || !data.success) throw new Error('Upload failed');
+  if (!data || !data.success) {
+    const why = (data && data.error && (data.error.message || data.error)) || (data && data.status_message) || `no response (HTTP ${resp.status})`;
+    throw new Error(`Upload failed — ${why}`);
+  }
   return { url: data.data.url, thumb: (data.data.thumb && data.data.thumb.url) || data.data.url, isPdf };
 }
 
