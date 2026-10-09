@@ -474,7 +474,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
   <div class="auth-card">
     <div class="suite-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4.5C5 6 3.5 9 4 12.5c.5 3.5 3 6 6.5 6.8 3.7.8 7-.8 8.5-4 1.3-2.8.7-5.8-1.5-7.8"/><path d="M15.5 4.5c1 1.5 1.2 3 .5 4.5"/></svg></div>
     <h1>Bolas <span>Stock Suite</span></h1>
-    <p class="auth-sub">Sign in with Google to continue.<br>Sign-ins are logged for the store owner's records.</p>
+    <p class="auth-sub">Sign in with Google to continue.</p>
     <button id="googleSignInBtn" class="google-btn">
       <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.94v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.94A9 9 0 0 0 0 9c0 1.45.35 2.83.94 4.03l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .94 4.97L3.95 7.3C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
       Continue with Google
@@ -3703,6 +3703,8 @@ const fbAuth = firebase.auth();
 const db = firebase.firestore();
 let currentUser = null;
 let isOwner = false;
+let isClusterManager = false;
+let odOutlets = [], odDocs = [], odExpanded = null;
 const PANEL_NAMES = {1:'Kernel Report',2:'Flavoured Report',3:'Stock Audit',4:'Owner Dashboard',5:'Dashboard',6:'History',7:'Settings',8:'Rate Manager',9:'Outlet Manager',10:'Audit History',11:'Petty Cash',12:'Cleanliness',13:'Ready Files',14:'Sales Report',15:'Outlet Documents'};
 
 // ---- Sign-in ----
@@ -4651,6 +4653,8 @@ async function deleteReadyFile(id) {
 
 // ---- Sales Report: Invoice List → day-by-day sales + orders by channel ----
 // index: 0 Walk-in, 1 Swiggy, 2 Zomato, 3 Ownly, 4 Web Orders  ([key, label, header colour, light tint])
+const $14 = id => document.getElementById(id); // must be declared BEFORE the first $14(...) call below
+const p14Sum = a => a.reduce((x, y) => x + y, 0);
 const P14_CH = [['walkin','Walk-in','2E7D6B','E3F3EE'],['swiggy','Swiggy','E8710A','FDEBD9'],['zomato','Zomato','D62839','FBE1E4'],['ownly','Ownly','6F42C1','ECE4F8'],['web','Web Orders','1F6FD1','DEEBFB']];
 let p14File = null, p14Data = null, p14Pick = 'ALL';
 // null = see every outlet (owner / normal user). For a cluster manager this becomes the list of outlet codes assigned to him.
@@ -4864,8 +4868,6 @@ const P14_BUILTIN = {};
   ['108', "Bolas Factory Outlet Vijayapura Jalanagar", 'C'],
   ['109', "SRT Enterprises Dharwad (Saidapur KC Park)", 'F']
 ].forEach(([c, n, t]) => { P14_BUILTIN[c] = { code: c, name: n, type: t === 'F' ? 'franchise' : 'company' }; });
-const $14 = id => document.getElementById(id);
-const p14Sum = a => a.reduce((x, y) => x + y, 0);
 
 function p14Channel(name, mode) {
   const n = String(name || '').toLowerCase();
@@ -5203,8 +5205,7 @@ $14('p14DownloadBtn').addEventListener('click', async () => {
 });
 
 // ---- Outlet Documents: Cluster Manager + Owner only — outlets, licences/agreements, expiry reminders ----
-let isClusterManager = false;
-let odOutlets = [], odDocs = [], odExpanded = null;
+// (isClusterManager / odOutlets / odDocs / odExpanded are declared near the top of this script, next to currentUser)
 
 function addClusterDocsTab() {
   if (document.querySelector('.tab[data-tab="15"]')) return;
