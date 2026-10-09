@@ -1069,8 +1069,23 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 <div class="panel" id="panel14">
   <div class="section-head">
     <span class="dot" style="background:#5B7FE0"></span>
-    <div><h2>Sales Report</h2><p>Upload the Invoice List → day-by-day sales and orders for Walk-in, Swiggy, Zomato, Ownly and Web Orders</p></div>
+    <div><h2>Sales Report</h2><p>Upload the Invoice List → outlet-wise, day-by-day sales and orders for Walk-in, Swiggy, Zomato, Ownly and Web Orders</p></div>
   </div>
+  <details id="p14DirCard" style="display:none;margin-bottom:16px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px">
+    <summary style="cursor:pointer;font-weight:700;font-size:13px">Outlet Directory — add outlets · Franchise / Company-owned <span id="p14DirCount" style="color:var(--muted);font-weight:500;font-family:'DM Mono',monospace;font-size:11px"></span></summary>
+    <div style="margin-top:12px;display:grid;grid-template-columns:90px 1fr;gap:8px">
+      <input id="p14DirCode" inputmode="numeric" placeholder="Code e.g. 109" style="padding:9px 11px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:9px;font-size:13px">
+      <input id="p14DirName" placeholder="Outlet name e.g. Bolas Factory Outlet Bidar" style="padding:9px 11px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:9px;font-size:13px">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center">
+      <select id="p14DirType" style="padding:9px 11px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:9px;font-size:13px"><option value="company">Company-owned</option><option value="franchise">Franchise</option></select>
+      <button class="mini-btn mini-btn-ok" id="p14DirAddBtn">+ Add / Update outlet</button>
+      <button class="mini-btn" id="p14DirImportBtn" style="border:1px solid var(--border);color:var(--text)">Import from sheet</button>
+      <input type="file" id="p14DirFile" accept=".xls,.xlsx,.csv" style="display:none">
+    </div>
+    <div id="p14DirMsg" style="font-size:11.5px;margin-top:8px;font-family:'DM Mono',monospace;min-height:14px"></div>
+    <div id="p14DirList" style="margin-top:10px;max-height:320px;overflow:auto"></div>
+  </details>
   <div class="upload-zone" id="p14UploadZone">
     <div class="upload-icon" id="p14ZoneIcon"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div>
     <h2 id="p14ZoneTitle">Drop your Invoice List here</h2>
@@ -1086,6 +1101,11 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
   <button class="process-btn btn-c1" id="p14ProcessBtn">⚡ Process & Generate Excel</button>
   <div class="results-section" id="p14ResultsSection">
     <div class="results-title">Summary <span class="badge badge-c1" id="p14PeriodBadge">—</span></div>
+    <div id="p14ScopeNote" style="display:none;margin-bottom:10px;font-family:'DM Mono',monospace;font-size:11.5px;color:#8B5CF6"></div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+      <div style="flex:1;min-width:200px;max-width:420px"><label for="p14OutletSel" style="display:block;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px">OUTLET</label><select id="p14OutletSel" style="width:100%;padding:9px 11px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:9px;font-size:13px"></select></div>
+      <div style="min-width:160px"><label for="p14TypeSel" style="display:block;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px">TYPE</label><select id="p14TypeSel" style="width:100%;padding:9px 11px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:9px;font-size:13px"><option value="ALL">All types</option><option value="company">Company-owned</option><option value="franchise">Franchise</option><option value="none">Not set</option></select></div>
+    </div>
     <div id="p14CardsArea" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:11px;margin-bottom:24px"></div>
     <div class="table-wrap"><div class="table-scroll"><table>
       <thead id="p14TableHead"></thead>
@@ -3756,6 +3776,8 @@ fbAuth.onAuthStateChanged(async (user) => {
   userStatusUnsub = db.collection('users').doc(user.uid).onSnapshot(snap => {
     const status = snap.exists ? (snap.data().status || 'pending') : 'pending';
     isClusterManager = !!(snap.exists && snap.data().isClusterManager);
+    { const ao = snap.exists ? snap.data().assignedOutlets : null;
+      p14MyOutlets = (isClusterManager && Array.isArray(ao) && ao.length) ? ao.map(c => String(c).replace(/\D/g, '').padStart(3, '0')) : null; }
     if (status === 'approved') {
       showScreen('app');
       if (isClusterManager) addClusterDocsTab();
@@ -3834,6 +3856,7 @@ switchTab = function(n) {
   if (n === 9) loadOutletsPanel();
   if (n === 10) loadAuditHistoryPanel();
   if (n === 13) loadReadyFilesPanel();
+  if (n === 14) p14LoadDirectory();
   if (n === 15 && (isOwner || isClusterManager)) loadClusterDocsPanel();
   if (n === 11 && typeof pcInit === 'function') pcInit();
   if (n === 12 && typeof clInit === 'function') clInit();
@@ -3948,6 +3971,11 @@ async function setUserStatus(uid, newStatus) {
   } catch (e) {
     alert("Couldn't update this user: " + e.message);
   }
+}
+async function setClusterOutlets(uid, codes) {
+  try {
+    await db.collection('users').doc(uid).update({ assignedOutlets: codes, statusUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(), statusUpdatedBy: currentUser.email });
+  } catch (e) { alert("Couldn't save outlets: " + e.message); }
 }
 async function setClusterManagerFlag(uid, val) {
   try {
@@ -4186,7 +4214,7 @@ function renderOwnerDashboard() {
   html += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Name</th><th style="text-align:left">Email</th><th>Status</th><th>Logins</th><th>Last Seen</th><th>Action</th></tr></thead><tbody>`;
   others.forEach(u => {
     const pill = (u.status === 'approved' ? '<span class="pill pill-approved">Approved</span>' : '<span class="pill pill-blocked">Blocked</span>')
-      + (u.isClusterManager ? ' <span class="pill" style="background:rgba(139,92,246,.15);color:#8B5CF6">Cluster Mgr</span>' : '');
+      + (u.isClusterManager ? ' <span class="pill" style="background:rgba(139,92,246,.15);color:#8B5CF6">Cluster Mgr · ' + (Array.isArray(u.assignedOutlets) && u.assignedOutlets.length ? (u.assignedOutlets.length > 4 ? u.assignedOutlets.length + ' outlets' : u.assignedOutlets.join(', ')) : 'all outlets') + '</span>' : '');
     const cmBtn = u.status === 'approved'
       ? (u.isClusterManager
           ? `<button class="mini-btn cm-toggle" style="border:1px solid #8B5CF6;color:#8B5CF6" data-uid="${u.uid}" data-cmact="0">− Cluster Mgr</button>`
@@ -4195,7 +4223,7 @@ function renderOwnerDashboard() {
     const actionBtn = u.status === 'approved'
       ? `<button class="mini-btn mini-btn-no" data-act="blocked" data-uid="${u.uid}">Revoke</button>`
       : `<button class="mini-btn mini-btn-ok" data-act="approved" data-uid="${u.uid}">Restore</button>`;
-    html += `<tr><td style="text-align:left">${escHtml(u.name || '—')}</td><td style="text-align:left">${escHtml(u.email || '—')}</td><td>${pill}</td><td style="text-align:center">${u.loginCount || 1}</td><td>${fmtTs(u.lastLogin)}</td><td>${actionBtn} ${cmBtn}</td></tr>`;
+    html += `<tr><td style="text-align:left">${escHtml(u.name || '—')}</td><td style="text-align:left">${escHtml(u.email || '—')}</td><td>${pill}</td><td style="text-align:center">${u.loginCount || 1}</td><td>${fmtTs(u.lastLogin)}</td><td>${actionBtn} ${cmBtn} ${u.isClusterManager && u.status === 'approved' ? `<button class="mini-btn cm-outlets" style="border:1px solid #8B5CF6;color:#8B5CF6" data-uid="${u.uid}" data-codes="${(u.assignedOutlets || []).join(',')}">Outlets</button>` : ''}</td></tr>`;
   });
   if (!others.length) html += `<tr><td colspan="6" style="text-align:center;color:var(--muted)">No approved or blocked users yet</td></tr>`;
   html += `</tbody></table></div></div>`;
@@ -4214,6 +4242,12 @@ function renderOwnerDashboard() {
     setUserStatus(b.dataset.uid, b.dataset.act);
   }));
   wrap.querySelectorAll('.cm-toggle').forEach(b => b.addEventListener('click', () => setClusterManagerFlag(b.dataset.uid, b.dataset.cmact === '1')));
+  wrap.querySelectorAll('.cm-outlets').forEach(b => b.addEventListener('click', async () => {
+    if (!p14DirLoaded) await p14LoadDirectory();
+    const list = Object.values({ ...P14_BUILTIN, ...p14Dir }).sort((x, y) => x.code.localeCompare(y.code)).map(o => ({ code: o.code, label: o.code + ' ' + o.name, type: o.type }));
+    const codes = await p14Picker({ title: 'Assign outlets to this Cluster Manager', note: 'Tick the outlets he handles (or type 001-020, 053 …). Leave none ticked = all outlets.', list, selected: (b.dataset.codes || '').split(',').filter(Boolean), okLabel: 'Save', allowEmpty: true });
+    if (codes) setClusterOutlets(b.dataset.uid, codes);
+  }));
 }
 
 function dashCard(label, value, color) {
@@ -4618,7 +4652,218 @@ async function deleteReadyFile(id) {
 // ---- Sales Report: Invoice List → day-by-day sales + orders by channel ----
 // index: 0 Walk-in, 1 Swiggy, 2 Zomato, 3 Ownly, 4 Web Orders  ([key, label, header colour, light tint])
 const P14_CH = [['walkin','Walk-in','2E7D6B','E3F3EE'],['swiggy','Swiggy','E8710A','FDEBD9'],['zomato','Zomato','D62839','FBE1E4'],['ownly','Ownly','6F42C1','ECE4F8'],['web','Web Orders','1F6FD1','DEEBFB']];
-let p14File = null, p14Data = null;
+let p14File = null, p14Data = null, p14Pick = 'ALL';
+// null = see every outlet (owner / normal user). For a cluster manager this becomes the list of outlet codes assigned to him.
+let p14MyOutlets = null;
+// Optional name overrides by outlet code — if an outlet is listed here this name is used instead of the one in the Invoice List.
+let p14Dir = {}, p14DirLoaded = false, p14TypePick = 'ALL';
+const P14_TYPE = { franchise: 'Franchise', company: 'Company-owned' };
+const p14Info = code => p14Dir[code] || P14_BUILTIN[code] || null;
+const p14TypeOf = code => (p14Info(code) || {}).type || '';
+const p14NormType = v => { const t = String(v == null ? '' : v).trim().toLowerCase(); return !t ? '' : /franch/.test(t) ? 'franchise' : 'company'; };
+const p14Code = v => { const d = String(v == null ? '' : v).replace(/\D/g, ''); return d ? d.padStart(3, '0') : ''; };
+function p14DirMsg(t, ok) { const e = $14('p14DirMsg'); e.textContent = t; e.style.color = ok ? '#3FB874' : '#E15C5C'; }
+async function p14LoadDirectory() {
+  $14('p14DirCard').style.display = isOwner ? 'block' : 'none';
+  try {
+    const snap = await db.collection('outlet_directory').get();
+    p14Dir = {};
+    snap.docs.forEach(d => { const x = d.data(), c = p14Code(x.code || d.id); if (c) p14Dir[c] = { code: c, name: x.name || '', type: x.type || '' }; });
+    p14DirLoaded = true;
+  } catch (e) {
+    console.warn('outlet_directory load failed:', e);
+    if (isOwner) p14DirMsg(e.code === 'permission-denied' ? "Firestore rules don't allow the collection “outlet_directory” yet — see the note below." : e.message, false);
+  }
+  p14DirRender();
+  if (p14Data) { p14FillSelect(true); p14Render(); }
+}
+function p14DirRender() {
+  const list = Object.values({ ...P14_BUILTIN, ...p14Dir }).sort((a, b) => a.code.localeCompare(b.code));
+  $14('p14DirCount').textContent = list.length ? `· ${list.length} outlets` : '';
+  const pill = t => t ? `<span class="pill" style="background:${t === 'franchise' ? 'rgba(214,146,59,.15);color:#D6923B' : 'rgba(63,184,116,.15);color:#3FB874'}">${P14_TYPE[t]}</span>` : '<span style="color:var(--muted)">Not set</span>';
+  $14('p14DirList').innerHTML = !list.length ? '<div style="color:var(--muted);font-size:12px">No outlets saved yet — add one above or import your sheet.</div>'
+    : `<table style="width:100%"><thead><tr><th style="text-align:left">Code</th><th style="text-align:left">Outlet</th><th>Type</th><th></th></tr></thead><tbody>${list.map(o => `<tr><td style="text-align:left">${o.code}</td><td style="text-align:left">${escHtml(o.name)}</td><td>${pill(o.type)}</td><td>${p14Dir[o.code] ? `<button class="mini-btn mini-btn-no" data-dirdel="${o.code}">Remove</button>` : '<span style="color:var(--muted);font-size:10px">built-in</span>'}</td></tr>`).join('')}</tbody></table>`;
+}
+async function p14DirSave(entries) {
+  for (let i = 0; i < entries.length; i += 400) {
+    const b = db.batch();
+    entries.slice(i, i + 400).forEach(e => {
+      const doc = { code: e.code, name: e.name, updatedBy: currentUser.email, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+      if (e.type) doc.type = e.type;
+      b.set(db.collection('outlet_directory').doc(e.code), doc, { merge: true });
+    });
+    await b.commit();
+  }
+}
+function p14DirParse(buf) {
+  const wb = XLSX.read(buf, { type: 'array' }), out = {};
+  const put = (code, name, type) => { if (code && name) out[code] = { code, name: name.trim(), type: type || (out[code] && out[code].type) || '' }; };
+  wb.SheetNames.forEach(sn => {
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, defval: '' });
+    const sheetType = /franch/i.test(sn) ? 'franchise' : /bolas|company|own|store/i.test(sn) ? 'company' : '';
+    const split = t => { const m = String(t || '').trim().match(/^(\d{1,4})\s*[-–:.]?\s*(.+)$/); return m ? [p14Code(m[1]), m[2]] : ['', '']; };
+    let h = -1, c = {};
+    for (let i = 0; i < Math.min(rows.length, 15) && h < 0; i++) {
+      const r = rows[i].map(v => String(v).trim().toLowerCase()), f = re => r.findIndex(x => re.test(x));
+      const g = re => r.findIndex(x => !/^\d/.test(x) && re.test(x)); let name = g(/name/); if (name < 0) name = g(/outlet|establishment|store/); if (name < 0) continue;
+      let code = f(/code|\bno\b|number|^id$/); if (code === name) code = -1;
+      h = i; c = { name, code, type: f(/type|ownership|category|model/) };
+    }
+    for (let i = h + 1; i < rows.length; i++) {
+      const r = rows[i];
+      if (h < 0) { const first = r.find(v => String(v).trim()); const [cd, nm] = split(first); const tc = r.filter(v => String(v).trim())[1]; put(cd, nm, tc ? p14NormType(tc) : sheetType); continue; }
+      let code = c.code >= 0 ? p14Code(r[c.code]) : '', name = String(r[c.name] || '').trim();
+      if (!code) { const [cd, nm] = split(name); if (cd) { code = cd; name = nm; } }
+      put(code, name, c.type >= 0 && String(r[c.type]).trim() ? p14NormType(r[c.type]) : sheetType);
+    }
+  });
+  return Object.values(out);
+}
+$14('p14DirAddBtn').addEventListener('click', async () => {
+  const code = p14Code($14('p14DirCode').value), name = $14('p14DirName').value.trim(), type = $14('p14DirType').value;
+  if (!code) return p14DirMsg('Enter the outlet code (e.g. 109).', false);
+  if (!name) return p14DirMsg('Enter the outlet name.', false);
+  try {
+    const existed = !!p14Info(code);
+    await p14DirSave([{ code, name, type }]);
+    $14('p14DirCode').value = ''; $14('p14DirName').value = '';
+    p14DirMsg(`✓ ${existed ? 'Updated' : 'Added'} ${code} ${name} (${P14_TYPE[type]})`, true);
+    logActivity('add_outlet', 14, `${code} ${name} · ${P14_TYPE[type]}`);
+    await p14LoadDirectory();
+  } catch (e) { p14DirMsg("Couldn't save: " + (e.code === 'permission-denied' ? 'permission denied — see the Firestore rules note' : e.message), false); }
+});
+$14('p14DirImportBtn').addEventListener('click', () => $14('p14DirFile').click());
+$14('p14DirFile').addEventListener('change', async () => {
+  const f = $14('p14DirFile').files[0]; $14('p14DirFile').value = ''; if (!f) return;
+  try {
+    const list = p14DirParse(await f.arrayBuffer());
+    if (!list.length) return p14DirMsg('No outlets found. The sheet needs outlet code + name (and a Type column, or separate Franchise / Bolas Stores sheets).', false);
+    await p14DirSave(list);
+    const fr = list.filter(x => x.type === 'franchise').length, co = list.filter(x => x.type === 'company').length;
+    p14DirMsg(`✓ Imported ${list.length} outlets — ${fr} franchise, ${co} company-owned, ${list.length - fr - co} without a type`, true);
+    logActivity('add_outlet', 14, `Imported ${list.length} outlets`);
+    await p14LoadDirectory();
+  } catch (e) { p14DirMsg("Couldn't import: " + (e.code === 'permission-denied' ? 'permission denied — see the Firestore rules note' : e.message), false); }
+});
+$14('p14DirList').addEventListener('click', async e => {
+  const code = e.target.dataset && e.target.dataset.dirdel; if (!code) return;
+  if (!confirm(`Remove outlet ${code} ${p14Dir[code] ? p14Dir[code].name : ''} from the directory?`)) return;
+  try { await db.collection('outlet_directory').doc(code).delete(); await p14LoadDirectory(); }
+  catch (er) { p14DirMsg("Couldn't remove: " + er.message, false); }
+});
+// Built-in outlet list (code, name, C = Company-owned / F = Franchise). Outlets saved in the Outlet Directory (Firestore) override these.
+const P14_BUILTIN = {};
+[
+  ['001', "Kedinje Retail Outlet", 'C'],
+  ['002', "Siri Surathkal", 'F'],
+  ['003', "Pattabhi Store", 'F'],
+  ['004', "Nature Vitamins", 'F'],
+  ['005', "Bolas Factory Outlet Pandeshwar", 'C'],
+  ['006', "Manjunatha Dry Fruits", 'F'],
+  ['007', "Mattikar Traders", 'F'],
+  ['008', "Bolas Swaruchi", 'C'],
+  ['009', "Mithila Traders", 'F'],
+  ['010', "Kaustubha Dry Fruits Garden", 'F'],
+  ['011', "Bolas Factory Outlet Hospete", 'C'],
+  ['012', "Bolas Factory Outlet Kalaburgi", 'C'],
+  ['013', "Prasad Agencies", 'F'],
+  ['014', "Bolas Factory Outlet Bangalore", 'C'],
+  ['015', "MH BAPL Retail Outlet", 'C'],
+  ['016', "Anika Enterprise", 'F'],
+  ['017', "Sri Krishna Sweets", 'F'],
+  ['018', "Bolas Factory Outlet Koppikar Road Hubli", 'C'],
+  ['019', "Bolas The Factory Outlet Mysore", 'C'],
+  ['020', "Mangala Traders", 'F'],
+  ['021', "Suryadeep Ventures Private Limited", 'F'],
+  ['022', "Bolas Factory Outlet Vidyanagar Hubli", 'C'],
+  ['023', "Sridevi Stores", 'F'],
+  ['024', "Bolas Factory Outlet Ballari", 'C'],
+  ['025', "Shri Balaji Enterprises", 'F'],
+  ['026', "Bolas Factory Outlet Saraswathipuram", 'C'],
+  ['027', "Bolas Factory Outlet Metagalli", 'C'],
+  ['028', "Bolas Factory Outlet Vijayanagar", 'C'],
+  ['029', "Bolas The Factory Outlet Mysore(Kalidasa)", 'C'],
+  ['030', "Bolas Factory Outlet Bhatkal", 'C'],
+  ['031', "Geeta Sales Corporation", 'F'],
+  ['032', "Bolas Factory Outlet Mandya", 'C'],
+  ['033', "SRT Enterprises Dharwad", 'F'],
+  ['034', "Mithila Traders (Court Road)", 'F'],
+  ['035', "Bolas Factory Outlet Belthangady", 'C'],
+  ['036', "Bolas Factory Outlet Raichur", 'C'],
+  ['037', "Bolas Factory Outlet Kanakapura", 'C'],
+  ['038', "Bolas Factory Outlet Sullia", 'C'],
+  ['039', "Bolas Factory Outlet Chikmagalur", 'C'],
+  ['040', "Nature Vitamins (yeyyadi)", 'F'],
+  ['041', "Bolas Factory Outlet Rajkumar Road", 'C'],
+  ['042', "Bolas Factory Outlet Baikampady", 'C'],
+  ['043', "Bolas Factory Outlet Chitradurga", 'C'],
+  ['044', "Bolas Factory Outlet Ranebennur", 'C'],
+  ['045', "Bolas Factory Outlet Hassan", 'C'],
+  ['046', "Bolas Factory Outlet Tumkur", 'C'],
+  ['047', "Bolas Factory Outlet Carstreet", 'C'],
+  ['048', "Bolas Factory Outlet Chilimbi", 'C'],
+  ['049', "Bolas Factory Outlet Bangalore TC Palya", 'C'],
+  ['050', "Bolas Factory Outlet Bangalore Sampige Road", 'C'],
+  ['051', "Bolas Factory Outlet Hosur", 'C'],
+  ['052', "Bolas Factory Outlet Vidyaranyapura", 'C'],
+  ['053', "Bolas Factory Outlet Bangalore Vijayanagara", 'C'],
+  ['054', "Bolas Factory Outlet Mathikere", 'C'],
+  ['055', "Bolas Factory Outlet Nelamangala", 'C'],
+  ['056', "Bolas Factory Outlet Basaveshwaranagar", 'C'],
+  ['057', "Bolas Factory Outlet Basavanagudi", 'C'],
+  ['058', "Bolas Factory Outlet Banaswadi", 'C'],
+  ['059', "Bolas Factory Outlet Uttarahalli", 'C'],
+  ['060', "Bolas Factory Outlet Banashakari", 'C'],
+  ['061', "Bolas Factory Outlet Haralur", 'C'],
+  ['062', "Bolas Factory Outlet HSR Layout", 'C'],
+  ['063', "Bolas Factory Outlet Bangalore Jayanagar", 'C'],
+  ['064', "Bolas Factory Outlet RT Nagar", 'C'],
+  ['065', "Bolas Factory Outlet Bangalore Sarjapur", 'C'],
+  ['066', "Bolas Factory Outlet Thippasandra", 'C'],
+  ['067', "Bolas Factory Outlet Wilson Garden", 'C'],
+  ['068', "Bolas Factory Outlet Sirsi", 'C'],
+  ['069', "Bolas Factory Outlet Sagara", 'C'],
+  ['070', "Bolas Factory Outlet Kengeri", 'C'],
+  ['071', "Bolas Factory Outlet BTM Layout Bangalore", 'C'],
+  ['072', "Sridevi Stores (Puttur)", 'F'],
+  ['073', "Bolas Factory Outlet BC Road Mangalore", 'C'],
+  ['074', "Bolas Factory Outlet Gadag", 'C'],
+  ['075', "Bolas Factory Outlet (Valencia Mangalore", 'C'],
+  ['076', "Bolas Factory Outlet (Kankanady Mangalore)", 'C'],
+  ['077', "Bolas Factory Outlet Madikeri", 'C'],
+  ['078', "Bolas Factory Outlet Kushalnagar", 'C'],
+  ['079', "Bolas Factory Outlet Nagarbhavi", 'C'],
+  ['080', "Bolas Factory Outlet Kaup", 'C'],
+  ['081', "Bolas Factory Outlet Tumkur BH Road", 'C'],
+  ['082', "Bolas Factory Outlet (Chikkaballapur)", 'C'],
+  ['083', "Bolas Factory Outlet (Periyapatna)", 'C'],
+  ['084', "Bolas Factory Outlet Bijapur", 'C'],
+  ['085', "Bolas Factory Outlet Mysore Vidyaranyapuram", 'C'],
+  ['086', "Bolas Factory Outlet (Kumta)", 'C'],
+  ['087', "Bolas Factory Outlet Manipal", 'C'],
+  ['088', "Bolas Factory Outlet BEML RR Nagar Bangalore", 'C'],
+  ['089', "Bolas Factory Outlet Moodbidri", 'C'],
+  ['090', "Bolas Factory Outlet Yadgir", 'C'],
+  ['091', "Bolas Factory Outlet Bidar", 'C'],
+  ['092', "Bolas Factory Outlet (Girinagar Bangalore)", 'C'],
+  ['093', "Bolas Factory Outlet Virajpet", 'C'],
+  ['094', "Boals Factory Outlet Kempapura Bangalore", 'C'],
+  ['095', "Bolas Factory Outlet Dr Rajkumar Road Bangalor", 'C'],
+  ['096', "Bolas Factory Outlet (Gokak)", 'C'],
+  ['097', "Bolas Factory Outlet (Chikodi)", 'C'],
+  ['098', "Bolas Factory Outlet (Nipani)", 'C'],
+  ['099', "Suryadeep Ventures Pvt Ltd(College Road)", 'F'],
+  ['100', "Bolas Factory Outlet (Brahmavara)", 'C'],
+  ['101', "Bolas Factory Outlet Bhadravathi", 'C'],
+  ['102', "Boals Factory Outlet (Kalladka)", 'C'],
+  ['103', "Bolas Factory Outlet Bikarnakatte", 'C'],
+  ['104', "Bolas Factory Outlet (Kolar)", 'C'],
+  ['105', "Bolas Factory Outlet (Chamarajanagara)", 'C'],
+  ['106', "Bolas Factory Outlet Ramanagara", 'C'],
+  ['107', "Bolas Factory Outlet (Hiriyur)", 'C'],
+  ['108', "Bolas Factory Outlet Vijayapura Jalanagar", 'C'],
+  ['109', "SRT Enterprises Dharwad (Saidapur KC Park)", 'F']
+].forEach(([c, n, t]) => { P14_BUILTIN[c] = { code: c, name: n, type: t === 'F' ? 'franchise' : 'company' }; });
 const $14 = id => document.getElementById(id);
 const p14Sum = a => a.reduce((x, y) => x + y, 0);
 
@@ -4637,34 +4882,53 @@ function p14ReadRows(buf) {
   ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: mr, c: mc } });
   return XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 }
+// Outlet comes from the "Establishment" column ("001 Kedinje Retail Outlet" → code 001). If that column is missing, the Tax Invoice prefix ("53TI/…") is used.
+function p14Outlet(est, inv, bos) {
+  let code = '', name = '';
+  const m = String(est || '').trim().match(/^(\d{1,4})\s*[-–:.]?\s*(.*)$/);
+  if (m) { code = m[1].padStart(3, '0'); name = (m[2] || '').trim(); }
+  else {
+    const t = String(inv || '').trim().match(/^(\d{1,4})\s*[A-Za-z]{2,4}\s*[\/\-]/) || String(bos || '').trim().match(/^(\d{1,4})\s*[A-Za-z]{2,4}\s*[\/\-]/);
+    if (t) code = t[1].padStart(3, '0');
+    else { code = '000'; name = String(est || '').trim() || 'Unassigned'; }
+  }
+  return { code, name: (P14_BUILTIN[code] && P14_BUILTIN[code].name) || name };
+}
 function p14Parse(rows) {
   const norm = v => String(v == null ? '' : v).trim();
   let h = -1, col = {};
   for (let i = 0; i < Math.min(rows.length, 30) && h < 0; i++) {
     const r = (rows[i] || []).map(v => norm(v).toLowerCase()), f = re => r.findIndex(x => re.test(x));
-    const c = { d: f(/^date/), n: f(/customer/), a: f(/invoice amount|^amount|net amount/), p: f(/payment/) };
+    const c = { d: f(/^date/), n: f(/customer/), a: f(/invoice amount|^amount|net amount/), p: f(/payment/), e: f(/establishment|outlet/), t: f(/tax invoice/), b: f(/bill of supply/) };
     if (c.d >= 0 && c.a >= 0 && c.p >= 0) { h = i; col = c; }
   }
   if (h < 0) throw new Error('Could not find the Date Time, Customer Name, Invoice Amount and Payment Mode columns. Is this the Invoice List file?');
-  const days = {}; let n = 0;
+  const days = {}, outlets = {}; let n = 0, skipped = 0;
   for (let i = h + 1; i < rows.length; i++) {
     const r = rows[i] || [], dv = r[col.d]; let y, m, d;
     if (typeof dv === 'number') { const o = XLSX.SSF.parse_date_code(dv); y = o.y; m = o.m; d = o.d; }
     else { const t = norm(dv).match(/(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/); if (!t) continue; d = +t[1]; m = +t[2]; y = +t[3]; }
     const amt = parseFloat(norm(r[col.a]).replace(/[^0-9.\-]/g, ''));
     if (isNaN(amt)) continue;
+    const ou = p14Outlet(col.e >= 0 ? r[col.e] : '', col.t >= 0 ? r[col.t] : '', col.b >= 0 ? r[col.b] : '');
+    if (p14MyOutlets && !p14MyOutlets.includes(ou.code)) { skipped++; continue; }
+    if (!outlets[ou.code]) outlets[ou.code] = { code: ou.code, name: ou.name };
+    else if (!outlets[ou.code].name && ou.name) outlets[ou.code].name = ou.name;
     const k = p14Channel(col.n >= 0 ? r[col.n] : '', r[col.p]);
     const key = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    const e = days[key] || (days[key] = { s: [0, 0, 0, 0, 0], o: [0, 0, 0, 0, 0] });
+    const od = days[ou.code] || (days[ou.code] = {});
+    const e = od[key] || (od[key] = { s: [0, 0, 0, 0, 0], o: [0, 0, 0, 0, 0] });
     e.s[k] += amt; e.o[k] += 1; n++;
   }
-  if (!n) throw new Error('No invoice rows found in this file.');
-  return { days, n };
+  if (!n) throw new Error(skipped ? 'This file has no invoices for the outlets assigned to you.' : 'No invoice rows found in this file.');
+  const list = Object.values(outlets).sort((x, y) => x.code.localeCompare(y.code));
+  const monthKeys = [...new Set(list.flatMap(o => Object.keys(days[o.code]).map(k => k.slice(0, 7))))].sort();
+  return { days, n, outlets: list, monthKeys };
 }
-function p14Build(days) {
+function p14Build(days, keys) {
   const MON = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const DAY = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  return [...new Set(Object.keys(days).map(k => k.slice(0, 7)))].sort().map(k => {
+  return (keys || [...new Set(Object.keys(days).map(k => k.slice(0, 7)))].sort()).map(k => {
     const [y, m] = k.split('-').map(Number), last = new Date(y, m, 0).getDate(), rows = [];
     for (let d = 1; d <= last; d++) {
       const e = days[`${k}-${String(d).padStart(2, '0')}`] || { s: [0, 0, 0, 0, 0], o: [0, 0, 0, 0, 0] };
@@ -4675,9 +4939,9 @@ function p14Build(days) {
   });
 }
 
-function p14Sheet(wb, name, title, period, labelHead, subHead, rows, totalLabel) {
+function p14Sheet(wb, name, title, period, labelHead, subHead, rows, totalLabel, w1, w2) {
   const ws = wb.addWorksheet(name, { views: [{ state: 'frozen', xSplit: 2, ySplit: 4, showGridLines: false }], pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
-  [12, 9, 13, 13, 13, 13, 13, 16, 2, 10, 10, 10, 10, 10, 13].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  [w1 || 12, w2 || 9, 13, 13, 13, 13, 13, 16, 2, 10, 10, 10, 10, 10, 13].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
   const line = { style: 'thin', color: { argb: 'FFC5CCD8' } }, box = { top: line, left: line, bottom: line, right: line };
   const put = (r, c, v, o = {}) => {
     const x = ws.getCell(r, c); x.value = v;
@@ -4719,25 +4983,152 @@ function p14Sheet(wb, name, title, period, labelHead, subHead, rows, totalLabel)
   put(rT + 2, 1, 'Swiggy / Zomato / Ownly = customer name “Sale Through …”  ·  Web Orders = Online Payment  ·  Walk-in = all other bills (Cash, UPI, Card, Advance, Sodexo, split payments)  ·  Total Sale = sum of all five  ·  Orders = number of invoices', { italic: true, size: 9, color: '6B7280', h: 'left', wrap: true, nobox: true });
   ws.getRow(rT + 2).height = 30;
 }
-function p14BuildExcel(D) {
+// Typed selection: "001-020, 053, Hubli", "001 to All", "All"
+function p14ParseSel(txt, list) {
+  const hit = new Set(), codes = list.map(o => o.code), max = Math.max(...codes.map(Number));
+  String(txt || '').split(/[,;\n]+/).map(t => t.trim()).filter(Boolean).forEach(t => {
+    if (/^all$/i.test(t)) { codes.forEach(c => hit.add(c)); return; }
+    const r = t.match(/^(\d{1,4})\s*(?:-|–|to)\s*(\d{1,4}|all)$/i);
+    if (r) { const a = +r[1], b = /all/i.test(r[2]) ? max : +r[2]; codes.forEach(c => { if (+c >= Math.min(a, b) && +c <= Math.max(a, b)) hit.add(c); }); return; }
+    if (/^\d{1,4}$/.test(t)) { const c = t.padStart(3, '0'); if (codes.includes(c)) hit.add(c); return; }
+    const q = t.toLowerCase(); list.forEach(o => { if (String(o.label).toLowerCase().includes(q)) hit.add(o.code); });
+  });
+  return hit;
+}
+function p14Picker({ title, note, list, selected, okLabel, allowEmpty }) {
+  return new Promise(resolve => {
+    const sel = new Set(selected || []);
+    const IN = 'padding:9px 11px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:9px;font-size:13px';
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:14px';
+    ov.innerHTML = `<div style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:16px;width:100%;max-width:540px;max-height:88vh;display:flex;flex-direction:column;padding:16px;gap:10px">
+      <div style="font-weight:800;font-size:15px">${escHtml(title)}</div>
+      <div style="font-size:11.5px;color:var(--muted)">${escHtml(note || '')}</div>
+      <div style="display:flex;gap:6px"><input id="pkTxt" placeholder="e.g. 001-020, 053, Hubli, 001 to All" style="flex:1;${IN}"><button class="mini-btn mini-btn-ok" id="pkApply">Select</button></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="mini-btn" data-q="all">All</button><button class="mini-btn" data-q="none">None</button><button class="mini-btn" data-q="company">Company-owned</button><button class="mini-btn" data-q="franchise">Franchise</button></div>
+      <div id="pkList" style="overflow:auto;border:1px solid var(--border);border-radius:10px;flex:1;min-height:120px"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span id="pkCount" style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace"></span><span><button class="mini-btn" id="pkCancel">Cancel</button> <button class="mini-btn mini-btn-ok" id="pkOk">${escHtml(okLabel || 'OK')}</button></span></div></div>`;
+    document.body.appendChild(ov);
+    const q = id => ov.querySelector(id), typeOf = o => o.type || p14TypeOf(o.code);
+    const paint = () => {
+      q('#pkList').innerHTML = list.map(o => `<label style="display:flex;gap:8px;align-items:center;padding:7px 10px;border-bottom:1px solid var(--border);font-size:12.5px;cursor:pointer"><input type="checkbox" data-c="${o.code}" ${sel.has(o.code) ? 'checked' : ''}><span>${escHtml(o.label)}</span><span style="margin-left:auto;color:var(--muted);font-size:10.5px">${P14_TYPE[typeOf(o)] || ''}</span></label>`).join('');
+      q('#pkCount').textContent = `${sel.size} of ${list.length} selected`;
+      q('#pkOk').disabled = !allowEmpty && sel.size === 0;
+    };
+    const done = v => { ov.remove(); resolve(v); };
+    q('#pkList').addEventListener('change', e => { const c = e.target.dataset.c; if (!c) return; e.target.checked ? sel.add(c) : sel.delete(c); q('#pkCount').textContent = `${sel.size} of ${list.length} selected`; q('#pkOk').disabled = !allowEmpty && sel.size === 0; });
+    const apply = () => { const h = p14ParseSel(q('#pkTxt').value, list); if (h.size) { sel.clear(); h.forEach(c => sel.add(c)); paint(); } };
+    q('#pkApply').addEventListener('click', apply);
+    q('#pkTxt').addEventListener('keydown', e => { if (e.key === 'Enter') apply(); });
+    ov.querySelectorAll('[data-q]').forEach(b => b.addEventListener('click', () => {
+      const k = b.dataset.q; sel.clear();
+      list.forEach(o => { if (k === 'all' || (k !== 'none' && typeOf(o) === k)) sel.add(o.code); });
+      paint();
+    }));
+    q('#pkCancel').addEventListener('click', () => done(null));
+    ov.addEventListener('click', e => { if (e.target === ov) done(null); });
+    q('#pkOk').addEventListener('click', () => done([...sel].sort()));
+    paint();
+  });
+}
+function p14Relabel() {
+  p14Data.outlets.forEach(o => { const d = p14Info(o.code); if (d && d.name) o.name = d.name; o.label = (o.code + ' ' + o.name).trim(); o.type = p14TypeOf(o.code); });
+}
+const p14Scope = () => p14Data.outlets.filter(o => p14TypePick === 'ALL' || (p14TypePick === 'none' ? !o.type : o.type === p14TypePick));
+// Excel layout: month blocks stacked down the sheet — Sale (Value) on the left, Order (in Numbers) on the right.
+const P14_OFF = [0, 2, 1, 3, 4];   // Offline, Zomato, Swiggy, Ownly, Web order  (internal order is Walk-in, Swiggy, Zomato, Ownly, Web)
+const P14_HEAD = ['Offline', 'Zomato', 'Swiggy', 'Ownly', 'Web order'];
+function p14Blocks(wb, name, blocks, w1) {
+  const ws = wb.addWorksheet(name, { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
+  const FONT = 'Times New Roman', YEL = 'FFFF00', HDR = 'D9E1F2', BLUE = '8EA9DB', thin = { style: 'thin', color: { argb: 'FF000000' } };
+  const box = { top: thin, left: thin, bottom: thin, right: thin }, round2 = v => Math.round(v * 100) / 100;
+  const col = c => String.fromCharCode(64 + c);
+  ws.getColumn(1).width = 9; ws.getColumn(10).width = 4;
+  [w1 || 13, 11, 11, 11, 11, 11, 13, 10].forEach((w, i) => { ws.getColumn(2 + i).width = w; ws.getColumn(11 + i).width = w; });
+  const put = (r, c, v, o = {}) => {
+    const x = ws.getCell(r, c); x.value = v;
+    x.font = { name: FONT, size: o.size || 10, bold: !!o.bold };
+    if (o.fill) x.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + o.fill } };
+    x.alignment = { horizontal: o.h || 'center', vertical: 'middle' };
+    x.border = box;
+    return x;
+  };
+  let r = 1;
+  blocks.forEach(B => {
+    const n = B.rows.length, rt = r + 4 + n;
+    put(r, 1, B.label, { bold: true, fill: YEL });
+    [[2, 'Sale (Value)', 's'], [11, 'Order (in Numbers)', 'o']].forEach(([c0, sub, key]) => {
+      put(r + 1, c0, B.title, { bold: true, size: 12, fill: YEL }); ws.mergeCells(r + 1, c0, r + 1, c0 + 7);
+      put(r + 2, c0, sub, { bold: true, size: 11, fill: YEL }); ws.mergeCells(r + 2, c0, r + 2, c0 + 7);
+      const heads = [B.firstHead || 'Date', ...P14_HEAD, 'TOTAL SALE', B.lastHead || 'Rating'];
+      heads.forEach((t, i) => put(r + 3, c0 + i, t, { bold: true, fill: HDR }));
+      const sums = [0, 0, 0, 0, 0];
+      B.rows.forEach((row, k) => {
+        const rr = r + 4 + k; let tot = 0;
+        put(rr, c0, row.label, { bold: true, fill: BLUE, h: B.firstHead === 'Outlet' ? 'left' : 'center' });
+        P14_OFF.forEach((src, i) => { const v = round2(row[key][src]); sums[i] += v; tot += v; put(rr, c0 + 1 + i, v ? v : null); });
+        put(rr, c0 + 6, { formula: `SUM(${col(c0 + 1)}${rr}:${col(c0 + 5)}${rr})`, result: round2(tot) }, { bold: true, fill: BLUE });
+        put(rr, c0 + 7, row.extra || null, { size: 9 });
+      });
+      put(rt, c0, 'TOTAL', { bold: true, fill: BLUE });
+      sums.forEach((v, i) => put(rt, c0 + 1 + i, { formula: `SUM(${col(c0 + 1 + i)}${r + 4}:${col(c0 + 1 + i)}${rt - 1})`, result: round2(v) }, { bold: true, fill: BLUE }));
+      put(rt, c0 + 6, { formula: `SUM(${col(c0 + 6)}${r + 4}:${col(c0 + 6)}${rt - 1})`, result: round2(sums.reduce((a, x) => a + x, 0)) }, { bold: true, fill: BLUE });
+      put(rt, c0 + 7, null);
+    });
+    r = rt + 3;
+  });
+  return ws;
+}
+function p14BuildExcel(D, codes) {
+  const outs = codes ? D.outlets.filter(o => codes.includes(o.code)) : D.outlets;
+  p14Relabel();
   const wb = new ExcelJS.Workbook(); wb.creator = 'Bolas Stock Suite';
-  if (D.months.length > 1) p14Sheet(wb, 'Summary', 'Summary by month', D.period, 'Month', 'Days sold', D.months.map(m => ({ label: m.sheet, sub: m.active, s: m.s, o: m.o })), 'GRAND TOTAL');
-  D.months.forEach(m => p14Sheet(wb, m.sheet, m.name, D.period, 'Date', 'Day', m.rows, 'MONTH TOTAL'));
+  const mlab = m => m.sheet.slice(0, 3) + '-' + m.sheet.slice(-2);
+  const tlab = o => P14_TYPE[o.type] || 'Not set';
+  const sumBlocks = (list, title) => {
+    const bl = D.months.map((m, mi) => ({ label: mlab(m), title, firstHead: 'Outlet', lastHead: 'Type', rows: list.map(o => ({ label: o.label, s: o.months[mi].s, o: o.months[mi].o, extra: tlab(o) })) }));
+    if (D.months.length > 1) bl.push({ label: 'Total', title: title + ' — full period', firstHead: 'Outlet', lastHead: 'Type', rows: list.map(o => ({ label: o.label, s: o.s, o: o.o, extra: tlab(o) })) });
+    return bl;
+  };
+  p14Blocks(wb, 'All Outlets', sumBlocks(outs, 'All Outlets'), 38);
+  Object.keys(P14_TYPE).forEach(t => {
+    const list = outs.filter(o => o.type === t);
+    if (list.length) p14Blocks(wb, P14_TYPE[t], sumBlocks(list, P14_TYPE[t] + ' outlets'), 38);
+  });
+  outs.forEach(o => {
+    p14Blocks(wb, o.label.replace(/[\\\/\?\*\[\]:]/g, '').slice(0, 31),
+      o.months.map(m => ({ label: mlab(m), title: o.label + (o.type ? ' · ' + P14_TYPE[o.type] : ''), firstHead: 'Date', lastHead: 'Rating', rows: m.rows.map(x => ({ label: x.label, s: x.s, o: x.o })) })), 13);
+  });
   return wb;
 }
 
+function p14FillSelect(keep) {
+  p14Relabel();
+  const sel = $14('p14OutletSel'), prev = keep ? p14Pick : 'ALL';
+  if (!keep) { p14TypePick = 'ALL'; $14('p14TypeSel').value = 'ALL'; }
+  const sc = p14Scope();
+  sel.innerHTML = `<option value="ALL">All Outlets (${sc.length})</option>` + sc.map(o => `<option value="${o.code}">${escHtml(o.label)}${o.type ? ' · ' + P14_TYPE[o.type] : ''}</option>`).join('');
+  p14Pick = sc.some(o => o.code === prev) ? prev : 'ALL'; sel.value = p14Pick;
+  const note = $14('p14ScopeNote');
+  note.style.display = p14MyOutlets ? 'block' : 'none';
+  note.textContent = p14MyOutlets ? 'Cluster Manager view — your outlets: ' + p14MyOutlets.join(', ') : '';
+}
 function p14Render() {
-  const D = p14Data, one = D.months.length === 1;
+  p14Relabel();
+  const D = p14Data, sc = p14Scope(), all = p14Pick === 'ALL', one = all ? null : sc.find(o => o.code === p14Pick);
   const f2 = n => n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const T = { s: [0, 0, 0, 0, 0], o: [0, 0, 0, 0, 0] };
-  D.months.forEach(m => m.rows.forEach(r => r.s.forEach((v, i) => { T.s[i] += v; T.o[i] += r.o[i]; })));
-  const TS = p14Sum(T.s), TO = p14Sum(T.o);
-  const cards = [['Total Sale', 'F5B700', TS, TO]].concat(P14_CH.map((c, i) => [c[1], c[2], T.s[i], T.o[i]]));
+  (one ? [one] : sc).forEach(o => o.s.forEach((v, i) => { T.s[i] += v; T.o[i] += o.o[i]; }));
+  const TS = p14Sum(T.s);
+  const cards = [['Total Sale', 'F5B700', TS, p14Sum(T.o)]].concat(P14_CH.map((c, i) => [c[1], c[2], T.s[i], T.o[i]]));
   $14('p14CardsArea').innerHTML = cards.map(([n, col, s, o], i) => `<div class="card" style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;position:relative;overflow:hidden"><div style="position:absolute;top:0;left:0;right:0;height:3px;background:#${col}"></div><div class="card-label">${n}</div><div class="card-val" style="color:#${col}">₹${f2(s)}</div><div class="card-sub">${o} orders${i ? ' · ' + (TS ? (s / TS * 100).toFixed(1) : '0.0') + '%' : ''}</div></div>`).join('');
-  const rows = one ? D.months[0].rows : D.months.map(m => ({ label: m.sheet, s: m.s, o: m.o }));
+  let rows, head;
+  if (!one) { rows = sc.map(o => ({ label: escHtml(o.label) + (o.type ? ` <span style="color:var(--muted);font-size:10px">· ${P14_TYPE[o.type]}</span>` : ''), s: o.s, o: o.o })); head = 'Outlet'; }
+  else if (one.months.length > 1) { rows = one.months.map(m => ({ label: m.sheet, s: m.s, o: m.o })); head = 'Month'; }
+  else { rows = one.months[0].rows; head = 'Date'; }
   const cell = (v, fmt) => v ? `<td class="has-val">${fmt(v)}</td>` : '<td>—</td>';
   const names = P14_CH.map(c => `<th style="color:#${c[2]}">${c[1]}</th>`).join('') + '<th>Total</th>';
-  $14('p14TableHead').innerHTML = `<tr><th class="h-date" rowspan="2">${one ? 'Date' : 'Month'}</th><th colspan="6">Sales (₹)</th><th colspan="6">Orders</th></tr><tr class="subhead">${names}${names}</tr>`;
+  $14('p14TableHead').innerHTML = `<tr><th class="h-date" rowspan="2">${head}</th><th colspan="6">Sales (₹)</th><th colspan="6">Orders</th></tr><tr class="subhead">${names}${names}</tr>`;
   const line = (label, s, o, cls) => `<tr${cls ? ` class="${cls}"` : ''}><td class="date-cell">${label}</td>${[...s, p14Sum(s)].map(v => cell(v, f2)).join('')}${[...o, p14Sum(o)].map(v => cell(v, x => x)).join('')}</tr>`;
   $14('p14TableBody').innerHTML = rows.map(r => line(r.label, r.s, r.o)).join('') + line('TOTAL', T.s, T.o, 'total-row');
   $14('p14PeriodBadge').textContent = D.period || D.months.map(m => m.sheet).join(', ');
@@ -4771,25 +5162,43 @@ $14('p14ProcessBtn').addEventListener('click', async () => {
   if (!p14File) return;
   $14('p14ErrorBox').classList.remove('visible'); $14('p14ResultsSection').classList.remove('visible'); $14('p14ProcessBtn').disabled = true;
   try {
+    if (!p14DirLoaded) await p14LoadDirectory();
     const rows = p14ReadRows(await p14File.arrayBuffer());
-    const parsed = p14Parse(rows), months = p14Build(parsed.days);
+    const parsed = p14Parse(rows);
+    const outlets = parsed.outlets.map(o => {
+      const months = p14Build(parsed.days[o.code], parsed.monthKeys), tot = f => months.reduce((a, m) => a.map((v, i) => v + m[f][i]), [0, 0, 0, 0, 0]);
+      return { ...o, label: (o.code + ' ' + o.name).trim(), months, s: tot('s'), o: tot('o'), active: months.reduce((a, m) => a + m.active, 0) };
+    });
+    const months = outlets[0].months;
     const pm = String((rows[0] && rows[0][0]) || '').match(/from\s+(\S+)\s+to\s+(\S+)/i);
     const label = (months.length === 1 ? months[0].sheet : `${months[0].sheet} to ${months[months.length - 1].sheet}`).replace(/[^a-z0-9]+/gi, '_');
-    p14Data = { months, n: parsed.n, period: pm ? `${pm[1]} to ${pm[2]}` : '', file: `Sales_Report_${label}.xlsx` };
-    p14Render();
+    p14Data = { outlets, months, n: parsed.n, period: pm ? `${pm[1]} to ${pm[2]}` : '', file: `Sales_Report_${label}.xlsx` };
+    p14FillSelect(); p14Render();
     logActivity('process_file', 14, p14File.name);
   } catch (e) { console.error(e); p14Err(e.message || 'Processing failed.'); }
   $14('p14ProcessBtn').disabled = false;
 });
+$14('p14TypeSel').addEventListener('change', () => { p14TypePick = $14('p14TypeSel').value; if (p14Data) { p14FillSelect(true); p14Render(); } });
+$14('p14OutletSel').addEventListener('change', () => { p14Pick = $14('p14OutletSel').value; if (p14Data) p14Render(); });
 $14('p14DownloadBtn').addEventListener('click', async () => {
   if (!p14Data) return;
   try {
-    const buf = await p14BuildExcel(p14Data).xlsx.writeBuffer();
+    p14Relabel();
+    const everyone = p14Data.outlets.map(o => o.code);
+    let codes = everyone;
+    if (everyone.length > 1) {
+      codes = await p14Picker({ title: 'Download Sales Report — which outlets?', note: `${everyone.length} outlets in this file. Type numbers or names (001-020, 053, Hubli, 001 to All) and tap Select, or tick them below.`,
+        list: p14Data.outlets, selected: everyone, okLabel: 'Download' });
+      if (!codes) return;
+    }
+    const suffix = codes.length === everyone.length ? '' : codes.length === 1 ? '_' + codes[0] : `_${codes.length}_outlets`;
+    const buf = await p14BuildExcel(p14Data, codes).xlsx.writeBuffer();
     const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-    const a = document.createElement('a'); a.href = url; a.download = p14Data.file;
+    const fname = p14Data.file.replace(/\.xlsx$/, suffix + '.xlsx');
+    const a = document.createElement('a'); a.href = url; a.download = fname;
     document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
-    logActivity('download_file', 14, p14Data.file);
+    logActivity('download_file', 14, fname);
   } catch (e) { console.error(e); p14Err("Couldn't build the Excel file: " + e.message); }
 });
 
