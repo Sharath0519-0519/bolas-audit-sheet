@@ -1158,6 +1158,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
       <div style="min-width:160px"><label for="p14TypeSel" style="display:block;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px">TYPE</label><select id="p14TypeSel" style="width:100%;padding:9px 11px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:9px;font-size:13px"><option value="ALL">All types</option><option value="company">Company-owned</option><option value="franchise">Franchise</option><option value="none">Not set</option></select></div>
     </div>
     <div id="p14CardsArea" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:11px;margin-bottom:24px"></div>
+    <div id="p14Cmp" style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:24px"></div>
     <div class="table-wrap"><div class="table-scroll"><table>
       <thead id="p14TableHead"></thead>
       <tbody id="p14TableBody"></tbody>
@@ -1177,7 +1178,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
   <div class="setup-card" id="odAddCard" style="margin-bottom:18px;max-width:560px">
     <div class="setup-card-hdr"><div class="setup-num" style="background:#8B5CF6">+</div><h3>Add Outlet</h3></div>
     <label class="pc-label">Outlet Number</label>
-    <input type="text" id="odNewNumber" class="pc-input" placeholder="e.g. 12">
+    <input type="text" id="odNewNumber" class="pc-input" placeholder="e.g. 053" oninput="odNumTyped()" autocomplete="off">
     <div id="odNumHint" style="margin-top:4px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)"></div>
     <label class="pc-label" style="margin-top:10px">Outlet Name</label>
     <input type="text" id="odNewName" class="pc-input" placeholder="e.g. Karkala Main Branch">
@@ -5719,6 +5720,78 @@ function p14Render() {
   $14('p14PeriodBadge').textContent = D.period || D.months.map(m => m.sheet).join(', ');
   $14('p14DownloadBtn').innerHTML = `<span>⬇</span> Download ${D.file}`;
   $14('p14ResultsSection').classList.add('visible');
+  p14CmpRender();
+}
+
+// ---- Compare periods: months, quarters, years, days, custom ranges, outlets, types, weekdays, trends (owner + cluster managers) ----
+const P14_MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], P14_PAL = ['1F6FD1','F5B700','2E7D6B','D62839','6F42C1','E8710A'];
+let p14Cmp = { mode: 'm', a: '', b: '', mon: '', metric: 's', basis: 't', chart: 'both', ch: 'all', d1: '', d2: '', f1: '', t1: '', f2: '', t2: '', n: '7', within: 'all', o1: '', o2: '' }, p14CmpCsv = [];
+function p14CmpSet(k, v) { p14Cmp[k] = v; p14CmpRender(); }
+function p14CmpDownload() { const t = p14CmpCsv.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n'); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], { type: 'text/csv' })); a.download = 'Sales_Comparison.csv'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
+function p14CmpRender() {
+  const box = $14('p14Cmp'); if (!box || !p14Data) return;
+  const C = p14Cmp, sc = p14Scope(), one = p14Pick === 'ALL' ? null : sc.find(o => o.code === p14Pick), list = one ? [one] : sc;
+  const dm = l => { const d = {}; l.forEach(o => o.months.forEach(m => m.rows.forEach(r => { if (!p14Sum(r.o)) return; const [dd, mm, yy] = r.label.split('-'), k = `${yy}-${mm}-${dd}`, e = d[k] || (d[k] = { s: [0, 0, 0, 0, 0], o: [0, 0, 0, 0, 0] }); r.s.forEach((v, i) => { e.s[i] += v; e.o[i] += r.o[i]; }); }))); return d; };
+  const d = dm(list), keys = Object.keys(d).sort(), mn = keys[0], mx = keys[keys.length - 1];
+  const SEL = 'padding:8px 10px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:9px;font-size:13px';
+  const lab = t => `<label style="display:block;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px">${t}</label>`;
+  const sel = (k, opts, lb) => `<div>${lab(lb)}<select style="${SEL}" onchange="p14CmpSet('${k}',this.value)">${opts.map(([v, t]) => `<option value="${v}"${v === C[k] ? ' selected' : ''}>${escHtml(t)}</option>`).join('')}</select></div>`;
+  const dt = (k, lb) => `<div>${lab(lb)}<input type="date" style="${SEL}" value="${C[k]}" min="${mn || ''}" max="${mx || ''}" onchange="p14CmpSet('${k}',this.value)"></div>`;
+  if (!mx) { box.innerHTML = '<div style="color:var(--muted);font-size:12.5px">No sales found for the selected outlet.</div>'; return; }
+  const sh = (k, n) => new Date(Date.parse(k) + n * 864e5).toISOString().slice(0, 10), pad = n => String(n).padStart(2, '0'), ld = k => k.slice(8) + '-' + k.slice(5, 7) + '-' + k.slice(0, 4);
+  const ml = ym => P14_MN[+ym.slice(5) - 1] + ' ' + ym.slice(0, 4), ms = [...new Set(keys.map(k => k.slice(0, 7)))], ys = [...new Set(keys.map(k => k.slice(0, 4)))];
+  const qs = [...new Set(keys.map(k => k.slice(0, 4) + '-Q' + Math.ceil(+k.slice(5, 7) / 3)))], ql = q => q.slice(5) + ' ' + q.slice(0, 4);
+  const mkP = (label, a, b, dd = d) => { const s = [0, 0, 0, 0, 0], o = [0, 0, 0, 0, 0]; for (const k in dd) if (k >= a && k <= b) dd[k].s.forEach((v, i) => { s[i] += v; o[i] += dd[k].o[i]; }); const lo = a > mn ? a : mn, hi = b < mx ? b : mx; return { label, s, o, days: Math.max(1, Math.round((Date.parse(hi) - Date.parse(lo)) / 864e5) + 1) }; };
+  const mr = ym => mkP(ml(ym), ym + '-01', ym + '-31'), qr = q => { const n = +q[6], y = q.slice(0, 4); return mkP(ql(q), `${y}-${pad(n * 3 - 2)}-01`, `${y}-${pad(n * 3)}-31`); };
+  const vld = (k, opts, i) => { if (!opts.includes(C[k])) C[k] = opts[Math.max(0, opts.length - 2 + i)] || ''; };
+  const dflt = { d1: sh(mx, -1), d2: mx, f1: sh(mx, -13), t1: sh(mx, -7), f2: sh(mx, -6), t2: mx }; Object.keys(dflt).forEach(k => { if (!C[k]) C[k] = dflt[k]; });
+  const wopts = [['all', 'All data'], ...ms.map(m => [m, ml(m)])], wr = C.within === 'all' || !ms.includes(C.within) ? [mn, mx] : [C.within + '-01', C.within + '-31'];
+  if (!ms.includes(C.within)) C.within = 'all';
+  const MODES = [['m', 'Month vs month'], ['sm', 'Same month, different years'], ['q', 'Quarter vs quarter'], ['y', 'Year vs year'], ['ytd', 'This year so far vs same dates last year'], ['last', 'Last N days vs the N days before'], ['d', 'Day vs day'], ['r', 'Custom date range vs range'], ['trend', 'Month-by-month trend'], ['dow', 'Day of week (Mon–Sun)'], ['o', 'Outlet vs outlet'], ['ty', 'Company vs Franchise outlets']];
+  let ctl = '', P = [];
+  if (C.mode === 'm') { vld('a', ms, 0); vld('b', ms, 1); ctl = sel('a', ms.map(m => [m, ml(m)]), 'MONTH A') + sel('b', ms.map(m => [m, ml(m)]), 'MONTH B'); P = [mr(C.a), mr(C.b)]; }
+  else if (C.mode === 'q') { vld('a', qs, 0); vld('b', qs, 1); ctl = sel('a', qs.map(q => [q, ql(q)]), 'QUARTER A') + sel('b', qs.map(q => [q, ql(q)]), 'QUARTER B'); P = [qr(C.a), qr(C.b)]; }
+  else if (C.mode === 'sm') { const mo = [...new Set(keys.map(k => k.slice(5, 7)))]; if (!mo.includes(C.mon)) C.mon = mo[mo.length - 1]; ctl = sel('mon', mo.map(m => [m, P14_MN[+m - 1]]), 'MONTH'); P = ys.filter(y => ms.includes(`${y}-${C.mon}`)).map(y => mr(`${y}-${C.mon}`)); }
+  else if (C.mode === 'y') P = ys.map(y => { const p = mkP(y, y + '-01-01', y + '-12-31'); p.label += ms.filter(m => m.startsWith(y)).length < 12 ? ` (${ms.filter(m => m.startsWith(y)).length} mo)` : ''; return p; });
+  else if (C.mode === 'ytd') { const y = +mx.slice(0, 4); P = [mkP(`${y - 1} (to ${mx.slice(8)}-${mx.slice(5, 7)})`, `${y - 1}-01-01`, `${y - 1}${mx.slice(4)}`), mkP(`${y} (to ${mx.slice(8)}-${mx.slice(5, 7)})`, `${y}-01-01`, mx)]; }
+  else if (C.mode === 'last') { const n = +C.n; ctl = sel('n', [7, 14, 30, 60, 90].map(x => [String(x), x + ' days']), 'N'); P = [mkP(`Previous ${n} days`, sh(mx, -2 * n + 1), sh(mx, -n)), mkP(`Last ${n} days`, sh(mx, -n + 1), mx)]; }
+  else if (C.mode === 'd') { ctl = dt('d1', 'DAY A') + dt('d2', 'DAY B'); P = [mkP(ld(C.d1), C.d1, C.d1), mkP(ld(C.d2), C.d2, C.d2)]; }
+  else if (C.mode === 'r') { ctl = dt('f1', 'A FROM') + dt('t1', 'A TO') + dt('f2', 'B FROM') + dt('t2', 'B TO'); P = [mkP(ld(C.f1) + ' → ' + ld(C.t1), C.f1, C.t1), mkP(ld(C.f2) + ' → ' + ld(C.t2), C.f2, C.t2)]; }
+  else if (C.mode === 'trend') P = ms.map(mr);
+  else if (C.mode === 'dow') { ctl = sel('within', wopts, 'WITHIN'); const D = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], x = D.map(n => ({ label: n, s: [0, 0, 0, 0, 0], o: [0, 0, 0, 0, 0], days: 0 })); keys.forEach(k => { if (k < wr[0] || k > wr[1]) return; const p = x[new Date(Date.parse(k)).getUTCDay()]; d[k].s.forEach((v, i) => { p.s[i] += v; p.o[i] += d[k].o[i]; }); p.days++; }); P = [1, 2, 3, 4, 5, 6, 0].map(i => ({ ...x[i], days: Math.max(1, x[i].days) })); }
+  else if (C.mode === 'o') { const co = sc.map(o => o.code); vld('o1', co, 0); vld('o2', co, 1); const oo = sc.map(o => [o.code, o.label]); ctl = sel('o1', oo, 'OUTLET A') + sel('o2', oo, 'OUTLET B') + sel('within', wopts, 'WITHIN'); P = [C.o1, C.o2].map(c => { const o = sc.find(z => z.code === c); return mkP(o ? o.label : c, wr[0], wr[1], dm(o ? [o] : [])); }); }
+  else if (C.mode === 'ty') { ctl = sel('within', wopts, 'WITHIN'); P = [['company', 'Company outlets'], ['franchise', 'Franchise outlets']].map(([t, n]) => mkP(n, wr[0], wr[1], dm(list.filter(o => o.type === t)))); }
+  const CI = C.ch === 'all' ? [0, 1, 2, 3, 4] : [+C.ch], m = C.metric, sum = a => a.reduce((x, y) => x + y, 0);
+  const g = (p, i) => { const ix = i < 5 ? [i] : CI, S = sum(ix.map(j => p.s[j])), O = sum(ix.map(j => p.o[j])); let v = m === 'o' ? O : m === 'a' ? (O ? S / O : 0) : S; return C.basis === 'd' && m !== 'a' ? v / p.days : v; };
+  const f = v => m === 'o' ? (C.basis === 'd' ? v.toFixed(1) : String(Math.round(v))) : '₹' + v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const ax = v => v >= 1e7 ? (v / 1e7).toFixed(1) + 'Cr' : v >= 1e5 ? (v / 1e5).toFixed(1) + 'L' : v >= 1e3 ? (v / 1e3).toFixed(0) + 'k' : (v < 10 && m === 'o' ? v.toFixed(1) : String(Math.round(v)));
+  let h = `<div style="font-weight:700;font-size:15px;margin-bottom:10px">📊 Compare periods</div><div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">`
+    + sel('mode', MODES, 'COMPARE') + ctl + sel('ch', [['all', 'All channels'], ...P14_CH.map((c, i) => [String(i), c[1] + ' only'])], 'CHANNEL')
+    + sel('metric', [['s', 'Sales (₹)'], ['o', 'Orders'], ['a', 'Average bill (₹/order)']], 'SHOW') + sel('basis', [['t', 'Total'], ['d', 'Average per day']], 'VALUE') + sel('chart', [['bar', 'Bar chart'], ['line', 'Line chart'], ['pie', 'Pie chart'], ['both', 'Bar + Pie'], ['none', 'Table only']], 'CHART') + '</div>';
+  if (P.length < 2) { box.innerHTML = h + `<div style="color:var(--muted);font-size:12.5px">Need at least two periods to compare. Upload an Invoice List that covers them (e.g. a file spanning both years).</div>`; return; }
+  const rows = [...CI.map(i => [P14_CH[i][1], i])].concat(CI.length > 1 ? [['Total', 5]] : []), first = P[0], last = P[P.length - 1], tot = CI.length > 1 ? 5 : CI[0];
+  const best = P.reduce((b, p, k) => g(p, tot) > g(P[b], tot) ? k : b, 0);
+  const chg = i => { const a = g(first, i), b = g(last, i), df = b - a, pc = a ? (df / a * 100).toFixed(1) + '%' : '—', col = df > 0 ? '#3FB874' : df < 0 ? '#E15C5C' : 'var(--muted)'; return `<td class="has-val" style="color:${col}">${df > 0 ? '▲' : df < 0 ? '▼' : ''} ${f(Math.abs(df))} <span style="font-size:10px">(${pc})</span></td>`; };
+  const a0 = g(first, tot), a1 = g(last, tot), pt = a0 ? (a1 - a0) / a0 * 100 : 0;
+  const mv = CI.length > 1 ? CI.map(i => [i, g(first, i) ? (g(last, i) - g(first, i)) / g(first, i) * 100 : 0]).sort((x, y) => Math.abs(y[1]) - Math.abs(x[1]))[0] : null;
+  h += `<div style="background:var(--surface2);border-radius:10px;padding:10px 12px;font-size:12.5px;margin-bottom:12px">💡 <strong>${escHtml(last.label)}</strong> vs <strong>${escHtml(first.label)}</strong>: ${m === 's' ? 'sales' : m === 'o' ? 'orders' : 'average bill'} ${pt >= 0 ? 'up' : 'down'} <strong style="color:${pt >= 0 ? '#3FB874' : '#E15C5C'}">${Math.abs(pt).toFixed(1)}%</strong> (${f(a0)} → ${f(a1)}).${mv && mv[1] ? ` Biggest mover: <strong>${P14_CH[mv[0]][1]}</strong> ${mv[1] > 0 ? '+' : ''}${mv[1].toFixed(1)}%.` : ''} Best period: <strong>${escHtml(P[best].label)}</strong> ★</div>`;
+  h += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th class="h-date">Channel</th>${P.map((p, k) => `<th>${escHtml(p.label)}${k === best ? ' ★' : ''}</th>`).join('')}<th>Change (last vs first)</th></tr></thead><tbody>`
+    + rows.map(([n, i]) => `<tr${i === 5 ? ' class="total-row"' : ''}><td class="date-cell">${n}</td>${P.map(p => `<td class="has-val">${f(g(p, i))}</td>`).join('')}${chg(i)}</tr>`).join('') + '</tbody></table></div></div>';
+  p14CmpCsv = [['Channel', ...P.map(p => p.label)], ...rows.map(([n, i]) => [n, ...P.map(p => g(p, i).toFixed(2))])];
+  h += `<button class="mini-btn" style="margin-top:10px;border:1px solid var(--border);color:var(--text)" onclick="p14CmpDownload()">⬇ Download comparison (CSV)</button>`;
+  const leg = it => `<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;font-size:11.5px;margin:6px 0 14px">${it.map(([c, t]) => `<span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#${c};margin-right:5px"></span>${escHtml(t)}</span>`).join('')}</div>`;
+  const W = 640, H = 290, L = 52, B = 40, T = 14, R = 10, pw = W - L - R, ph = H - T - B, mxv = Math.max(1e-9, ...P.flatMap(p => CI.map(i => g(p, i)))) * 1.1, n = CI.length;
+  const grid = [0, 1, 2, 3, 4].map(q => { const y = T + ph - ph * q / 4; return `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" stroke="var(--border)"/><text x="${L - 6}" y="${y + 4}" text-anchor="end" font-size="10" style="fill:var(--muted)">${ax(mxv * q / 4)}</text>`; }).join('');
+  const svg = x => `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:760px;display:block;margin:0 auto">${grid}${x}</svg>`;
+  const doBar = () => { const gw = pw / n, bw = gw * 0.8 / P.length; return svg(CI.map((i, j) => `<text x="${L + gw * j + gw / 2}" y="${H - 18}" text-anchor="middle" font-size="11" style="fill:var(--muted)">${P14_CH[i][1]}</text>` + P.map((p, k) => { const v = g(p, i), bh = ph * v / mxv; return `<rect x="${L + gw * j + gw * 0.1 + bw * k}" y="${T + ph - bh}" width="${Math.max(1, bw - 2)}" height="${bh}" rx="3" fill="#${P14_PAL[k % 6]}"><title>${escHtml(p.label)} · ${P14_CH[i][1]}: ${f(v)}</title></rect>`; }).join('')).join('')) + leg(P.map((p, k) => [P14_PAL[k % 6], p.label])); };
+  const doLine = () => { const xs = k => L + 20 + (pw - 40) * k / (P.length - 1), yv = (p, i) => T + ph - ph * g(p, i) / mxv, ser = CI.concat(CI.length > 1 ? [5] : []); return svg(ser.map(i => { const c = i < 5 ? P14_CH[i][2] : '9CA3AF'; return `<polyline fill="none" stroke="#${c}" stroke-width="2.5"${i === 5 ? ' stroke-dasharray="5 4"' : ''} points="${P.map((p, k) => xs(k) + ',' + yv(p, i)).join(' ')}"/>` + P.map((p, k) => `<circle cx="${xs(k)}" cy="${yv(p, i)}" r="4" fill="#${c}"><title>${i < 5 ? P14_CH[i][1] : 'Total'} · ${escHtml(p.label)}: ${f(g(p, i))}</title></circle>`).join(''); }).join('') + P.map((p, k) => `<text x="${xs(k)}" y="${H - 18}" text-anchor="middle" font-size="10" style="fill:var(--muted)">${escHtml(p.label)}</text>`).join('')) + leg(CI.map(i => [P14_CH[i][2], P14_CH[i][1]]).concat(CI.length > 1 ? [['9CA3AF', 'Total (dashed)']] : [])); };
+  const doPie = () => `<div style="display:flex;gap:22px;flex-wrap:wrap;justify-content:center">` + P.map(p => {
+    const t = sum(CI.map(i => g(p, i))); let a0 = -Math.PI / 2, sl = '';
+    if (t > 0) CI.forEach(i => { const v = g(p, i), c = P14_CH[i]; if (!v) return; const fr = v / t, a1 = a0 + fr * 2 * Math.PI; sl += fr > 0.9999 ? `<circle cx="60" cy="60" r="54" fill="#${c[2]}"/>` : `<path d="M60 60 L${60 + 54 * Math.cos(a0)} ${60 + 54 * Math.sin(a0)} A54 54 0 ${fr > 0.5 ? 1 : 0} 1 ${60 + 54 * Math.cos(a1)} ${60 + 54 * Math.sin(a1)} Z" fill="#${c[2]}"><title>${c[1]}: ${f(v)}</title></path>`; a0 = a1; });
+    return `<div style="text-align:center;min-width:150px"><div style="font-weight:600;font-size:13px;margin-bottom:6px">${escHtml(p.label)}</div>${t > 0 ? `<svg viewBox="0 0 120 120" style="width:140px;height:140px">${sl}</svg>` : '<div style="color:var(--muted);font-size:12px;padding:50px 0">No data</div>'}<div style="font-size:11px;text-align:left;display:inline-block;margin-top:6px">${CI.map(i => `<div><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#${P14_CH[i][2]};margin-right:5px"></span>${P14_CH[i][1]} ${t ? (g(p, i) / t * 100).toFixed(1) : '0.0'}%</div>`).join('')}</div></div>`; }).join('') + '</div>';
+  const ch = C.chart;
+  h += `<div style="margin-top:16px">${ch === 'bar' || ch === 'both' ? doBar() : ''}${ch === 'line' ? doLine() : ''}${ch === 'pie' || ch === 'both' ? doPie() : ''}</div><div style="color:var(--muted);font-size:11px;margin-top:10px">Tip: use “Average per day” when comparing months or ranges of different length, or partial months. Charts follow the outlet and type selected above.</div>`;
+  box.innerHTML = h;
 }
 
 function p14Err(m) { const e = $14('p14ErrorBox'); e.textContent = m; e.classList.add('visible'); }
@@ -5897,7 +5970,8 @@ function odCanSee(number) {
   return Array.isArray(p14MyOutlets) && p14MyOutlets.includes(odCode(number));
 }
 // Only owner + cluster managers may add / delete outlet documents; staff just view their own outlet's.
-function odCanEditDocs() { return isOwner || isClusterManager; }
+function odCanEditDocs() { return isOwner || isClusterManager || (isStaffUser() && !!(myOutletCode || myOutletName)); }
+let odPinned = new Set(), odOpenCode = '';
 
 function addClusterDocsTab() {
   if (document.querySelector('.tab[data-tab="15"]')) { odRefreshBadge(); return; }
@@ -5941,14 +6015,16 @@ async function loadClusterDocsPanel() {
     if (isStaffUser()) {
       // STAFF: exactly one card — their own outlet — with only that outlet's documents. Other outlets' documents are never queried.
       if (!myOutletCode && !myOutletName) { odOutlets = []; odDocs = []; odRender(); return; }
-      const qs = [];
-      if (myOutletCode) qs.push(db.collection('outlet_documents').where('outletNumber', '==', myOutletCode).limit(200).get());
-      qs.push(db.collection('outlet_documents').where('outletName', 'in', obVariants(myOutletName)).limit(200).get());
-      const snaps = await Promise.all(qs), seen = new Map();
+      const sCode = odCode(myOutletCode || outletLeadCode(myOutletName)), qs = [];
+      if (sCode) qs.push(db.collection('outlet_documents').where('outletNumber', '==', sCode).limit(200).get());
+      if (myOutletName) qs.push(db.collection('outlet_documents').where('outletName', 'in', obVariants(myOutletName)).limit(200).get());
+      const res = await Promise.allSettled(qs);   // one failing query must not hide the other
+      if (qs.length && res.every(r => r.status === 'rejected')) throw res[0].reason;
+      const snaps = res.filter(r => r.status === 'fulfilled').map(r => r.value), seen = new Map();
       snaps.forEach(s => s.docs.forEach(d => seen.set(d.id, { id: d.id, ...d.data(), outletId: 'my_outlet' })));
       const ms = x => (x.addedAt && x.addedAt.toMillis ? x.addedAt.toMillis() : 0);
       odDocs = [...seen.values()].sort((a, b) => ms(b) - ms(a));
-      odOutlets = [{ id: 'my_outlet', number: myOutletCode, name: myOutletName, status: 'approved', virtual: true }];
+      odOutlets = [{ id: 'my_outlet', number: sCode || myOutletCode, name: myOutletName, status: 'approved', virtual: true }];
       odExpanded = 'my_outlet';
       odRender(); odRefreshBadge(); odPrepAddForm();
       return;
@@ -5970,11 +6046,14 @@ async function loadClusterDocsPanel() {
         if (m && !have.has(code)) odOutlets.push({ id: 'master_' + code, number: code, name: code + ' ' + m.name, status: 'approved', virtual: true });
       });
     }
+    { const have2 = new Set(odOutlets.map(o => outletCodeOf(o))), nm = {}; docSnap.docs.forEach(x => { const v = x.data(), c = odCode(v.outletNumber); if (c && !nm[c]) nm[c] = v.outletName || c; });
+      new Set([...odPinned, ...Object.keys(nm)]).forEach(c => { if (!c || have2.has(c) || !odCanSee(c)) return; const m = P14_BUILTIN[c]; odOutlets.push({ id: 'master_' + c, number: c, name: m ? c + ' ' + m.name : nm[c] || c, status: 'approved', virtual: true }); }); }
     odOutlets = outletSorted(odOutlets);
     const visIds = new Set(odOutlets.map(o => o.id));
     // documents: a scoped manager only ever keeps the documents of an outlet he can see — everyone else's are dropped here
-    odDocs = docSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(d => !odScoped() || visIds.has(d.outletId));
+    odDocs = docSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(d => !odScoped() || visIds.has(d.outletId) || odCanSee(d.outletNumber));
     if (odExpanded && !visIds.has(odExpanded)) odExpanded = null;
+    if (odOpenCode) { const t = odOutlets.find(o => outletCodeOf(o) === odOpenCode); if (t) odExpanded = t.id; odOpenCode = ''; }
     odRender();
     odRefreshBadge();
     odPrepAddForm();
@@ -6006,7 +6085,7 @@ function odRender() {
   const wrap = document.getElementById('odOutletsWrap');
   if (!odOutlets.length) { wrap.innerHTML = `<div class="table-wrap" style="padding:18px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">${hasAllOutlets() ? 'No outlets yet — add one above (it is numbered automatically)' : 'No outlets assigned to you yet — ask the owner to assign your outlets, or add a new one above (the owner approves it).'}</div>`; return; }
   wrap.innerHTML = odOutlets.map(o => {
-    const docs = odDocs.filter(d => d.outletId === o.id);
+    const docs = odDocs.filter(d => d.outletId === o.id || (odCode(d.outletNumber) && odCode(d.outletNumber) === outletCodeOf(o)));
     const worst = docs.map(d => odStatus(d.expiryDate).days).reduce((w, days) => (days !== null && (w === null || days < w)) ? days : w, null);
     const flag = worst !== null && worst <= 30 ? ` · <span class="pill ${worst < 0 ? 'pill-blocked' : 'pill-pending'}">${worst < 0 ? 'expired' : 'expiring soon'}</span>` : '';
     const open = odExpanded === o.id;
@@ -6046,33 +6125,31 @@ function odOutletDetail(o, docs) {
 }
 
 async function odPrepAddForm() {
-  const numEl = document.getElementById('odNewNumber'), hint = document.getElementById('odNumHint');
-  const _c = document.getElementById('odAddCard'); if (_c) _c.style.display = isStaffUser() ? 'none' : '';   // owner + cluster managers can add an outlet; staff can't
+  const numEl = document.getElementById('odNewNumber'), nameEl = document.getElementById('odNewName'), hint = document.getElementById('odNumHint');
+  const _c = document.getElementById('odAddCard'); if (_c) _c.style.display = isStaffUser() ? 'none' : '';   // staff already have their own outlet card, with an Add Document form
   if (!numEl || isStaffUser()) return;
-  if (isOwner) {
-    numEl.readOnly = false; numEl.style.opacity = ''; numEl.placeholder = 'Optional \u2014 blank = next number';
-    if (hint) hint.textContent = 'Owner: type any number or name, or leave the number blank to use the next one. Saved immediately.';
-    return;
-  }
-  numEl.readOnly = true; numEl.style.opacity = '.7';
-  if (hint) hint.textContent = 'Numbered automatically \u2014 you only type the name. A new outlet needs the owner\u2019s approval before it joins the list.';
-  try { numEl.value = await outletNextCode(); } catch (e) { numEl.value = ''; numEl.placeholder = 'Auto'; }
+  let dl = document.getElementById('odNumList'); if (!dl) { dl = document.createElement('datalist'); dl.id = 'odNumList'; document.body.appendChild(dl); }
+  dl.innerHTML = Object.keys(P14_BUILTIN).filter(c => odCanSee(c)).sort().map(c => `<option value="${c}">${escHtml(c + ' ' + P14_BUILTIN[c].name)}</option>`).join('');
+  numEl.setAttribute('list', 'odNumList'); numEl.readOnly = false; numEl.style.opacity = ''; numEl.placeholder = 'e.g. 053';
+  if (nameEl) { nameEl.readOnly = !isOwner; nameEl.placeholder = isOwner ? 'Fills in from the number — or type a new outlet name' : 'Fills in automatically from the number'; }
+  if (hint) hint.textContent = hasAllOutlets() ? 'Type the outlet number (e.g. 053) — the name fills in automatically.' : 'Type the outlet number — you can add only your assigned outlets: ' + ((p14MyOutlets || []).join(', ') || 'none assigned yet') + '.';
 }
+function odNumTyped() { const c = odCode(document.getElementById('odNewNumber').value), n = document.getElementById('odNewName'), m = P14_BUILTIN[c]; if (!n) return; if (m) n.value = m.name; else if (!isOwner) n.value = ''; }
 
 function odToggleOutlet(id) { odExpanded = odExpanded === id ? null : id; odRender(); }
 
 async function odAddOutlet() {
   const numEl = document.getElementById('odNewNumber'), nameEl = document.getElementById('odNewName'), msg = document.getElementById('odAddOutletMsg');
-  const number = numEl.value.trim(), name = nameEl.value.trim();
-  if (!name) { msg.textContent = 'Enter an outlet name.'; msg.style.color = '#E15C5C'; return; }
+  const code = odCode(numEl.value), typed = nameEl.value.trim(), m = P14_BUILTIN[code], bad = t => { msg.textContent = t; msg.style.color = '#E15C5C'; };
+  if (!code) return bad('Enter the outlet number, e.g. 053.');
+  if (!isOwner && !odCanSee(code)) return bad('You can add only your assigned outlets: ' + ((p14MyOutlets || []).join(', ') || 'none assigned yet') + '.');
+  if (!m && !(isOwner && typed)) return bad(isOwner ? 'That number is not in the outlet list — type a name to add it as a new outlet.' : 'That outlet number was not found.');
   try {
-    // Owner: saved at once. Everyone else: a new name goes to the owner for approval (a name already in the list is refused as a duplicate).
-    const r = await outletCreate(name, number);
-    numEl.value = ''; nameEl.value = '';
-    msg.textContent = r.status === 'pending' ? '\u23f3 Sent to the owner for approval as ' + r.built.name + ' \u2014 it stays marked \u201cawaiting approval\u201d until then.' : '\u2713 Outlet added as ' + r.built.name;
-    msg.style.color = r.status === 'pending' ? '#D6923B' : '#3FB874';
-    loadClusterDocsPanel();
-  } catch (e) { msg.textContent = "Couldn't add: " + (e.code === 'permission-denied' ? 'permission denied' : e.message); msg.style.color = '#E15C5C'; }
+    if (!m) await outletCreate(typed, code);   // owner only: a brand-new outlet that is not in the master list
+    odPinned.add(code); odOpenCode = code; numEl.value = ''; nameEl.value = '';
+    msg.textContent = '✓ ' + code + ' ' + (m ? m.name : typed) + ' is open below — add its documents there.'; msg.style.color = '#3FB874';
+    await loadClusterDocsPanel();
+  } catch (e) { bad("Couldn't add: " + (e.code === 'permission-denied' ? 'permission denied' : e.message)); }
 }
 
 async function odAddDoc(outletId) {
@@ -6081,11 +6158,12 @@ async function odAddDoc(outletId) {
   if (!docName) { msg.textContent = 'Enter the licence/document name.'; msg.style.color = '#E15C5C'; return; }
   if (!file) { msg.textContent = 'Choose a file to upload.'; msg.style.color = '#E15C5C'; return; }
   const outlet = odOutlets.find(o => o.id === outletId);
+  if (!isOwner && outlet && !odCanSee(outletCodeOf(outlet))) { msg.textContent = 'You can add documents only for your own assigned outlet(s).'; msg.style.color = '#E15C5C'; return; }
   msg.textContent = 'Uploading…'; msg.style.color = 'var(--muted)';
   try {
     const up = await odUploadFile(file);
     await db.collection('outlet_documents').add({
-      outletId, outletNumber: outlet ? (outlet.number || '') : '', outletName: outlet ? (outlet.name || '') : '',
+      outletId, outletNumber: outlet ? (odCode(outlet.number) || odCode(outletCodeOf(outlet)) || '') : '', outletName: outlet ? (outlet.name || '') : '',
       docName, expiryDate: expiryDate || '', fileUrl: up.url, fileThumb: up.thumb, isPdf: up.isPdf,
       addedByUid: currentUser.uid, addedByName: currentUser.displayName || currentUser.email,
       addedAt: firebase.firestore.FieldValue.serverTimestamp()
