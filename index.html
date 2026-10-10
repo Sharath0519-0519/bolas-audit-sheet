@@ -5335,6 +5335,143 @@ function p14ReadRows(buf) {
   ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: mr, c: mc } });
   return XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 }
+function p14FindHeader(rows) {
+  const norm = v => String(v == null ? '' : v).trim();
+  for (let i = 0; i < Math.min(rows.length, 30); i++) {
+    const r = Array.from(rows[i] || [], v => norm(v).toLowerCase()), f = re => r.findIndex(x => re.test(x));
+    const c = { d: f(/^date/), n: f(/customer/), a: f(/invoice amount|^amount|net amount/), p: f(/payment/), e: f(/establishment|outlet/), t: f(/tax invoice/), b: f(/bill of supply/) };
+    if (c.d >= 0 && c.a >= 0 && c.p >= 0) return { h: i, col: c };
+  }
+  return null;
+}
+// ---- Big-file reader: streams a .xlsx straight from disk so a full-year Invoice List (60 MB+) never has to be inflated into one giant string.
+// SheetJS inflates the whole sheet XML at once; past the browser's ~512 MB string limit it fails silently and returns an empty sheet.
+async function p14ZipEntries(file) {
+  const tailLen = Math.min(file.size, 65557);
+  const tail = new DataView(await file.slice(file.size - tailLen).arrayBuffer());
+  let e = -1;
+  for (let i = tailLen - 22; i >= 0; i--) if (tail.getUint32(i, true) === 0x06054b50) { e = i; break; }
+  if (e < 0) throw new Error('This does not look like a valid .xlsx file.');
+  let cdSize = tail.getUint32(e + 12, true), cdOff = tail.getUint32(e + 16, true), cnt = tail.getUint16(e + 10, true);
+  if (cdOff === 0xFFFFFFFF || cnt === 0xFFFF) { // ZIP64
+    for (let i = e - 20; i >= 0; i--) if (tail.getUint32(i, true) === 0x07064b50) {
+      const eo = Number(tail.getBigUint64(i + 8, true));
+      const z = new DataView(await file.slice(eo, eo + 56).arrayBuffer());
+      cnt = Number(z.getBigUint64(32, true)); cdSize = Number(z.getBigUint64(40, true)); cdOff = Number(z.getBigUint64(48, true)); break;
+    }
+  }
+  const cd = new DataView(await file.slice(cdOff, cdOff + cdSize).arrayBuffer()), td = new TextDecoder(), map = {};
+  let p = 0;
+  for (let i = 0; i < cnt && p + 46 <= cd.byteLength && cd.getUint32(p, true) === 0x02014b50; i++) {
+    const method = cd.getUint16(p + 10, true); let csize = cd.getUint32(p + 20, true), usize = cd.getUint32(p + 24, true), off = cd.getUint32(p + 42, true);
+    const nl = cd.getUint16(p + 28, true), xl = cd.getUint16(p + 30, true), cl = cd.getUint16(p + 32, true);
+    const name = td.decode(new Uint8Array(cd.buffer, cd.byteOffset + p + 46, nl));
+    if (csize === 0xFFFFFFFF || usize === 0xFFFFFFFF || off === 0xFFFFFFFF) { // ZIP64 extra field
+      let q = p + 46 + nl; const end = q + xl;
+      while (q + 4 <= end) {
+        const id = cd.getUint16(q, true), sz = cd.getUint16(q + 2, true);
+        if (id === 1) { let r = q + 4; if (usize === 0xFFFFFFFF) { usize = Number(cd.getBigUint64(r, true)); r += 8; } if (csize === 0xFFFFFFFF) { csize = Number(cd.getBigUint64(r, true)); r += 8; } if (off === 0xFFFFFFFF) { off = Number(cd.getBigUint64(r, true)); } }
+        q += 4 + sz;
+      }
+    }
+    map[name] = { method, csize, off };
+    p += 46 + nl + xl + cl;
+  }
+  return map;
+}
+// Streams one zip entry as text chunks into onText(str). Never holds the whole entry in memory.
+async function p14ZipStream(file, ent, onText) {
+  const lh = new DataView(await file.slice(ent.off, ent.off + 30).arrayBuffer());
+  const start = ent.off + 30 + lh.getUint16(26, true) + lh.getUint16(28, true);
+  let st = file.slice(start, start + ent.csize).stream();
+  if (ent.method === 8) {
+    if (typeof DecompressionStream === 'undefined') throw new Error('This browser is too old to read big Excel files. Please use the latest Chrome or Edge.');
+    st = st.pipeThrough(new DecompressionStream('deflate-raw'));
+  } else if (ent.method !== 0) throw new Error('Unsupported compression inside the Excel file.');
+  const rd = st.getReader(), dec = new TextDecoder('utf-8');
+  for (;;) { const { done, value } = await rd.read(); if (done) break; await onText(dec.decode(value, { stream: true })); }
+  const rest = dec.decode(); if (rest) await onText(rest);
+}
+async function p14ZipText(file, ent) { let s = ''; await p14ZipStream(file, ent, t => { s += t; }); return s; }
+function p14XmlDec(s) {
+  return s.indexOf('&') < 0 ? s : s.replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (m, g) => {
+    if (g[0] === '#') return String.fromCodePoint(g[1] === 'x' || g[1] === 'X' ? parseInt(g.slice(2), 16) : parseInt(g.slice(1), 10));
+    return { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" }[g.toLowerCase()];
+  });
+}
+function p14ColIdx(ref) { let n = 0; for (let i = 0; i < ref.length; i++) { const c = ref.charCodeAt(i); if (c < 65 || c > 90) break; n = n * 26 + c - 64; } return n - 1; }
+function p14Attr(tag, name) { const m = tag.match(new RegExp('(?:^|\\s)' + name + '="([^"]*)"')); return m ? p14XmlDec(m[1]) : null; }
+async function p14StreamRows(file) {
+  const ents = await p14ZipEntries(file);
+  // 1. find the first sheet
+  let sheetPath = 'xl/worksheets/sheet1.xml';
+  if (ents['xl/workbook.xml'] && ents['xl/_rels/workbook.xml.rels']) {
+    const wbx = await p14ZipText(file, ents['xl/workbook.xml']), rels = await p14ZipText(file, ents['xl/_rels/workbook.xml.rels']);
+    const sh = wbx.match(/<sheet\b[^>]*>/); const rid = sh && (p14Attr(sh[0], 'r:id') || p14Attr(sh[0], 'id'));
+    if (rid) for (const t of rels.match(/<Relationship\b[^>]*>/g) || []) if (p14Attr(t, 'Id') === rid) { let tg = p14Attr(t, 'Target') || ''; sheetPath = tg[0] === '/' ? tg.slice(1) : 'xl/' + tg.replace(/^\.\//, ''); break; }
+  }
+  const sent = ents[sheetPath] || ents['xl/worksheets/sheet1.xml'];
+  if (!sent) throw new Error('Could not find the sheet inside this Excel file.');
+  // 2. shared strings (streamed, one <si> at a time)
+  const ss = [];
+  if (ents['xl/sharedStrings.xml']) {
+    let buf = '';
+    await p14ZipStream(file, ents['xl/sharedStrings.xml'], t => {
+      buf += t; let pos = 0;
+      for (;;) {
+        const a = buf.indexOf('<si', pos); if (a < 0) { pos = Math.max(pos, buf.length - 3); break; }
+        if (a + 3 >= buf.length) { pos = a; break; }
+        const nx = buf.charCodeAt(a + 3); if (nx !== 62 && nx !== 47 && nx !== 32) { pos = a + 3; continue; } // not <si>, <si/> or <si ...>
+        const gt = buf.indexOf('>', a); if (gt < 0) { pos = a; break; }
+        if (buf.charCodeAt(gt - 1) === 47) { ss.push(''); pos = gt + 1; continue; } // <si/>
+        const z = buf.indexOf('</si>', gt); if (z < 0) { pos = a; break; }
+        const body = buf.slice(gt + 1, z).replace(/<rPh\b[\s\S]*?<\/rPh>/g, '');
+        let s = '', m; const re = /<t\b[^>]*>([\s\S]*?)<\/t>/g;
+        while ((m = re.exec(body))) s += m[1];
+        ss.push(p14XmlDec(s)); pos = z + 5;
+      }
+      buf = buf.slice(pos);
+    });
+  }
+  // 3. sheet rows (streamed, one <row> at a time). Keep the first 30 rows whole to find the header, then only the needed columns.
+  const rows = []; let keep = null, seq = 0, buf = '';
+  const decide = () => { const f = p14FindHeader(rows); keep = f ? new Set(Object.values(f.col).filter(v => v >= 0)) : new Set(); };
+  const cellRe = /<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
+  const doRow = (tag, body) => {
+    const rn = p14Attr(tag, 'r'); const ri = rn ? +rn - 1 : seq; seq = ri + 1;
+    if (keep === null && ri >= 30) decide();
+    const arr = []; let ci = 0, m; cellRe.lastIndex = 0;
+    while ((m = cellRe.exec(body))) {
+      const at = m[1], inner = m[2]; const ref = at.match(/\br="([A-Z]+)\d*"/); const c = ref ? p14ColIdx(ref[1]) : ci; ci = c + 1;
+      if (keep !== null && !keep.has(c)) continue;
+      if (inner == null) continue;
+      const tm = at.match(/\bt="([^"]*)"/), t = tm ? tm[1] : 'n'; let v;
+      if (t === 'inlineStr') { let s = '', mm; const re = /<t\b[^>]*>([\s\S]*?)<\/t>/g; while ((mm = re.exec(inner))) s += mm[1]; v = p14XmlDec(s); }
+      else {
+        const a = inner.indexOf('<v>'); if (a < 0) continue; const z = inner.indexOf('</v>', a); const raw = inner.slice(a + 3, z < 0 ? inner.length : z);
+        if (t === 's') v = ss[+raw]; else if (t === 'b') v = raw === '1'; else if (t === 'e') v = ''; else if (t === 'str') v = p14XmlDec(raw); else { v = parseFloat(raw); if (isNaN(v)) v = raw; }
+      }
+      if (v !== undefined) arr[c] = v;
+    }
+    rows[ri] = arr;
+  };
+  await p14ZipStream(file, sent, t => {
+    buf += t; let pos = 0;
+    for (;;) {
+      const a = buf.indexOf('<row', pos); if (a < 0) { pos = Math.max(pos, buf.length - 4); break; }
+      if (a + 4 >= buf.length) { pos = a; break; }
+      const nx = buf.charCodeAt(a + 4); if (nx !== 32 && nx !== 62 && nx !== 47) { pos = a + 4; continue; }
+      const gt = buf.indexOf('>', a); if (gt < 0) { pos = a; break; }
+      if (buf.charCodeAt(gt - 1) === 47) { doRow(buf.slice(a, gt + 1), ''); pos = gt + 1; continue; } // empty <row/>
+      const z = buf.indexOf('</row>', gt); if (z < 0) { pos = a; break; }
+      doRow(buf.slice(a, gt + 1), buf.slice(gt + 1, z)); pos = z + 6;
+    }
+    buf = buf.slice(pos);
+  });
+  if (keep === null) decide();
+  return rows;
+}
+
 // Outlet comes from the "Establishment" column ("001 Kedinje Retail Outlet" → code 001). If that column is missing, the Tax Invoice prefix ("53TI/…") is used.
 function p14Outlet(est, inv, bos) {
   let code = '', name = '';
@@ -5350,12 +5487,7 @@ function p14Outlet(est, inv, bos) {
 function p14Parse(rows) {
   if (p14MyOutlets && p14MyOutlets.length === 0) throw new Error('No outlets have been assigned to you yet. Ask the owner to assign your outlets.');
   const norm = v => String(v == null ? '' : v).trim();
-  let h = -1, col = {};
-  for (let i = 0; i < Math.min(rows.length, 30) && h < 0; i++) {
-    const r = (rows[i] || []).map(v => norm(v).toLowerCase()), f = re => r.findIndex(x => re.test(x));
-    const c = { d: f(/^date/), n: f(/customer/), a: f(/invoice amount|^amount|net amount/), p: f(/payment/), e: f(/establishment|outlet/), t: f(/tax invoice/), b: f(/bill of supply/) };
-    if (c.d >= 0 && c.a >= 0 && c.p >= 0) { h = i; col = c; }
-  }
+  const found = p14FindHeader(rows), h = found ? found.h : -1, col = found ? found.col : {};
   if (h < 0) throw new Error('Could not find the Date Time, Customer Name, Invoice Amount and Payment Mode columns. Is this the Invoice List file?');
   const days = {}, outlets = {}; let n = 0, skipped = 0;
   for (let i = h + 1; i < rows.length; i++) {
@@ -5594,7 +5726,7 @@ function p14SetFile(f) {
   if (!/\.(xlsx|xls)$/i.test(f.name)) { p14Err('⚠ Please upload an Excel file (.xlsx or .xls only).'); return; }
   p14File = f; p14Data = null;
   $14('p14ErrorBox').classList.remove('visible'); $14('p14ResultsSection').classList.remove('visible');
-  $14('p14FileName').textContent = f.name; $14('p14FileSize').textContent = (f.size / 1024).toFixed(1) + ' KB';
+  $14('p14FileName').textContent = f.name; $14('p14FileSize').textContent = f.size > 1048576 ? (f.size / 1048576).toFixed(1) + ' MB' : (f.size / 1024).toFixed(1) + ' KB';
   $14('p14FileInfo').classList.add('visible'); $14('p14ProcessBtn').classList.add('visible'); $14('p14UploadZone').classList.add('filled');
   $14('p14ZoneTitle').textContent = f.name;
   $14('p14ZoneSub').innerHTML = 'File selected — <span class="hl1">click to choose a different file</span>';
@@ -5616,8 +5748,18 @@ $14('p14ProcessBtn').addEventListener('click', async () => {
   $14('p14ErrorBox').classList.remove('visible'); $14('p14ResultsSection').classList.remove('visible'); $14('p14ProcessBtn').disabled = true;
   try {
     if (!p14DirLoaded) await p14LoadDirectory();
-    const rows = p14ReadRows(await p14File.arrayBuffer());
-    const parsed = p14Parse(rows);
+    // Big yearly .xlsx files (20 MB+) are streamed; SheetJS silently returns an empty sheet on them.
+    const isX = /\.xlsx$/i.test(p14File.name), big = isX && p14File.size > 20 * 1024 * 1024;
+    let rows, parsed;
+    if (big) {
+      try { rows = await p14StreamRows(p14File); }
+      catch (se) { console.warn('Streaming read failed, trying the normal reader', se); try { rows = p14ReadRows(await p14File.arrayBuffer()); } catch (e2) { throw se; } }
+      parsed = p14Parse(rows);
+    } else {
+      rows = p14ReadRows(await p14File.arrayBuffer());
+      try { parsed = p14Parse(rows); }
+      catch (pe) { if (isX && /Could not find/.test(pe.message)) { rows = await p14StreamRows(p14File); parsed = p14Parse(rows); } else throw pe; }
+    }
     const outlets = parsed.outlets.map(o => {
       const months = p14Build(parsed.days[o.code], parsed.monthKeys), tot = f => months.reduce((a, m) => a.map((v, i) => v + m[f][i]), [0, 0, 0, 0, 0]);
       return { ...o, label: (o.code + ' ' + o.name).trim(), months, s: tot('s'), o: tot('o'), active: months.reduce((a, m) => a + m.active, 0) };
