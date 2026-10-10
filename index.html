@@ -38,6 +38,19 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .sidebar-logo h1{font-size:18px;font-weight:800;letter-spacing:-.3px}
 .sidebar-logo h1 span{background:linear-gradient(90deg,var(--t1),var(--t2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .sidebar-tagline{color:var(--muted);font-size:10.5px;font-family:'DM Mono',monospace;padding:0 8px;margin-bottom:26px;line-height:1.6}
+/* ── PERSONAL HELLO (sidebar + top bar) + DAILY CLUSTER-MANAGER GREETING ── */
+.sidebar-hello{display:none;padding:0 8px;margin:-2px 0 8px;font-family:'Manrope',sans-serif;font-weight:700;font-size:12.5px;color:var(--t1)}
+.sidebar-hello.on{display:block}
+.hello-chip{display:none;font-family:'Manrope',sans-serif;font-weight:700;font-size:13px;color:var(--t1);background:rgba(91,127,224,.12);border:1px solid rgba(91,127,224,.25);border-radius:20px;padding:5px 13px;white-space:nowrap}
+.hello-chip.on{display:inline-block}
+#greetBanner{position:fixed;top:16px;left:50%;transform:translate(-50%,-140%);z-index:10001;width:min(92vw,460px);background:var(--surface);border:1px solid var(--t1);border-radius:16px;padding:16px 44px 16px 18px;box-shadow:0 14px 40px rgba(0,0,0,.5);transition:transform .45s cubic-bezier(.2,.9,.3,1.1)}
+#greetBanner.on{transform:translate(-50%,0)}
+#greetBanner .gb-title{font-family:'Manrope',sans-serif;font-weight:800;font-size:15.5px;line-height:1.4}
+#greetBanner .gb-title span{color:var(--t1)}
+#greetBanner .gb-sub{font-family:'DM Mono',monospace;font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.6}
+#greetBanner .gb-close{position:absolute;top:10px;right:12px;background:none;border:none;color:var(--muted);font-size:17px;cursor:pointer}
+#greetBanner .gb-close:hover{color:var(--accent3)}
+@media(max-width:560px){.hello-chip{font-size:11.5px;padding:4px 10px}.topbar{flex-wrap:wrap}}
 .nav-label{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;padding:0 10px;margin:8px 0 9px}
 .sidebar-spacer{flex:1;min-height:20px}
 .sidebar-footer{padding:14px 10px 2px;border-top:1px solid var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:9.5px}
@@ -455,6 +468,14 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 /* ── APPROVAL GATE (shown to signed-in users who aren't approved yet) ── */
 #pendingGate{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:var(--bg);padding:24px}
 
+/* ── OUTLET GATE (mandatory outlet pick) + sidebar outlet line ── */
+#outletGate{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:var(--bg);padding:24px;overflow-y:auto}
+#ogInput.og-ok{border-color:#3FB874}
+#ogInput.og-bad{border-color:#E15C5C}
+.sidebar-outlet{display:none;padding:0 8px;margin:0 0 8px;font-family:'DM Mono',monospace;font-size:10.5px;color:var(--muted);line-height:1.5}
+.sidebar-outlet.on{display:block}
+.pc-input[readonly]{opacity:.85;cursor:not-allowed}
+
 /* ── STATUS PILLS + APPROVE/DENY BUTTONS (owner dashboard) ── */
 .pill{border-radius:20px;padding:3px 10px;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;display:inline-block;white-space:nowrap}
 .pill-pending{background:rgba(214,146,59,.15);color:var(--t3)}
@@ -493,6 +514,29 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
   </div>
 </div>
 
+<!-- ══ OUTLET GATE — mandatory "which outlet are you?" screen for staff (also reused for "request outlet change") ══ -->
+<div id="outletGate">
+  <div class="auth-card" style="max-width:440px;text-align:left">
+    <div class="suite-icon" id="ogIcon" style="margin-left:auto;margin-right:auto">📍</div>
+    <h1 id="ogTitle" style="text-align:center">Select your <span>Outlet</span></h1>
+    <p class="auth-sub" id="ogSub" style="text-align:center">Type your outlet number or name — e.g. <strong>053</strong> or <strong>Hosur</strong>. Small spelling mistakes are fine, pick your outlet from the list that appears.</p>
+    <label class="pc-label">Your Outlet</label>
+    <input type="text" id="ogInput" class="pc-input" placeholder="e.g. 053 or Hosur" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <div id="ogMatch" style="margin-top:8px;min-height:16px;font-family:'DM Mono',monospace;font-size:11.5px;color:var(--muted)"></div>
+    <div id="ogWarn" style="margin-top:10px;font-family:'DM Mono',monospace;font-size:11px;color:#D6923B;line-height:1.6"></div>
+    <button id="ogConfirm" class="google-btn" style="margin-top:16px;background:var(--t1);color:#fff" disabled>Confirm outlet</button>
+    <button id="ogCancel" class="google-btn" style="margin-top:10px;background:var(--surface2);color:var(--text);display:none">Cancel</button>
+    <button id="ogSignOut" class="google-btn" style="margin-top:10px;background:none;color:var(--muted);border:1px solid var(--border);font-size:12px">Sign out</button>
+    <div class="auth-error" id="ogError"></div>
+  </div>
+</div>
+
+<div id="greetBanner" role="status" aria-live="polite">
+  <button class="gb-close" aria-label="Close" onclick="hideGreeting()">✕</button>
+  <div class="gb-title" id="gbTitle"></div>
+  <div class="gb-sub" id="gbSub"></div>
+</div>
+
 <div id="appShell">
 <div id="p3OfflineBanner">🔴 You're offline — new counts and photos will save automatically once your connection returns. Keep this tab open.</div>
 <div class="shell-flex">
@@ -502,6 +546,8 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     <div class="suite-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4.5C5 6 3.5 9 4 12.5c.5 3.5 3 6 6.5 6.8 3.7.8 7-.8 8.5-4 1.3-2.8.7-5.8-1.5-7.8"/><path d="M15.5 4.5c1 1.5 1.2 3 .5 4.5"/></svg></div>
     <h1>Bolas <span>Stock Suite</span></h1>
   </div>
+  <div class="sidebar-hello" id="sidebarHello"></div>
+  <div class="sidebar-outlet" id="sidebarOutlet"></div>
   <p class="sidebar-tagline">3-in-1 Tool · Enterprise Inventory Platform</p>
   <div class="nav-label">Main Menu</div>
   <div class="tab-bar">
@@ -558,9 +604,10 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
   <div style="display:flex;align-items:center;gap:14px">
     <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">☰</button>
     <div class="topbar-title" id="topbarTitle">Dashboard</div>
+    <span class="hello-chip" id="topbarHello"></span>
   </div>
   <div style="display:flex;align-items:center;gap:10px">
-    <button class="icon-btn" id="bellBtn" style="display:none" onclick="switchTab(4)" aria-label="Pending requests" title="Pending sign-in requests">🔔<span class="badge" id="bellBadge" style="display:none">0</span></button>
+    <button class="icon-btn" id="bellBtn" style="display:none" onclick="switchTab(4)" aria-label="Pending requests" title="Pending sign-in, all-outlet access, new-outlet and outlet-change requests">🔔<span class="badge" id="bellBadge" style="display:none">0</span></button>
     <div id="userChip" class="user-chip"></div>
   </div>
 </div>
@@ -703,7 +750,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     <div class="setup-card">
       <div class="setup-card-hdr"><div class="setup-num" style="background:#3FB874">2</div><h3>Outlet Details</h3></div>
       <label style="display:block;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;">Outlet Name <span style="color:var(--t3)">*</span></label>
-      <input type="text" id="p3OutletName" list="p3OutletDatalist" placeholder="e.g. 053 Bangalore Vijayanagar" autocomplete="off"
+      <input type="text" id="p3OutletName" placeholder="e.g. 053 Bangalore Vijayanagar" autocomplete="off"
         style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:13px;color:var(--text);outline:none;transition:border-color .2s;"
         oninput="p3UpdateOutletPreview()"
         onfocus="this.style.borderColor='var(--t3)'"
@@ -713,6 +760,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
       <div id="p3OutletPreview" style="margin-top:8px;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);display:none;">
         Sheet title will read: <span id="p3OutletPreviewText" style="color:var(--t3);font-weight:700;"></span>
       </div>
+      <div id="p3OutletNote" style="display:none;margin-top:8px;font-size:11px;font-family:'DM Mono',monospace;color:#E15C5C;">⚠ Not in the outlet list — pick one from the dropdown, or request it below. A new outlet is usable only after the owner approves it.</div>
       <div id="p3SaveOutletRow" style="margin-top:8px;display:none;">
         <button type="button" onclick="p3SaveCurrentOutlet()" style="background:none;border:1px dashed var(--border);color:var(--muted);border-radius:7px;padding:5px 11px;font-family:'DM Mono',monospace;font-size:10.5px;cursor:pointer;">+ Save "<span id="p3SaveOutletName"></span>" to Outlet Manager</button>
       </div>
@@ -849,6 +897,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
   </div>
   <button class="download-btn" id="ownerRefreshBtn" style="margin-bottom:20px;max-width:220px;border:2px solid var(--accent3);color:var(--accent3)">↻ Refresh Data</button>
   <div id="ownerPendingWrap" style="margin-bottom:28px"></div>
+  <div id="ownerOutletReqWrap" style="margin-bottom:28px"></div>
   <div id="ownerPackWrap" style="margin-bottom:28px"></div>
   <div id="ownerP1PackWrap" style="margin-bottom:28px"></div>
   <div id="ownerDashWrap"></div>
@@ -935,13 +984,14 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     <span class="dot" style="background:#5B7FE0"></span>
     <div><h2>Outlet Manager</h2><p>Save outlet names once, reuse them in Stock Audit</p></div>
   </div>
-  <div class="setup-card" style="max-width:460px;margin-bottom:24px">
+  <div class="setup-card" id="outletAddCard" style="max-width:460px;margin-bottom:24px">
     <label style="display:block;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;">Add Outlet</label>
     <div style="display:flex;gap:8px">
       <input type="text" id="outletNewName" placeholder="e.g. 053 Bangalore Vijayanagar" style="flex:1;min-width:0;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:13px;color:var(--text);outline:none">
       <button class="download-btn" onclick="addOutlet()" style="width:auto;padding:10px 18px;border:2px solid #5B7FE0;color:#5B7FE0">+ Add</button>
     </div>
-    <div id="outletAddErr" style="color:#E15C5C;font-size:11px;font-family:'DM Mono',monospace;margin-top:8px;min-height:14px"></div>
+    <div id="outletNumHint" style="color:var(--muted);font-size:11px;font-family:'DM Mono',monospace;margin-top:8px"></div>
+     <div id="outletAddErr" style="color:#E15C5C;font-size:11px;font-family:'DM Mono',monospace;margin-top:8px;min-height:14px"></div>
   </div>
   <div class="results-title">Saved Outlets</div>
   <div id="outletListWrap"><p style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">Loading…</p></div>
@@ -971,7 +1021,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     <div class="setup-card">
       <div class="setup-card-hdr"><div class="setup-num" style="background:#5B7FE0">1</div><h3>Outlet &amp; Balances</h3></div>
       <label class="pc-label">Outlet Name</label>
-      <input type="text" id="pcOutletName" list="p3OutletDatalist" placeholder="e.g. 053 Bangalore Vijayanagar" class="pc-input" autocomplete="off">
+      <input type="text" id="pcOutletName" placeholder="e.g. 053 Bangalore Vijayanagar" class="pc-input" autocomplete="off">
       <label class="pc-label" style="margin-top:12px">Date</label>
       <input type="date" id="pcDate" class="pc-input">
       <label class="pc-label" style="margin-top:12px">Opening Balance (₹)</label>
@@ -1025,7 +1075,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 
   <div class="setup-card" style="max-width:460px;margin-bottom:20px">
     <label class="pc-label">Outlet Name</label>
-    <input type="text" id="clOutletName" list="p3OutletDatalist" placeholder="e.g. 053 Bangalore Vijayanagar" class="pc-input" autocomplete="off">
+    <input type="text" id="clOutletName" placeholder="e.g. 053 Bangalore Vijayanagar" class="pc-input" autocomplete="off">
   </div>
 
   <div id="clChecklist"></div>
@@ -1086,6 +1136,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     <div id="p14DirMsg" style="font-size:11.5px;margin-top:8px;font-family:'DM Mono',monospace;min-height:14px"></div>
     <div id="p14DirList" style="margin-top:10px;max-height:320px;overflow:auto"></div>
   </details>
+  <div id="p14AccessBar" style="display:none;margin-bottom:14px;font-family:'DM Mono',monospace;font-size:11.5px;color:#8B5CF6"></div>
   <div class="upload-zone" id="p14UploadZone">
     <div class="upload-icon" id="p14ZoneIcon"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div>
     <h2 id="p14ZoneTitle">Drop your Invoice List here</h2>
@@ -1122,10 +1173,12 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     <div><h2>Outlet Documents</h2><p>Agreements, trade licence, FSSAI and other outlet paperwork — with expiry reminders</p></div>
   </div>
   <div id="odBanner"></div>
-  <div class="setup-card" style="margin-bottom:18px;max-width:560px">
+  <div id="odScopeNote" style="display:none;margin-bottom:14px;font-family:'DM Mono',monospace;font-size:11.5px;color:#8B5CF6"></div>
+  <div class="setup-card" id="odAddCard" style="margin-bottom:18px;max-width:560px">
     <div class="setup-card-hdr"><div class="setup-num" style="background:#8B5CF6">+</div><h3>Add Outlet</h3></div>
     <label class="pc-label">Outlet Number</label>
     <input type="text" id="odNewNumber" class="pc-input" placeholder="e.g. 12">
+    <div id="odNumHint" style="margin-top:4px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)"></div>
     <label class="pc-label" style="margin-top:10px">Outlet Name</label>
     <input type="text" id="odNewName" class="pc-input" placeholder="e.g. Karkala Main Branch">
     <button id="odAddOutletBtn" style="margin-top:12px;background:#8B5CF6;border:none;color:#fff;border-radius:8px;padding:10px 18px;font-family:'Manrope',sans-serif;font-weight:700;font-size:12px;cursor:pointer">+ Add Outlet</button>
@@ -2414,6 +2467,10 @@ function p3ProcessFile(){
     $3('p3OutletName').style.borderColor = '#E15C5C';
     setTimeout(()=>{ if($3('p3OutletName')) $3('p3OutletName').style.borderColor='var(--border)'; }, 2000);
     return;
+  }
+  if(!obCheck(outletVal)){
+    $3('p3ErrBox').textContent = '⚠ "'+outletVal+'" is not in the approved outlet list. '+obBlockMsg(outletVal);
+    p3On($3('p3ErrBox')); $3('p3OutletName').focus(); return;
   }
   p3Off($3('p3ErrBox'));p3Msg('Reading Excel file…');$3('p3BtnGo').disabled=true;
   setTimeout(()=>{
@@ -3704,6 +3761,17 @@ const db = firebase.firestore();
 let currentUser = null;
 let isOwner = false;
 let isClusterManager = false;
+// Outlet-access rules: owner = everything. Cluster manager = ONLY the outlets the owner ticked for him,
+// unless the owner has approved "all outlets" (allOutletsAccess). Nobody else sees outlet data.
+let myAllAccess = false, myAllReq = '', lastScopeSig = null;
+function hasAllOutlets() { return isOwner || (isClusterManager && myAllAccess); }
+function canUseOutletTools() { return isOwner || isClusterManager; }
+// Regular staff ("outlet users"): everyone who is neither the owner nor a cluster manager. They pick ONE outlet at first sign-in
+// (mandatory), then see only that outlet's documents and data. Changing it needs the owner's approval.
+let myOutletCode = '', myOutletName = '', myOutletChange = { status: '', code: '', name: '' };
+let ogMode = '', ogPicked = null;   // outlet gate: '' | 'first' (mandatory) | 'change' (request pop-up) · the outlet currently matched in the box
+function isStaffUser() { return !!currentUser && !isOwner && !isClusterManager; }
+function canSeeOutletDocs() { return isOwner || isClusterManager || (isStaffUser() && !!(myOutletCode || myOutletName)); }
 let odOutlets = [], odDocs = [], odExpanded = null;
 const PANEL_NAMES = {1:'Kernel Report',2:'Flavoured Report',3:'Stock Audit',4:'Owner Dashboard',5:'Dashboard',6:'History',7:'Settings',8:'Rate Manager',9:'Outlet Manager',10:'Audit History',11:'Petty Cash',12:'Cleanliness',13:'Ready Files',14:'Sales Report',15:'Outlet Documents'};
 
@@ -3723,7 +3791,38 @@ document.getElementById('googleSignInBtn').addEventListener('click', () => {
 });
 
 // ---- Auth state: show/hide the app, gate non-approved users, tag the owner ----
-let userStatusUnsub = null, bellUnsub = null;
+let userStatusUnsub = null, bellUnsub = null, outletReqUnsub = null;
+let firstLoginToday = false, greetShownFor = '', greetTimer = null;
+
+// ---- "Hello Harish" / "Hello Sharath": the signed-in person's first name, top bar + beside the Bolas Stock Suite logo ----
+function localDateKey(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function firstNameOf(user) {
+  const raw = ((user && (user.displayName || (user.email || '').split('@')[0])) || '').trim().split(/\s+/)[0] || '';
+  return raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : '';
+}
+function setHelloName(user) {
+  const name = user ? firstNameOf(user) : '';
+  const top = document.getElementById('topbarHello'), side = document.getElementById('sidebarHello');
+  if (top) { top.textContent = name ? '👋 Hello ' + name : ''; top.classList.toggle('on', !!name); }
+  if (side) { side.textContent = name ? 'Hello, ' + name : ''; side.classList.toggle('on', !!name); }
+}
+
+// ---- Daily greeting for Cluster Managers: shown once, the first time they sign in on a given day ----
+function greetingWord() { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; }
+function maybeShowDailyGreeting() {
+  if (!currentUser || isOwner || !isClusterManager || !firstLoginToday) return;
+  const today = localDateKey(new Date());
+  if (greetShownFor === today) return;           // the status listener fires more than once — only greet once
+  greetShownFor = today; firstLoginToday = false;
+  const name = firstNameOf(currentUser);
+  document.getElementById('gbTitle').innerHTML = '🌤️ ' + greetingWord() + ', dear Cluster Manager <span>' + escHtml(name) + '</span>';
+  const mine = (p14MyOutlets === null) ? 'all outlets' : (Array.isArray(p14MyOutlets) && p14MyOutlets.length ? (p14MyOutlets.length > 6 ? p14MyOutlets.length + ' outlets' : p14MyOutlets.join(', ')) : '');
+  document.getElementById('gbSub').textContent = mine ? 'Your outlets today: ' + mine + '. Have a great day!' : 'Have a great day!';
+  const b = document.getElementById('greetBanner');
+  setTimeout(() => b.classList.add('on'), 400);
+  clearTimeout(greetTimer); greetTimer = setTimeout(hideGreeting, 10000);
+}
+function hideGreeting() { clearTimeout(greetTimer); const b = document.getElementById('greetBanner'); if (b) b.classList.remove('on'); }
 
 function initials(name, email) {
   const src = (name || email || '?').trim();
@@ -3739,12 +3838,26 @@ fbAuth.onAuthStateChanged(async (user) => {
 
   if (!user) {
     currentUser = null; isOwner = false;
+    // Wipe cluster-manager state so the next person to sign in on this page never inherits the tab or its data
+    isClusterManager = false; myAllAccess = false; myAllReq = ''; lastScopeSig = null; p14MyOutlets = []; odOutlets = []; odDocs = []; odExpanded = null;
+    { const t = document.querySelector('.tab[data-tab="15"]'); if (t) t.remove();
+      const w = document.getElementById('odOutletsWrap'); if (w) w.innerHTML = '';
+      const b = document.getElementById('odBanner'); if (b) b.innerHTML = '';
+      const p = document.getElementById('panel15'); if (p) p.classList.remove('active'); }
+    // Wipe the previous person's outlet so the next sign-in on this page never inherits it (locked fields, scoped history, gate)
+    myOutletCode = ''; myOutletName = ''; myOutletChange = { status: '', code: '', name: '' };
+    ogMode = ''; ogPicked = null; applyStaffOutletLock(); setMyOutletUI();
+    ['auditHistoryWrap', 'pettyCashHistoryWrap', 'cleanlinessHistoryWrap', 'dashRecentWrap', 'historyWrap', 'settingsWrap'].forEach(id => { const w = document.getElementById(id); if (w) w.innerHTML = ''; });
+    { const mt = document.querySelector('.tab[data-tab="9"]'); if (mt) mt.style.display = ''; }
     if (bellBtn) bellBtn.style.display = 'none';
+    setHelloName(null); hideGreeting(); firstLoginToday = false; greetShownFor = '';
+    if (outletReqUnsub) { outletReqUnsub(); outletReqUnsub = null; }
     showScreen('authGate');
     return;
   }
   currentUser = user;
   isOwner = (user.email || '').toLowerCase() === OWNER_EMAIL.toLowerCase();
+  setHelloName(user);
 
   const chip = document.getElementById('userChip');
   const firstName = (user.displayName || user.email || '').split(' ')[0];
@@ -3759,16 +3872,22 @@ fbAuth.onAuthStateChanged(async (user) => {
 
   if (isOwner) {
     addOwnerTab();
-    isClusterManager = true; addClusterDocsTab();
+    isClusterManager = true; myAllAccess = true; p14MyOutlets = null; addClusterDocsTab(); applyAccessTabs();
     showScreen('app');
     // Live badge of pending sign-in requests, visible from any tab
     if (bellBtn) {
       bellBtn.style.display = 'flex';
-      bellUnsub = db.collection('users').where('status', '==', 'pending').onSnapshot(snap => {
-        const n = snap.size;
+      let nSign = 0, nReq = 0, nOut = 0, nChg = 0;
+      const paintBell = () => {
+        const n = nSign + nReq + nOut + nChg;
         const badge = document.getElementById('bellBadge');
         if (badge) { badge.textContent = n; badge.style.display = n > 0 ? 'flex' : 'none'; }
-      }, err => console.warn('bell listener failed:', err));
+      };
+      const u1 = db.collection('users').where('status', '==', 'pending').onSnapshot(snap => { nSign = snap.size; paintBell(); }, err => console.warn('bell listener failed:', err));
+      const u2 = db.collection('users').where('allOutletsRequest', '==', 'pending').onSnapshot(snap => { nReq = snap.size; paintBell(); }, err => console.warn('bell (access requests) listener failed:', err));
+      const u3 = db.collection('outlets').where('status', '==', 'pending').onSnapshot(snap => { nOut = snap.size; paintBell(); }, err => console.warn('bell (new outlet requests) listener failed:', err));
+      const u4 = db.collection('users').where('outletChangeStatus', '==', 'pending').onSnapshot(snap => { nChg = snap.size; paintBell(); }, err => console.warn('bell (outlet change requests) listener failed:', err));
+      bellUnsub = () => { u1(); u2(); u3(); u4(); };
     }
     return;
   }
@@ -3778,12 +3897,42 @@ fbAuth.onAuthStateChanged(async (user) => {
   userStatusUnsub = db.collection('users').doc(user.uid).onSnapshot(snap => {
     const status = snap.exists ? (snap.data().status || 'pending') : 'pending';
     isClusterManager = !!(snap.exists && snap.data().isClusterManager);
-    { const ao = snap.exists ? snap.data().assignedOutlets : null;
-      p14MyOutlets = (isClusterManager && Array.isArray(ao) && ao.length) ? ao.map(c => String(c).replace(/\D/g, '').padStart(3, '0')) : null; }
+    {
+      const d = snap.exists ? snap.data() : {};
+      const ao = d.assignedOutlets;
+      myAllAccess = !!(isClusterManager && d.allOutletsAccess === true);
+      myAllReq = d.allOutletsRequest || '';
+      // null = every outlet (only when the owner approved it). Otherwise ONLY the outlets the owner ticked; none ticked = none.
+      p14MyOutlets = !isClusterManager ? [] : myAllAccess ? null
+        : (Array.isArray(ao) ? ao.map(c => String(c).replace(/\D/g, '').padStart(3, '0')) : []);
+      const sig = JSON.stringify(p14MyOutlets);
+      if (lastScopeSig !== null && sig !== lastScopeSig && p14Data) {
+        // his access changed after he processed a file → wipe the old view so nothing out-of-scope stays on screen
+        document.getElementById('p14RemoveBtn')?.click();
+        p14Err('Your outlet access was updated by the owner — please upload the Invoice List again.');
+      }
+      lastScopeSig = sig;
+      // The staff member's own outlet (chosen at first sign-in) and any change request waiting for the owner
+      myOutletCode = String(d.myOutletCode || '');
+      myOutletName = String(d.myOutletName || '');
+      myOutletChange = { status: d.outletChangeStatus || '', code: d.outletChangeCode || '', name: d.outletChangeName || '' };
+    }
+    applyStaffOutletLock(); setMyOutletUI();
+    // MANDATORY: every approved staff member must pick an outlet before anything else.
+    // Cluster managers are NEVER asked (they see the outlets the owner assigned them), and nobody is asked while still waiting for approval —
+    // the owner decides at approval time whether this person is staff or a cluster manager.
+    if (status === 'approved' && !isClusterManager && !myOutletCode && !myOutletName) { showOutletGate('first'); return; }
+    if (ogMode === 'first') hideOutletGate();
     if (status === 'approved') {
       showScreen('app');
-      if (isClusterManager) addClusterDocsTab();
-      else { const t = document.querySelector('.tab[data-tab="15"]'); if (t) { t.remove(); if (document.getElementById('panel15').classList.contains('active')) switchTab(5); } }
+      applyAccessTabs();
+      renderAccessBar('p14AccessBar'); renderAccessBar('odScopeNote');
+      if (isClusterManager) maybeShowDailyGreeting();   // once, on the cluster manager's first login of the day
+      syncOutletDocsTab();
+      // owner just changed this manager's outlets / this staff member's outlet (or the panel is open) → re-load so the list matches immediately
+      if ((isClusterManager || isStaffUser()) && document.getElementById('panel15').classList.contains('active')) loadClusterDocsPanel();
+      if (document.getElementById('panel7').classList.contains('active')) loadSettingsPanel();
+      if (isStaffUser()) { ['panel10', 'panel11', 'panel12'].forEach(pid => { if (document.getElementById(pid).classList.contains('active')) switchTab(+pid.slice(5)); }); }
     }
     else showPendingGate(status);
   }, err => {
@@ -3792,15 +3941,68 @@ fbAuth.onAuthStateChanged(async (user) => {
   });
 });
 
+// ---- Hide outlet tools (Sales Report) from anyone who isn't the owner or a cluster manager ----
+function applyAccessTabs() {
+  const t = document.querySelector('.tab[data-tab="14"]');
+  if (t) t.style.display = canUseOutletTools() ? '' : 'none';
+  if (!canUseOutletTools() && document.getElementById('panel14')?.classList.contains('active')) switchTab(5);
+  // Outlet Manager lists EVERY outlet and who added it — staff are locked to one outlet, so it is hidden from them
+  const om = document.querySelector('.tab[data-tab="9"]');
+  if (om) om.style.display = isStaffUser() ? 'none' : '';
+  if (isStaffUser() && document.getElementById('panel9')?.classList.contains('active')) switchTab(5);
+}
+// Outlet Documents tab: owner + cluster managers (all / assigned outlets) and staff (their own outlet only, view-only)
+function syncOutletDocsTab() {
+  const t = document.querySelector('.tab[data-tab="15"]');
+  if (canSeeOutletDocs()) addClusterDocsTab();
+  else if (t) { t.remove(); if (document.getElementById('panel15').classList.contains('active')) switchTab(5); }
+}
+// ---- The little "your outlets / request all outlets" bar shown to a cluster manager ----
+function renderAccessBar(elId) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (isStaffUser()) {
+    // Staff: a fixed outlet + (optionally) a change request waiting for the owner
+    if (elId !== 'odScopeNote' || !myOutletName) { el.style.display = 'none'; el.innerHTML = ''; return; }
+    el.style.display = 'block';
+    let tail;
+    if (myOutletChange.status === 'pending') tail = ' <span style="color:var(--muted)">· Change to <strong>' + escHtml(myOutletChange.name) + '</strong> requested — waiting for the owner to approve.</span>';
+    else tail = (myOutletChange.status === 'denied' ? ' <span style="color:#E15C5C">· The owner declined your last change request.</span>' : '')
+      + ' <button class="mini-btn" style="border:1px solid #8B5CF6;color:#8B5CF6;margin-left:6px" onclick="openOutletChange()">Request outlet change</button>';
+    el.innerHTML = '📍 Showing only your outlet: <strong>' + escHtml(myOutletName) + '</strong>.' + tail;
+    return;
+  }
+  if (isOwner || !isClusterManager) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.style.display = 'block';
+  if (myAllAccess) { el.innerHTML = '✓ The owner has approved access to <strong>all outlets</strong> for you.'; return; }
+  const mine = (Array.isArray(p14MyOutlets) && p14MyOutlets.length) ? p14MyOutlets.join(', ') : 'none assigned yet';
+  let tail;
+  if (myAllReq === 'pending') tail = ' <span style="color:var(--muted)">· Request for all outlets sent — waiting for the owner to approve.</span>';
+  else tail = (myAllReq === 'denied' ? ' <span style="color:#E15C5C">· The owner declined your last request.</span>' : '')
+    + ' <button class="mini-btn" style="border:1px solid #8B5CF6;color:#8B5CF6;margin-left:6px" onclick="requestAllOutlets(this)">Request access to all outlets</button>';
+  el.innerHTML = 'Cluster Manager view — your outlets: <strong>' + escHtml(mine) + '</strong>.' + tail;
+}
+async function requestAllOutlets(btn) {
+  if (!currentUser || isOwner || myAllAccess) return;
+  if (!confirm('Send a request to the owner for access to ALL outlets?')) return;
+  if (btn) btn.disabled = true;
+  try {
+    await db.collection('users').doc(currentUser.uid).update({ allOutletsRequest: 'pending', allOutletsRequestedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    logActivity('request_all_outlets', 14, 'asked owner for all-outlet access');
+  } catch (e) { alert("Couldn't send the request: " + e.message); if (btn) btn.disabled = false; }
+}
+
 // ---- Screen switching: authGate / pendingGate / app — always exactly one visible ----
 function showScreen(which) {
   document.getElementById('authGate').style.display = which === 'authGate' ? 'flex' : 'none';
   document.getElementById('pendingGate').style.display = 'none';
+  if (ogMode !== 'change') document.getElementById('outletGate').style.display = 'none';   // a "request change" pop-up stays open while the app refreshes behind it
   document.getElementById('appShell').style.display = which === 'app' ? 'block' : 'none';
   if (which === 'app') loadDashboardPanel();
 }
 function showPendingGate(status) {
   document.getElementById('authGate').style.display = 'none';
+  document.getElementById('outletGate').style.display = 'none';
   document.getElementById('appShell').style.display = 'none';
   document.getElementById('pendingGate').style.display = 'flex';
   const icon = document.getElementById('pgIcon'), title = document.getElementById('pgTitle'), sub = document.getElementById('pgSub');
@@ -3816,12 +4018,119 @@ function showPendingGate(status) {
 }
 document.getElementById('pgSignOutBtn').addEventListener('click', () => fbAuth.signOut());
 
+// ══════════════════════════════════════════════════════════════
+// OUTLET GATE — approved staff must pick their outlet on first login (mandatory); changing it later needs the owner's approval. Cluster managers are never asked.
+// Search is the shared obSearch(): "053" → 053 …, "Hosur" / "hosure" / "hosr" → 051 …Hosur (spelling mistakes still match).
+// ══════════════════════════════════════════════════════════════
+function ogCodeOf(o) { return o.code || outletLeadCode(o.name) || ''; }
+function ogFindExact(text) {
+  const n = obNorm(text); if (!n) return null;
+  return obAll().find(o => obNorm(o.name) === n || o.alias.some(a => obNorm(a) === n)) || null;
+}
+function ogUpdateMatch() {
+  const inp = document.getElementById('ogInput'), m = document.getElementById('ogMatch'), btn = document.getElementById('ogConfirm');
+  const v = inp.value.trim(), hit = v ? ogFindExact(v) : null;
+  ogPicked = hit;
+  inp.classList.toggle('og-ok', !!hit); inp.classList.toggle('og-bad', !!v && !hit);
+  if (hit) { m.style.color = '#3FB874'; m.textContent = '✓ ' + hit.name + (hit.type ? ' · ' + (hit.type === 'franchise' ? 'Franchise' : 'Company-owned') : ''); }
+  else if (v) {
+    const n = obSearch(v).length; m.style.color = '#D6923B';
+    m.textContent = n ? 'Tap your outlet in the list below the box (' + n + ' match' + (n > 1 ? 'es' : '') + ')' : 'No outlet found — check the number / name, or ask the owner to add it.';
+  } else { m.style.color = 'var(--muted)'; m.textContent = ''; }
+  btn.disabled = !hit;
+}
+function showOutletGate(mode) {
+  const gate = document.getElementById('outletGate'), inp = document.getElementById('ogInput');
+  const already = ogMode === mode && gate.style.display === 'flex';
+  ogMode = mode;
+  if (mode === 'first') ['authGate', 'pendingGate', 'appShell'].forEach(id => { document.getElementById(id).style.display = 'none'; });
+  gate.style.display = 'flex';
+  if (already) return;                     // the status listener fires repeatedly — don't wipe what the person is typing
+  ogPicked = null; inp.value = '';
+  document.getElementById('ogError').textContent = '';
+  const first = mode === 'first';
+  document.getElementById('ogIcon').textContent = first ? '📍' : '🔁';
+  document.getElementById('ogTitle').innerHTML = first ? 'Select your <span>Outlet</span>' : 'Request <span>Outlet Change</span>';
+  document.getElementById('ogSub').innerHTML = first
+    ? 'This is required. Type your outlet number or name — e.g. <strong>053</strong> or <strong>Hosur</strong>. Small spelling mistakes are fine; tap your outlet in the list that appears.'
+    : 'Your current outlet is <strong>' + escHtml(myOutletName) + '</strong>. Pick the outlet you want to move to — it changes only after the owner approves.';
+  document.getElementById('ogWarn').textContent = first ? '⚠ Once saved you can\'t change it yourself — a change needs the owner\'s approval. You will only see your own outlet\'s documents and data.' : '';
+  document.getElementById('ogConfirm').textContent = first ? 'Confirm outlet' : 'Send request to owner';
+  document.getElementById('ogCancel').style.display = first ? 'none' : '';
+  document.getElementById('ogSignOut').style.display = first ? '' : 'none';
+  ogUpdateMatch();
+  if (typeof p3LoadOutletDatalist === 'function') p3LoadOutletDatalist();   // pull in outlets the owner added beyond the master list
+  setTimeout(() => { try { inp.focus(); } catch (e) {} }, 60);
+}
+function hideOutletGate() { document.getElementById('outletGate').style.display = 'none'; ogMode = ''; ogPicked = null; }
+async function ogSubmit() {
+  const err = document.getElementById('ogError'), btn = document.getElementById('ogConfirm');
+  err.textContent = ''; ogUpdateMatch();
+  const o = ogPicked;
+  if (!o) { err.textContent = 'Please tap your outlet in the list — the typed text must match an outlet exactly.'; return; }
+  if (!currentUser) return;
+  const code = ogCodeOf(o), name = o.name, ts = firebase.firestore.FieldValue.serverTimestamp();
+  const blocked = e => (e && e.code === 'permission-denied') ? "Saving was blocked by the database rules — please tell the owner (the users collection must allow the outlet fields)." : "Couldn't save: " + (e && e.message || e);
+  if (ogMode === 'change') {
+    if ((myOutletCode && code === myOutletCode) || obNorm(name) === obNorm(myOutletName)) { err.textContent = 'That is already your outlet.'; return; }
+    if (!confirm('Send a request to the owner to change your outlet to:\n\n' + name + '\n\nYou keep seeing ' + myOutletName + ' until the owner approves.')) return;
+    btn.disabled = true;
+    try {
+      await db.collection('users').doc(currentUser.uid).set({ outletChangeStatus: 'pending', outletChangeCode: code, outletChangeName: name, outletChangeRequestedAt: ts }, { merge: true });
+      logActivity('request_outlet_change', 7, myOutletName + ' → ' + name);
+      hideOutletGate();
+      alert('Request sent to the owner. Your outlet changes automatically once they approve it.');
+    } catch (e) { err.textContent = blocked(e); }
+    btn.disabled = false;
+    return;
+  }
+  if (!confirm('Set your outlet to:\n\n' + name + '\n\nOnce saved you can\'t change it yourself — a change needs the owner\'s approval.')) return;
+  btn.disabled = true;
+  try {
+    await db.collection('users').doc(currentUser.uid).set({ myOutletCode: code, myOutletName: name, myOutletSetAt: ts }, { merge: true });
+    logActivity('set_outlet', '-', name);
+    // the status listener sees the new outlet and moves the person on (app or "waiting for approval") by itself
+  } catch (e) { err.textContent = blocked(e); btn.disabled = !ogPicked; }
+}
+function openOutletChange() {
+  if (!isStaffUser()) return;
+  if (myOutletChange.status === 'pending') { alert('You already have an outlet-change request waiting for the owner (' + myOutletChange.name + ').'); return; }
+  showOutletGate('change');
+}
+document.getElementById('ogInput').addEventListener('input', ogUpdateMatch);
+document.getElementById('ogInput').addEventListener('keydown', e => { if (e.key === 'Enter' && ogPicked) { e.preventDefault(); ogSubmit(); } });
+document.getElementById('ogConfirm').addEventListener('click', ogSubmit);
+document.getElementById('ogCancel').addEventListener('click', hideOutletGate);
+document.getElementById('ogSignOut').addEventListener('click', () => fbAuth.signOut());
+
+// Staff are locked to their outlet: the outlet box in Stock Audit / Petty Cash / Cleanliness is pre-filled and read-only.
+function applyStaffOutletLock() {
+  const lock = isStaffUser() && !!myOutletName;
+  ['p3OutletName', 'pcOutletName', 'clOutletName'].forEach(id => {
+    const el = document.getElementById(id); if (!el) return;
+    if (lock) { el.value = myOutletName; el.readOnly = true; el.title = "Your outlet is fixed. To change it, use Settings → Request outlet change (the owner approves)."; }
+    else if (el.readOnly) { el.value = ''; el.readOnly = false; el.title = ''; }
+  });
+  if (typeof p3UpdateOutletPreview === 'function') p3UpdateOutletPreview();
+}
+function setMyOutletUI() {
+  const el = document.getElementById('sidebarOutlet'); if (!el) return;
+  const on = isStaffUser() && !!myOutletName;
+  el.textContent = on ? '📍 ' + myOutletName : ''; el.classList.toggle('on', on);
+}
+
 // ---- Firestore: track each user's first/last seen + login count (never touches approval status after creation) ----
 async function touchUserDoc(user, ownerFlag) {
   try {
     const ref = db.collection('users').doc(user.uid);
     const snap = await ref.get();
     const now = firebase.firestore.FieldValue.serverTimestamp();
+    // First sign-in of the calendar day (local time)? Compare the PREVIOUS lastLogin with today, before it's overwritten below.
+    {
+      const prev = snap.exists ? snap.data().lastLogin : null;
+      const prevDay = prev && prev.toDate ? localDateKey(prev.toDate()) : '';
+      firstLoginToday = prevDay !== localDateKey(new Date());
+    }
     if (!snap.exists) {
       await ref.set({
         email: user.email, name: user.displayName || '', photoURL: user.photoURL || '',
@@ -3847,6 +4156,9 @@ function logActivity(action, panel, detail) {
 // ---- Track tab switches (wraps the existing switchTab — doesn't change what it does) ----
 const _origSwitchTab = switchTab;
 switchTab = function(n) {
+  if (n === 14 && !canUseOutletTools()) n = 5;      // Sales Report is owner / cluster-manager only
+  if (n === 15 && !canSeeOutletDocs()) n = 5;       // Outlet Documents: owner, cluster managers, and staff (own outlet only)
+  if (n === 9 && isStaffUser()) n = 5;              // Outlet Manager lists every outlet — not for staff
   _origSwitchTab(n);
   if (currentUser) logActivity('switch_tab', n, PANEL_NAMES[n] || n);
   if (n === 4 && isOwner) loadOwnerDashboard();
@@ -3858,8 +4170,8 @@ switchTab = function(n) {
   if (n === 9) loadOutletsPanel();
   if (n === 10) loadAuditHistoryPanel();
   if (n === 13) loadReadyFilesPanel();
-  if (n === 14) p14LoadDirectory();
-  if (n === 15 && (isOwner || isClusterManager)) loadClusterDocsPanel();
+  if (n === 14) { renderAccessBar('p14AccessBar'); p14LoadDirectory(); }
+  if (n === 15 && canSeeOutletDocs()) loadClusterDocsPanel();
   if (n === 11 && typeof pcInit === 'function') pcInit();
   if (n === 12 && typeof clInit === 'function') clInit();
   if (n === 3 && typeof p3LoadOutletDatalist === 'function') p3LoadOutletDatalist();
@@ -3914,6 +4226,7 @@ function stopOwnerDashboard() {
   if (ownerActUnsub) { ownerActUnsub(); ownerActUnsub = null; }
   if (ownerPackUnsub) { ownerPackUnsub(); ownerPackUnsub = null; }
   if (ownerP1PackUnsub) { ownerP1PackUnsub(); ownerP1PackUnsub = null; }
+  if (outletReqUnsub) { outletReqUnsub(); outletReqUnsub = null; }
   ownerLatestUsers = null; ownerLatestActs = null;
 }
 
@@ -3959,6 +4272,41 @@ function loadOwnerDashboard() {
       ownerLatestActs = snap.docs.map(d => d.data());
       renderOwnerDashboard();
     }, err => console.warn('activity listener failed:', err));
+
+  // New-outlet requests from team members / cluster managers, waiting for the owner's approval
+  if (outletReqUnsub) { outletReqUnsub(); outletReqUnsub = null; }
+  const reqWrap = document.getElementById('ownerOutletReqWrap');
+  if (reqWrap) reqWrap.innerHTML = loadingMsg;
+  outletReqUnsub = db.collection('outlets').where('status', '==', 'pending')
+    .onSnapshot(snap => {
+      renderOwnerOutletRequests(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, err => {
+      console.warn('outlet requests listener failed:', err);
+      if (reqWrap) reqWrap.innerHTML = `<p style="color:#E15C5C;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load outlet requests: ${escHtml(err.message)}</p>`;
+    });
+}
+
+function renderOwnerOutletRequests(list) {
+  const wrap = document.getElementById('ownerOutletReqWrap');
+  if (!wrap) return;
+  list.sort((a, b) => (a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0) - (b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0));
+  let h = `<div class="results-title">🏬 New Outlet Requests${list.length ? ` <span class="pill pill-pending">${list.length}</span>` : ''}</div>`;
+  if (!list.length) {
+    h += `<div class="table-wrap" style="padding:18px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No new outlets waiting for approval</div>`;
+    wrap.innerHTML = h; return;
+  }
+  h += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet (auto-numbered)</th><th style="text-align:left">Requested By</th><th>Requested</th><th>Action</th></tr></thead><tbody>`;
+  list.forEach(o => {
+    h += `<tr><td style="text-align:left">${escHtml(o.name || '—')}</td><td style="text-align:left">${escHtml(o.createdByName || o.createdByEmail || '—')}</td><td>${fmtTs(o.createdAt)}</td><td>
+      <button class="mini-btn mini-btn-ok" data-oact="1" data-oid="${o.id}">✓ Approve</button>
+      <button class="mini-btn mini-btn-no" data-oact="0" data-oid="${o.id}">✕ Decline</button></td></tr>`;
+  });
+  h += `</tbody></table></div></div>`;
+  wrap.innerHTML = h;
+  wrap.querySelectorAll('.mini-btn[data-oact]').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.oact === '0' && !confirm('Decline this outlet request? It will be removed.')) return;
+    setOutletStatus(b.dataset.oid, b.dataset.oact === '1');
+  }));
 }
 
 // ---- Approve / deny / revoke / restore — only the owner's UI ever calls this ----
@@ -3974,15 +4322,54 @@ async function setUserStatus(uid, newStatus) {
     alert("Couldn't update this user: " + e.message);
   }
 }
+// Approve AND make cluster manager in one write, so this person is never shown the outlet question.
+async function approveAsClusterManager(uid) {
+  try {
+    await db.collection('users').doc(uid).update({
+      status: 'approved', isClusterManager: true,
+      statusUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      statusUpdatedBy: currentUser.email
+    });
+  } catch (e) { alert("Couldn't approve this user: " + e.message); }
+}
 async function setClusterOutlets(uid, codes) {
   try {
     await db.collection('users').doc(uid).update({ assignedOutlets: codes, statusUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(), statusUpdatedBy: currentUser.email });
   } catch (e) { alert("Couldn't save outlets: " + e.message); }
 }
+async function setAllOutletsAccess(uid, grant) {
+  try {
+    await db.collection('users').doc(uid).update({
+      allOutletsAccess: !!grant, allOutletsRequest: grant ? '' : 'denied',
+      statusUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(), statusUpdatedBy: currentUser.email
+    });
+  } catch (e) { alert("Couldn't update this user: " + e.message); }
+}
+// Owner decides on a staff member's "change my outlet" request. Approve → the new outlet takes effect on their screen straight away.
+async function resolveOutletChange(uid, approve) {
+  const u = (ownerLatestUsers || []).find(x => x.uid === uid);
+  if (!u) return;
+  const ts = firebase.firestore.FieldValue.serverTimestamp();
+  try {
+    await db.collection('users').doc(uid).update(approve
+      ? { myOutletCode: u.outletChangeCode || '', myOutletName: u.outletChangeName || '', myOutletSetAt: ts,
+          outletChangeStatus: '', outletChangeCode: '', outletChangeName: '', outletChangeResolvedAt: ts, statusUpdatedAt: ts, statusUpdatedBy: currentUser.email }
+      : { outletChangeStatus: 'denied', outletChangeCode: '', outletChangeName: '', outletChangeResolvedAt: ts, statusUpdatedAt: ts, statusUpdatedBy: currentUser.email });
+    logActivity(approve ? 'approve_outlet_change' : 'deny_outlet_change', 4, (u.name || u.email || uid) + ' → ' + (u.outletChangeName || ''));
+  } catch (e) { alert("Couldn't update this request: " + e.message); }
+}
+// Owner clears a staff member's outlet — they are asked to pick again the next moment they have the page open.
+async function resetUserOutlet(uid) {
+  const ts = firebase.firestore.FieldValue.serverTimestamp();
+  try {
+    await db.collection('users').doc(uid).update({ myOutletCode: '', myOutletName: '', outletChangeStatus: '', outletChangeCode: '', outletChangeName: '', statusUpdatedAt: ts, statusUpdatedBy: currentUser.email });
+  } catch (e) { alert("Couldn't reset this user's outlet: " + e.message); }
+}
 async function setClusterManagerFlag(uid, val) {
   try {
     await db.collection('users').doc(uid).update({
       isClusterManager: val,
+      ...(val ? {} : { allOutletsAccess: false, allOutletsRequest: '', assignedOutlets: [] }),
       statusUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       statusUpdatedBy: currentUser.email
     });
@@ -4189,7 +4576,8 @@ function renderOwnerDashboard() {
     pHtml += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Name</th><th style="text-align:left">Email</th><th>Requested</th><th>Action</th></tr></thead><tbody>`;
     pending.forEach(u => {
       pHtml += `<tr><td style="text-align:left">${escHtml(u.name || '—')}</td><td style="text-align:left">${escHtml(u.email || '—')}</td><td>${fmtTs(u.firstLogin)}</td><td>
-        <button class="mini-btn mini-btn-ok" data-act="approved" data-uid="${u.uid}">✓ Approve</button>
+        <button class="mini-btn mini-btn-ok" data-act="approved" data-uid="${u.uid}" title="Staff — will be asked to pick their outlet on their first login">✓ Approve (staff)</button>
+        <button class="mini-btn" style="border:1px solid #8B5CF6;color:#8B5CF6" data-cmapprove="1" data-uid="${u.uid}" title="Cluster manager — no outlet question; you then tick the outlets they can see">✓ Approve as Cluster Mgr</button>
         <button class="mini-btn mini-btn-no" data-act="blocked" data-uid="${u.uid}">✕ Deny</button>
       </td></tr>`;
     });
@@ -4197,8 +4585,45 @@ function renderOwnerDashboard() {
   } else {
     pHtml += `<div class="table-wrap" style="padding:18px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No pending requests right now</div>`;
   }
+  const reqs = users.filter(u => u.isClusterManager && u.allOutletsRequest === 'pending');
+  pHtml += `<div class="results-title" style="margin-top:24px">🔑 All-Outlets Access Requests${reqs.length ? ` <span class="pill pill-pending">${reqs.length}</span>` : ''}</div>`;
+  if (reqs.length) {
+    pHtml += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Cluster Manager</th><th style="text-align:left">Email</th><th>Currently sees</th><th>Requested</th><th>Action</th></tr></thead><tbody>`;
+    reqs.forEach(u => {
+      const cur = Array.isArray(u.assignedOutlets) && u.assignedOutlets.length ? (u.assignedOutlets.length > 4 ? u.assignedOutlets.length + ' outlets' : u.assignedOutlets.join(', ')) : 'none';
+      pHtml += `<tr><td style="text-align:left">${escHtml(u.name || '—')}</td><td style="text-align:left">${escHtml(u.email || '—')}</td><td>${escHtml(cur)}</td><td>${fmtTs(u.allOutletsRequestedAt)}</td><td>
+        <button class="mini-btn mini-btn-ok" data-allact="1" data-uid="${u.uid}">✓ Allow all outlets</button>
+        <button class="mini-btn mini-btn-no" data-allact="0" data-uid="${u.uid}">✕ Decline</button>
+      </td></tr>`;
+    });
+    pHtml += `</tbody></table></div></div>`;
+  } else {
+    pHtml += `<div class="table-wrap" style="padding:18px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No requests for all-outlet access</div>`;
+  }
+  // Staff asking to move to a different outlet (their outlet is locked until the owner approves)
+  const chg = users.filter(u => u.outletChangeStatus === 'pending' && !u.isClusterManager);
+  pHtml += `<div class="results-title" style="margin-top:24px">🔁 Outlet Change Requests${chg.length ? ` <span class="pill pill-pending">${chg.length}</span>` : ''}</div>`;
+  if (chg.length) {
+    pHtml += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Name</th><th style="text-align:left">Email</th><th style="text-align:left">Current outlet</th><th style="text-align:left">Wants to move to</th><th>Requested</th><th>Action</th></tr></thead><tbody>`;
+    chg.forEach(u => {
+      pHtml += `<tr><td style="text-align:left">${escHtml(u.name || '—')}</td><td style="text-align:left">${escHtml(u.email || '—')}</td><td style="text-align:left">${escHtml(u.myOutletName || '—')}</td><td style="text-align:left"><strong>${escHtml(u.outletChangeName || '—')}</strong></td><td>${fmtTs(u.outletChangeRequestedAt)}</td><td>
+        <button class="mini-btn mini-btn-ok" data-ocact="1" data-uid="${u.uid}">✓ Approve</button>
+        <button class="mini-btn mini-btn-no" data-ocact="0" data-uid="${u.uid}">✕ Decline</button>
+      </td></tr>`;
+    });
+    pHtml += `</tbody></table></div></div>`;
+  } else {
+    pHtml += `<div class="table-wrap" style="padding:18px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No outlet change requests</div>`;
+  }
   pendWrap.innerHTML = pHtml;
-  pendWrap.querySelectorAll('.mini-btn').forEach(b => b.addEventListener('click', () => setUserStatus(b.dataset.uid, b.dataset.act)));
+  pendWrap.querySelectorAll('.mini-btn[data-ocact]').forEach(b => b.addEventListener('click', () => {
+    const u = (ownerLatestUsers || []).find(x => x.uid === b.dataset.uid);
+    if (b.dataset.ocact === '1' && !confirm('Move ' + ((u && (u.name || u.email)) || 'this user') + ' to ' + ((u && u.outletChangeName) || 'the new outlet') + '?')) return;
+    resolveOutletChange(b.dataset.uid, b.dataset.ocact === '1');
+  }));
+  pendWrap.querySelectorAll('.mini-btn[data-act]').forEach(b => b.addEventListener('click', () => setUserStatus(b.dataset.uid, b.dataset.act)));
+  pendWrap.querySelectorAll('.mini-btn[data-cmapprove]').forEach(b => b.addEventListener('click', () => approveAsClusterManager(b.dataset.uid)));
+  pendWrap.querySelectorAll('.mini-btn[data-allact]').forEach(b => b.addEventListener('click', () => setAllOutletsAccess(b.dataset.uid, b.dataset.allact === '1')));
 
   // ---- Stats + all users + activity ----
   const totalFiles = acts.filter(a => a.action === 'process_file').length;
@@ -4213,10 +4638,10 @@ function renderOwnerDashboard() {
   html += `</div>`;
 
   html += `<div class="results-title">All Users</div>`;
-  html += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Name</th><th style="text-align:left">Email</th><th>Status</th><th>Logins</th><th>Last Seen</th><th>Action</th></tr></thead><tbody>`;
+  html += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Name</th><th style="text-align:left">Email</th><th style="text-align:left">Outlet</th><th>Status</th><th>Logins</th><th>Last Seen</th><th>Action</th></tr></thead><tbody>`;
   others.forEach(u => {
     const pill = (u.status === 'approved' ? '<span class="pill pill-approved">Approved</span>' : '<span class="pill pill-blocked">Blocked</span>')
-      + (u.isClusterManager ? ' <span class="pill" style="background:rgba(139,92,246,.15);color:#8B5CF6">Cluster Mgr · ' + (Array.isArray(u.assignedOutlets) && u.assignedOutlets.length ? (u.assignedOutlets.length > 4 ? u.assignedOutlets.length + ' outlets' : u.assignedOutlets.join(', ')) : 'all outlets') + '</span>' : '');
+      + (u.isClusterManager ? ' <span class="pill" style="background:rgba(139,92,246,.15);color:#8B5CF6">Cluster Mgr · ' + (u.allOutletsAccess ? 'ALL outlets (approved)' : (Array.isArray(u.assignedOutlets) && u.assignedOutlets.length ? (u.assignedOutlets.length > 4 ? u.assignedOutlets.length + ' outlets' : u.assignedOutlets.join(', ')) : 'no outlets yet')) + '</span>' : '');
     const cmBtn = u.status === 'approved'
       ? (u.isClusterManager
           ? `<button class="mini-btn cm-toggle" style="border:1px solid #8B5CF6;color:#8B5CF6" data-uid="${u.uid}" data-cmact="0">− Cluster Mgr</button>`
@@ -4225,9 +4650,11 @@ function renderOwnerDashboard() {
     const actionBtn = u.status === 'approved'
       ? `<button class="mini-btn mini-btn-no" data-act="blocked" data-uid="${u.uid}">Revoke</button>`
       : `<button class="mini-btn mini-btn-ok" data-act="approved" data-uid="${u.uid}">Restore</button>`;
-    html += `<tr><td style="text-align:left">${escHtml(u.name || '—')}</td><td style="text-align:left">${escHtml(u.email || '—')}</td><td>${pill}</td><td style="text-align:center">${u.loginCount || 1}</td><td>${fmtTs(u.lastLogin)}</td><td>${actionBtn} ${cmBtn} ${u.isClusterManager && u.status === 'approved' ? `<button class="mini-btn cm-outlets" style="border:1px solid #8B5CF6;color:#8B5CF6" data-uid="${u.uid}" data-codes="${(u.assignedOutlets || []).join(',')}">Outlets</button>` : ''}</td></tr>`;
+    const outletCell = u.isClusterManager ? '<span style="color:var(--muted)">— (cluster manager)</span>' : (u.myOutletName ? escHtml(u.myOutletName) : '<span style="color:#D6923B">not chosen yet</span>');
+    const resetBtn = (!u.isClusterManager && u.myOutletName) ? `<button class="mini-btn oc-reset" style="border:1px solid var(--border);color:var(--muted)" data-uid="${u.uid}" title="Clears this person's outlet — they must pick one again">Reset outlet</button>` : '';
+    html += `<tr><td style="text-align:left">${escHtml(u.name || '—')}</td><td style="text-align:left">${escHtml(u.email || '—')}</td><td style="text-align:left">${outletCell}</td><td>${pill}</td><td style="text-align:center">${u.loginCount || 1}</td><td>${fmtTs(u.lastLogin)}</td><td>${actionBtn} ${cmBtn} ${resetBtn} ${u.isClusterManager && u.status === 'approved' ? `<button class="mini-btn cm-outlets" style="border:1px solid #8B5CF6;color:#8B5CF6" data-uid="${u.uid}" data-codes="${(u.assignedOutlets || []).join(',')}">Outlets</button> <button class="mini-btn cm-all" style="border:1px solid ${u.allOutletsAccess ? '#E15C5C;color:#E15C5C' : '#3FB874;color:#3FB874'}" data-uid="${u.uid}" data-grant="${u.allOutletsAccess ? '0' : '1'}">${u.allOutletsAccess ? 'Revoke all-outlets' : 'Allow all outlets'}</button>` : ''}</td></tr>`;
   });
-  if (!others.length) html += `<tr><td colspan="6" style="text-align:center;color:var(--muted)">No approved or blocked users yet</td></tr>`;
+  if (!others.length) html += `<tr><td colspan="7" style="text-align:center;color:var(--muted)">No approved or blocked users yet</td></tr>`;
   html += `</tbody></table></div></div>`;
 
   html += `<div class="results-title" style="margin-top:24px">Recent Activity</div>`;
@@ -4243,11 +4670,16 @@ function renderOwnerDashboard() {
     if (b.dataset.act === 'blocked' && !confirm('Revoke access for this user?')) return;
     setUserStatus(b.dataset.uid, b.dataset.act);
   }));
+  wrap.querySelectorAll('.cm-all').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.grant === '1' && !confirm('Give this Cluster Manager access to ALL outlets?')) return;
+    setAllOutletsAccess(b.dataset.uid, b.dataset.grant === '1');
+  }));
   wrap.querySelectorAll('.cm-toggle').forEach(b => b.addEventListener('click', () => setClusterManagerFlag(b.dataset.uid, b.dataset.cmact === '1')));
+  wrap.querySelectorAll('.oc-reset').forEach(b => b.addEventListener('click', () => { if (confirm("Clear this person's outlet? They will have to pick an outlet again.")) resetUserOutlet(b.dataset.uid); }));
   wrap.querySelectorAll('.cm-outlets').forEach(b => b.addEventListener('click', async () => {
     if (!p14DirLoaded) await p14LoadDirectory();
     const list = Object.values({ ...P14_BUILTIN, ...p14Dir }).sort((x, y) => x.code.localeCompare(y.code)).map(o => ({ code: o.code, label: o.code + ' ' + o.name, type: o.type }));
-    const codes = await p14Picker({ title: 'Assign outlets to this Cluster Manager', note: 'Tick the outlets he handles (or type 001-020, 053 …). Leave none ticked = all outlets.', list, selected: (b.dataset.codes || '').split(',').filter(Boolean), okLabel: 'Save', allowEmpty: true });
+    const codes = await p14Picker({ title: 'Assign outlets to this Cluster Manager', note: 'Tick the outlets he handles (or type 001-020, 053 …). He will see ONLY these. Nothing ticked = no outlets. To let him see every outlet, use "Allow all outlets" (he can also request it).', list, selected: (b.dataset.codes || '').split(',').filter(Boolean), okLabel: 'Save', allowEmpty: true });
     if (codes) setClusterOutlets(b.dataset.uid, codes);
   }));
 }
@@ -4261,12 +4693,25 @@ function fmtTs(ts) {
   const d = ts.toDate ? ts.toDate() : new Date(ts);
   return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
-function actionLabel(a) { return {login: 'Signed in', switch_tab: 'Opened tab', process_file: 'Processed file', download_file: 'Downloaded file', save_ready_file: 'Saved ready file', add_outlet: 'Added outlet', add_outlet_doc: 'Added outlet document', petty_cash_audit: 'Saved petty cash audit', cleanliness_audit: 'Saved cleanliness audit'}[a] || a; }
+function actionLabel(a) { return {login: 'Signed in', switch_tab: 'Opened tab', process_file: 'Processed file', download_file: 'Downloaded file', save_ready_file: 'Saved ready file', add_outlet: 'Added outlet', request_outlet: 'Requested new outlet',request_all_outlets: 'Requested all-outlet access', add_outlet_doc: 'Added outlet document', set_outlet: 'Chose outlet', request_outlet_change: 'Requested outlet change', approve_outlet_change: 'Approved outlet change', deny_outlet_change: 'Declined outlet change', petty_cash_audit: 'Saved petty cash audit', cleanliness_audit: 'Saved cleanliness audit'}[a] || a; }
 
 // ══════════════════════════════════════════════════════════════
 // DASHBOARD / HISTORY / SETTINGS / RATE MANAGER / OUTLET MANAGER / AUDIT HISTORY
 // ══════════════════════════════════════════════════════════════
 
+// Reads a collection that has an `outletName` + `ts` field. Owner / cluster managers: newest first, everything (as before).
+// Staff: ONLY documents saved under their own outlet (queried, not just filtered, so other outlets' rows are never fetched).
+// Returns an array of QueryDocumentSnapshots, newest first.
+async function scopedDocs(coll, limitN) {
+  if (!isStaffUser()) {
+    const s = await db.collection(coll).orderBy('ts', 'desc').limit(limitN).get();
+    return s.docs;
+  }
+  if (!myOutletName) return [];
+  const s = await db.collection(coll).where('outletName', 'in', obVariants(myOutletName)).limit(limitN).get();
+  const ms = d => { const t = d.data().ts; return t && t.toMillis ? t.toMillis() : 0; };
+  return s.docs.slice().sort((a, b) => ms(b) - ms(a));
+}
 async function myRecentActivity(limitN) {
   if (!currentUser) return [];
   try {
@@ -4338,6 +4783,11 @@ async function loadSettingsPanel() {
     <div style="border-top:1px solid var(--border);padding-top:14px;display:flex;flex-direction:column;gap:10px">
       <div style="display:flex;justify-content:space-between;font-size:12.5px"><span style="color:var(--muted);font-family:'DM Mono',monospace">Role</span><span style="font-weight:700">${isOwner ? 'Owner' : 'Team member'}</span></div>
       <div style="display:flex;justify-content:space-between;font-size:12.5px"><span style="color:var(--muted);font-family:'DM Mono',monospace">Member since</span><span style="font-weight:700">${memberSince}</span></div>
+      ${isStaffUser() ? `<div style="display:flex;justify-content:space-between;gap:12px;font-size:12.5px"><span style="color:var(--muted);font-family:'DM Mono',monospace">My outlet</span><span style="font-weight:700;text-align:right">${escHtml(myOutletName || '—')}</span></div>
+      <div style="font-family:'DM Mono',monospace;font-size:11.5px;line-height:1.7">${myOutletChange.status === 'pending'
+        ? `<span style="color:#D6923B">⏳ Change to <strong>${escHtml(myOutletChange.name)}</strong> requested — waiting for the owner to approve.</span>`
+        : (myOutletChange.status === 'denied' ? `<span style="color:#E15C5C">The owner declined your last change request.</span><br>` : '')
+          + `<button class="mini-btn" style="border:1px solid #8B5CF6;color:#8B5CF6;margin:6px 0 0" onclick="openOutletChange()">Request outlet change</button>`}</div>` : ''}
     </div>
     <button class="download-btn" style="margin-top:20px;border:2px solid var(--accent3);color:var(--accent3)" onclick="fbAuth.signOut()">Sign out</button>
   `;
@@ -4436,16 +4886,17 @@ async function downloadAllReports(){
   if(btn){ btn.disabled=true; btn.textContent='⏳ Building…'; }
   if(msg){ msg.style.color='var(--muted)'; msg.textContent='Fetching your data…'; }
   try{
-    const [auditsSnap, ratesSnap, pettySnap, cleanSnap] = await Promise.all([
-      db.collection('audits').orderBy('ts','desc').limit(500).get(),
+    // Staff get only their own outlet's audits / petty cash / cleanliness in this download (the rate list isn't outlet-specific)
+    const [auditDocs, ratesSnap, pettyDocs, cleanDocs] = await Promise.all([
+      scopedDocs('audits', 500),
       db.collection('rates').limit(3000).get(),
-      db.collection('petty_cash_audits').orderBy('ts','desc').limit(500).get(),
-      db.collection('cleanliness_audits').orderBy('ts','desc').limit(500).get(),
+      scopedDocs('petty_cash_audits', 500),
+      scopedDocs('cleanliness_audits', 500),
     ]);
-    const audits = auditsSnap.docs.map(d=>d.data());
+    const audits = auditDocs.map(d=>d.data());
     const rates = ratesSnap.docs.filter(d=>d.id!=='_meta').map(d=>d.data()).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));
-    const pettyCash = pettySnap.docs.map(d=>d.data());
-    const cleanliness = cleanSnap.docs.map(d=>d.data());
+    const pettyCash = pettyDocs.map(d=>d.data());
+    const cleanliness = cleanDocs.map(d=>d.data());
 
     const wb = new ExcelJS.Workbook();
     wb.creator = "SHARATH'S SYSTEM"; wb.created = new Date();
@@ -4897,6 +5348,7 @@ function p14Outlet(est, inv, bos) {
   return { code, name: (P14_BUILTIN[code] && P14_BUILTIN[code].name) || name };
 }
 function p14Parse(rows) {
+  if (p14MyOutlets && p14MyOutlets.length === 0) throw new Error('No outlets have been assigned to you yet. Ask the owner to assign your outlets.');
   const norm = v => String(v == null ? '' : v).trim();
   let h = -1, col = {};
   for (let i = 0; i < Math.min(rows.length, 30) && h < 0; i++) {
@@ -5109,11 +5561,10 @@ function p14FillSelect(keep) {
   const sel = $14('p14OutletSel'), prev = keep ? p14Pick : 'ALL';
   if (!keep) { p14TypePick = 'ALL'; $14('p14TypeSel').value = 'ALL'; }
   const sc = p14Scope();
-  sel.innerHTML = `<option value="ALL">All Outlets (${sc.length})</option>` + sc.map(o => `<option value="${o.code}">${escHtml(o.label)}${o.type ? ' · ' + P14_TYPE[o.type] : ''}</option>`).join('');
+  sel.innerHTML = `<option value="ALL">${hasAllOutlets() ? 'All Outlets' : 'All my outlets'} (${sc.length})</option>` + sc.map(o => `<option value="${o.code}">${escHtml(o.label)}${o.type ? ' · ' + P14_TYPE[o.type] : ''}</option>`).join('');
   p14Pick = sc.some(o => o.code === prev) ? prev : 'ALL'; sel.value = p14Pick;
-  const note = $14('p14ScopeNote');
-  note.style.display = p14MyOutlets ? 'block' : 'none';
-  note.textContent = p14MyOutlets ? 'Cluster Manager view — your outlets: ' + p14MyOutlets.join(', ') : '';
+  $14('p14ScopeNote').style.display = 'none';   // the always-visible p14AccessBar replaces this note
+  renderAccessBar('p14AccessBar');
 }
 function p14Render() {
   p14Relabel();
@@ -5207,8 +5658,107 @@ $14('p14DownloadBtn').addEventListener('click', async () => {
 // ---- Outlet Documents: Cluster Manager + Owner only — outlets, licences/agreements, expiry reminders ----
 // (isClusterManager / odOutlets / odDocs / odExpanded are declared near the top of this script, next to currentUser)
 
+// ---- Outlet scoping: the owner sees every outlet; a cluster manager sees only the outlets assigned to him
+//      (Owner → Users → "Outlets" button). Assigned codes live in p14MyOutlets as 3-digit codes ("012");
+//      an outlet matches when its Outlet Number reduces to the same code ("12", "012", "#12" all → "012").
+//      A manager with nothing ticked sees NO outlets; all outlets only after the owner approves his request. ----
+// ---- Outlet numbering: outlets saved by anyone except the owner get the next free code (001, 002, 003 ...)
+//      automatically and the name is stored as "001 Name", so every list, audit and report shows it the same way.
+//      The owner can still type ANY number / name (duplicates and unnumbered names allowed). ----
+// Outlet approval: outlets saved before this feature have no status → treated as approved. New outlets added by anyone except
+// the owner start as 'pending' and only join the shared list once the owner approves them.
+function outletStatus(o) { return (o && o.status) || 'approved'; }
+function outletIsApproved(o) { return outletStatus(o) === 'approved'; }
+function outletLeadCode(name) { const m = String(name == null ? '' : name).match(/^\s*#?\s*(\d{1,6})(?![A-Za-z0-9])/); return m ? m[1].padStart(3, '0') : ''; }
+function outletCodeOf(o) { return odCode(o && o.number) || outletLeadCode(o && o.name); }
+function outletBareName(name) { return String(name == null ? '' : name).replace(/^\s*#?\s*\d+(?![A-Za-z0-9])\s*[-\u2013\u2014:.)]*\s*/, '').trim(); }
+function outletSorted(list) {
+  return (list || []).slice().sort((x, y) => {
+    const a = parseInt(outletCodeOf(x), 10), b = parseInt(outletCodeOf(y), 10);
+    const an = isNaN(a), bn = isNaN(b);
+    if (!an && !bn && a !== b) return a - b;
+    if (an !== bn) return an ? 1 : -1;
+    return String((x && x.name) || '').localeCompare(String((y && y.name) || ''));
+  });
+}
+function outletMaxCode(list) { let max = 0; (list || []).forEach(o => { const c = parseInt(outletCodeOf(o), 10); if (c > max) max = c; }); return max; }
+async function outletNextCode() {
+  const snap = await db.collection('outlets').get();
+  return String(outletMaxCode(snap.docs.map(d => d.data()).concat(obMaster())) + 1).padStart(3, '0');
+}
+// Returns { name, number } ready to save. Owner: keeps the number typed (or the one at the start of the name).
+// Everyone else: always the next free code, whatever they typed.
+async function outletBuild(rawName, rawNumber, ownerAutoIfBlank) {
+  const typed = String(rawName || '').trim();
+  const bare = outletBareName(typed);
+  let code = '';
+  if (isOwner) {
+    code = odCode(rawNumber) || outletLeadCode(typed);
+    if (!code && !ownerAutoIfBlank) return { name: typed, number: '' };
+  } else if (!bare) {
+    throw new Error('Enter an outlet name (not just a number) \u2014 the number is added automatically.');
+  }
+  if (!code) code = await outletNextCode();
+  return { name: bare ? code + ' ' + bare : code, number: code };
+}
+// The single place an outlet is saved. Owner → saved as approved straight away (any number/name allowed).
+// Everyone else → a name that is already in the master list / approved list is refused as a duplicate;
+// a genuinely new name is saved as 'pending' with the next free number, and waits for the owner to approve it.
+// Returns { built, status, id }.
+async function outletCreate(rawName, rawNumber) {
+  const typed = String(rawName || '').trim();
+  if (!typed) throw new Error('Enter an outlet name.');
+  if (!isOwner) {
+    // make sure the duplicate check sees the latest approved + pending outlets, not a stale copy
+    try { const s = await db.collection('outlets').limit(1000).get(); obFire = s.docs.map(d => ({ id: d.id, ...d.data() })); obLoadedAt = Date.now(); } catch (e) { console.warn('outlet refresh failed:', e); }
+    if (obBareListed(typed)) throw new Error('"' + outletBareName(typed) + '" is already in the outlet list — just pick it from the dropdown.');
+    const dup = obPendingFor(typed);
+    if (dup) throw new Error('"' + outletBareName(typed) + '" has already been requested' + (dup.createdByName ? ' by ' + dup.createdByName : '') + ' and is waiting for the owner.');
+  }
+  const built = await outletBuild(typed, rawNumber, true);
+  if (isOwner) {
+    const clash = built.number && obMaster().find(o => outletCodeOf(o) === built.number);
+    if (clash) throw new Error('Number ' + built.number + ' is already used by ' + clash.name + '.');
+  }
+  const status = isOwner ? 'approved' : 'pending';
+  const doc = {
+    number: built.number, name: built.name, status,
+    createdByUid: currentUser.uid, createdByName: currentUser.displayName || currentUser.email, createdByEmail: currentUser.email || '',
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  if (isOwner) { doc.approvedBy = currentUser.email; doc.approvedAt = firebase.firestore.FieldValue.serverTimestamp(); }
+  const ref = await db.collection('outlets').add(doc);
+  obFire = obFire.concat([{ id: ref.id, ...doc, createdAt: null }]);   // so the new outlet / pending request is recognised immediately
+  logActivity(isOwner ? 'add_outlet' : 'request_outlet', 9, built.name);
+  return { built, status, id: ref.id };
+}
+async function setOutletStatus(id, approve) {
+  if (!isOwner) return;
+  try {
+    if (approve) await db.collection('outlets').doc(id).update({ status: 'approved', approvedBy: currentUser.email, approvedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    else await db.collection('outlets').doc(id).delete();     // declined → removed, its number becomes free again
+    obFire = obFire.filter(o => o.id !== id || approve).map(o => o.id === id ? { ...o, status: 'approved' } : o);
+    if (typeof p3LoadOutletDatalist === 'function') p3LoadOutletDatalist();
+  } catch (e) { alert("Couldn't update this outlet: " + e.message); }
+}
+
+function odCode(n) { const d = String(n == null ? '' : n).replace(/\D/g, ''); return d ? d.padStart(3, '0') : ''; }
+function odScoped() { return !hasAllOutlets(); }
+function odCanSeeOutlet(o) {
+  if (hasAllOutlets()) return true;
+  if (isStaffUser()) return false;   // staff never use the shared outlet list here — their single outlet is built separately in loadClusterDocsPanel
+  return odCanSee(outletCodeOf(o)) || !!(currentUser && o && o.createdByUid === currentUser.uid);
+}
+function odCanSee(number) {
+  if (hasAllOutlets()) return true;
+  if (isStaffUser()) return !!myOutletCode && odCode(number) === myOutletCode;   // staff: exactly their own outlet
+  return Array.isArray(p14MyOutlets) && p14MyOutlets.includes(odCode(number));
+}
+// Only owner + cluster managers may add / delete outlet documents; staff just view their own outlet's.
+function odCanEditDocs() { return isOwner || isClusterManager; }
+
 function addClusterDocsTab() {
-  if (document.querySelector('.tab[data-tab="15"]')) return;
+  if (document.querySelector('.tab[data-tab="15"]')) { odRefreshBadge(); return; }
   const bar = document.getElementById('toolsTabBar');
   const btn = document.createElement('button');
   btn.className = 'tab'; btn.dataset.tab = '15';
@@ -5221,10 +5771,22 @@ async function odRefreshBadge() {
   if (!currentUser) return;
   try {
     const cutoff = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
-    const snap = await db.collection('outlet_documents').where('expiryDate', '<=', cutoff).limit(200).get();
+    let n;
+    if (isStaffUser()) {
+      // staff: only their own outlet's documents are ever queried
+      if (!myOutletCode) n = 0;
+      else {
+        const s = await db.collection('outlet_documents').where('outletNumber', '==', myOutletCode).limit(300).get();
+        n = s.docs.filter(d => { const x = d.data(); return x.expiryDate && x.expiryDate <= cutoff; }).length;
+      }
+    } else {
+      const snap = await db.collection('outlet_documents').where('expiryDate', '<=', cutoff).limit(500).get();
+      // only this manager's outlets, and skip documents with no expiry date ('' also sorts before every date)
+      n = snap.docs.filter(d => { const x = d.data(); return x.expiryDate && (odCanSee(x.outletNumber) || !!(currentUser && x.addedByUid === currentUser.uid)); }).length;
+    }
     const b = document.getElementById('odTabBadge');
     if (!b) return;
-    if (snap.size) { b.textContent = snap.size; b.style.cssText = 'display:inline-block;margin-left:5px;background:#E15C5C;color:#fff;border-radius:9px;font-size:10px;padding:1px 6px;font-weight:700'; }
+    if (n) { b.textContent = n; b.style.cssText = 'display:inline-block;margin-left:5px;background:#E15C5C;color:#fff;border-radius:9px;font-size:10px;padding:1px 6px;font-weight:700'; }
     else b.style.display = 'none';
   } catch (e) { console.warn('odRefreshBadge failed:', e); }
 }
@@ -5234,14 +5796,46 @@ async function loadClusterDocsPanel() {
   if (!wrap) return;
   wrap.innerHTML = '<p style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:12px;">Loading…</p>';
   try {
+    if (isStaffUser()) {
+      // STAFF: exactly one card — their own outlet — with only that outlet's documents. Other outlets' documents are never queried.
+      if (!myOutletCode && !myOutletName) { odOutlets = []; odDocs = []; odRender(); return; }
+      const qs = [];
+      if (myOutletCode) qs.push(db.collection('outlet_documents').where('outletNumber', '==', myOutletCode).limit(200).get());
+      qs.push(db.collection('outlet_documents').where('outletName', 'in', obVariants(myOutletName)).limit(200).get());
+      const snaps = await Promise.all(qs), seen = new Map();
+      snaps.forEach(s => s.docs.forEach(d => seen.set(d.id, { id: d.id, ...d.data(), outletId: 'my_outlet' })));
+      const ms = x => (x.addedAt && x.addedAt.toMillis ? x.addedAt.toMillis() : 0);
+      odDocs = [...seen.values()].sort((a, b) => ms(b) - ms(a));
+      odOutlets = [{ id: 'my_outlet', number: myOutletCode, name: myOutletName, status: 'approved', virtual: true }];
+      odExpanded = 'my_outlet';
+      odRender(); odRefreshBadge(); odPrepAddForm();
+      return;
+    }
     const [outSnap, docSnap] = await Promise.all([
       db.collection('outlets').orderBy('createdAt', 'desc').limit(300).get(),
       db.collection('outlet_documents').orderBy('addedAt', 'desc').limit(500).get()
     ]);
-    odOutlets = outSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-    odDocs = docSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const allOut = outSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    obFire = allOut; obLoadedAt = Date.now();
+    // Owner (and a manager the owner gave "all outlets") sees everything. Any other cluster manager sees ONLY:
+    // the outlets the owner ticked for him, plus outlets he requested himself (marked "awaiting approval" until the owner approves).
+    odOutlets = allOut.filter(o => odCanSeeOutlet(o));
+    if (odScoped() && Array.isArray(p14MyOutlets)) {
+      // an assigned outlet from the master list may have no saved record yet — show it anyway so its documents can be added
+      const have = new Set(odOutlets.map(o => outletCodeOf(o)));
+      p14MyOutlets.forEach(code => {
+        const m = P14_BUILTIN[code];
+        if (m && !have.has(code)) odOutlets.push({ id: 'master_' + code, number: code, name: code + ' ' + m.name, status: 'approved', virtual: true });
+      });
+    }
+    odOutlets = outletSorted(odOutlets);
+    const visIds = new Set(odOutlets.map(o => o.id));
+    // documents: a scoped manager only ever keeps the documents of an outlet he can see — everyone else's are dropped here
+    odDocs = docSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(d => !odScoped() || visIds.has(d.outletId));
+    if (odExpanded && !visIds.has(odExpanded)) odExpanded = null;
     odRender();
     odRefreshBadge();
+    odPrepAddForm();
   } catch (e) {
     console.error('loadClusterDocsPanel failed:', e);
     wrap.innerHTML = `<p style="color:#E15C5C;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load outlet documents: ${escHtml(e.code === 'permission-denied' ? 'permission denied — the outlet_documents collection needs a Firestore rule (see the notes I gave you)' : e.message)}</p>`;
@@ -5265,8 +5859,10 @@ function odRender() {
     ${soon.map(d => `${escHtml(d.docName)} — ${escHtml(d.outletName)} <span class="pill ${d.st.cls}" style="margin-left:4px">${d.st.label}</span>`).join('<br>')}
   </div>`;
 
+  const scope = document.getElementById('odScopeNote');
+  renderAccessBar('odScopeNote');
   const wrap = document.getElementById('odOutletsWrap');
-  if (!odOutlets.length) { wrap.innerHTML = `<div class="table-wrap" style="padding:18px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No outlets yet — add one above</div>`; return; }
+  if (!odOutlets.length) { wrap.innerHTML = `<div class="table-wrap" style="padding:18px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">${hasAllOutlets() ? 'No outlets yet — add one above (it is numbered automatically)' : 'No outlets assigned to you yet — ask the owner to assign your outlets, or add a new one above (the owner approves it).'}</div>`; return; }
   wrap.innerHTML = odOutlets.map(o => {
     const docs = odDocs.filter(d => d.outletId === o.id);
     const worst = docs.map(d => odStatus(d.expiryDate).days).reduce((w, days) => (days !== null && (w === null || days < w)) ? days : w, null);
@@ -5274,7 +5870,7 @@ function odRender() {
     const open = odExpanded === o.id;
     return `<div class="card" style="padding:16px;margin-bottom:12px;text-align:left">
       <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="odToggleOutlet('${o.id}')">
-        <div><strong>#${escHtml(o.number || '—')} — ${escHtml(o.name || '—')}</strong><div class="card-sub">${docs.length} document${docs.length === 1 ? '' : 's'}${flag}</div></div>
+        <div><strong>#${escHtml(outletCodeOf(o) || '—')} — ${escHtml(outletBareName(o.name) || o.name || '—')}</strong><div class="card-sub">${docs.length} document${docs.length === 1 ? '' : 's'}${flag}${outletStatus(o) === 'pending' ? ' · <span class="pill pill-pending">⏳ awaiting owner approval</span>' : ''}${isOwner && outletStatus(o) === 'pending' ? ` <button class="mini-btn mini-btn-ok" onclick="event.stopPropagation();setOutletStatus('${o.id}',true).then(loadClusterDocsPanel)">✓ Approve</button><button class="mini-btn mini-btn-no" onclick="event.stopPropagation();setOutletStatus('${o.id}',false).then(loadClusterDocsPanel)">✕ Decline</button>` : ''}</div></div>
         <span style="color:var(--muted)">${open ? '▾' : '▸'}</span>
       </div>
       ${open ? odOutletDetail(o, docs) : ''}
@@ -5283,16 +5879,17 @@ function odRender() {
 }
 
 function odOutletDetail(o, docs) {
+  const edit = odCanEditDocs();   // staff get a read-only view of their own outlet's documents
   const rows = docs.length ? docs.map(d => {
     const st = odStatus(d.expiryDate);
-    const canDel = isOwner || d.addedByUid === (currentUser && currentUser.uid);
+    const canDel = edit && (isOwner || d.addedByUid === (currentUser && currentUser.uid));
     return `<tr><td style="text-align:left">${escHtml(d.docName)}</td><td>${d.expiryDate || '—'}</td><td><span class="pill ${st.cls}">${st.label}</span></td>
       <td><a href="${d.fileUrl}" target="_blank" rel="noopener" class="mini-btn mini-btn-ok" style="text-decoration:none">${d.isPdf ? '📄' : '🖼️'} View</a></td>
-      <td>${canDel ? `<button class="mini-btn mini-btn-no" onclick="odDeleteDoc('${d.id}')">Delete</button>` : ''}</td></tr>`;
-  }).join('') : `<tr><td colspan="5" style="text-align:center;color:var(--muted)">No documents yet</td></tr>`;
+      ${edit ? `<td>${canDel ? `<button class="mini-btn mini-btn-no" onclick="odDeleteDoc('${d.id}')">Delete</button>` : ''}</td>` : ''}</tr>`;
+  }).join('') : `<tr><td colspan="${edit ? 5 : 4}" style="text-align:center;color:var(--muted)">No documents yet</td></tr>`;
   return `<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px" onclick="event.stopPropagation()">
-    <div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Document</th><th>Expiry</th><th>Status</th><th>File</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table></div></div>
-    <div style="margin-top:12px;display:grid;gap:8px;max-width:420px">
+    <div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Document</th><th>Expiry</th><th>Status</th><th>File</th>${edit ? '<th>Action</th>' : ''}</tr></thead><tbody>${rows}</tbody></table></div></div>
+    ${edit ? `<div style="margin-top:12px;display:grid;gap:8px;max-width:420px">
       <label class="pc-label">Licence / Document Name</label>
       <input type="text" id="odDocName_${o.id}" class="pc-input" placeholder="e.g. FSSAI, Trade Licence, Agreement">
       <label class="pc-label">Expiry Date</label>
@@ -5302,8 +5899,22 @@ function odOutletDetail(o, docs) {
       <div id="odDetectMsg_${o.id}" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);min-height:14px"></div>
       <button class="mini-btn mini-btn-ok" style="width:fit-content" onclick="odAddDoc('${o.id}')">+ Add Document</button>
       <div id="odDocMsg_${o.id}" style="font-family:'DM Mono',monospace;font-size:11.5px"></div>
-    </div>
+    </div>` : ''}
   </div>`;
+}
+
+async function odPrepAddForm() {
+  const numEl = document.getElementById('odNewNumber'), hint = document.getElementById('odNumHint');
+  const _c = document.getElementById('odAddCard'); if (_c) _c.style.display = isStaffUser() ? 'none' : '';   // owner + cluster managers can add an outlet; staff can't
+  if (!numEl || isStaffUser()) return;
+  if (isOwner) {
+    numEl.readOnly = false; numEl.style.opacity = ''; numEl.placeholder = 'Optional \u2014 blank = next number';
+    if (hint) hint.textContent = 'Owner: type any number or name, or leave the number blank to use the next one. Saved immediately.';
+    return;
+  }
+  numEl.readOnly = true; numEl.style.opacity = '.7';
+  if (hint) hint.textContent = 'Numbered automatically \u2014 you only type the name. A new outlet needs the owner\u2019s approval before it joins the list.';
+  try { numEl.value = await outletNextCode(); } catch (e) { numEl.value = ''; numEl.placeholder = 'Auto'; }
 }
 
 function odToggleOutlet(id) { odExpanded = odExpanded === id ? null : id; odRender(); }
@@ -5313,9 +5924,11 @@ async function odAddOutlet() {
   const number = numEl.value.trim(), name = nameEl.value.trim();
   if (!name) { msg.textContent = 'Enter an outlet name.'; msg.style.color = '#E15C5C'; return; }
   try {
-    await db.collection('outlets').add({ number, name, createdByUid: currentUser.uid, createdByName: currentUser.displayName || currentUser.email, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-    numEl.value = ''; nameEl.value = ''; msg.textContent = '✓ Outlet added'; msg.style.color = '#3FB874';
-    logActivity('add_outlet', 15, name);
+    // Owner: saved at once. Everyone else: a new name goes to the owner for approval (a name already in the list is refused as a duplicate).
+    const r = await outletCreate(name, number);
+    numEl.value = ''; nameEl.value = '';
+    msg.textContent = r.status === 'pending' ? '\u23f3 Sent to the owner for approval as ' + r.built.name + ' \u2014 it stays marked \u201cawaiting approval\u201d until then.' : '\u2713 Outlet added as ' + r.built.name;
+    msg.style.color = r.status === 'pending' ? '#D6923B' : '#3FB874';
     loadClusterDocsPanel();
   } catch (e) { msg.textContent = "Couldn't add: " + (e.code === 'permission-denied' ? 'permission denied' : e.message); msg.style.color = '#E15C5C'; }
 }
@@ -5471,13 +6084,26 @@ async function loadOutletsPanel() {
   if (!wrap) return;
   wrap.innerHTML = '<p style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:12px;">Loading…</p>';
   try {
-    const snap = await db.collection('outlets').orderBy('createdAt', 'desc').limit(200).get();
-    const rows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    if (!rows.length) { wrap.innerHTML = `<div class="table-wrap" style="padding:18px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No outlets saved yet — add one above.</div>`; return; }
-    let h = `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th style="text-align:left">Added By</th><th>Added</th><th>Action</th></tr></thead><tbody>`;
-    rows.forEach(o => {
-      const canDelete = isOwner || o.createdByUid === (currentUser && currentUser.uid);
-      h += `<tr><td style="text-align:left">${escHtml(o.name || '—')}</td><td style="text-align:left">${escHtml(o.createdByName || '—')}</td><td>${fmtTs(o.createdAt)}</td><td>${canDelete ? `<button class="mini-btn mini-btn-no" onclick="deleteOutlet('${o.id}')">Remove</button>` : '—'}</td></tr>`;
+    const snap = await db.collection('outlets').orderBy('createdAt', 'desc').limit(1000).get();
+    const rows = outletSorted(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    obFire = rows; obLoadedAt = Date.now();
+    const _card = document.getElementById('outletAddCard'); if (_card) _card.style.display = '';   // anyone can add an outlet
+    const inpEl = document.getElementById('outletNewName'), hintEl = document.getElementById('outletNumHint');
+    if (inpEl) inpEl.placeholder = isOwner ? 'e.g. 053 Bangalore Vijayanagar' : 'Outlet name only — number is added automatically';
+    if (hintEl) hintEl.textContent = (isOwner ? 'Saved straight away. ' : 'Anyone can add an outlet — a new name goes to the owner for approval, and appears in everyone’s dropdown once approved. ')
+      + 'Next free number: ' + String(outletMaxCode(rows.concat(obMaster())) + 1).padStart(3, '0') + ' (added automatically if you type only the name).';
+    // Owner sees everything. Everyone else sees approved outlets + the requests they made themselves.
+    const visible = rows.filter(o => isOwner || outletIsApproved(o) || o.createdByUid === currentUser.uid);
+    let h = `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th style="text-align:left">Added By</th><th>Added</th><th>Status</th><th>Action</th></tr></thead><tbody>`;
+    obMaster().forEach(o => {
+      h += `<tr><td style="text-align:left">${escHtml(o.name)} <span class="pill">${o.type === 'franchise' ? 'Franchise' : 'Company'}</span></td><td style="text-align:left">Master list</td><td>—</td><td><span class="pill pill-approved">Approved</span></td><td>—</td></tr>`;
+    });
+    visible.forEach(o => {
+      const st = outletStatus(o), pending = st === 'pending';
+      let act = '—';
+      if (isOwner) act = (pending ? `<button class="mini-btn mini-btn-ok" onclick="approveOutlet('${o.id}',true)">✓ Approve</button><button class="mini-btn mini-btn-no" onclick="approveOutlet('${o.id}',false)">✕ Decline</button>` : `<button class="mini-btn mini-btn-no" onclick="deleteOutlet('${o.id}')">Remove</button>`);
+      else if (pending && o.createdByUid === currentUser.uid) act = `<button class="mini-btn mini-btn-no" onclick="deleteOutlet('${o.id}')">Cancel request</button>`;
+      h += `<tr><td style="text-align:left">${escHtml(o.name || '—')}</td><td style="text-align:left">${escHtml(o.createdByName || '—')}</td><td>${fmtTs(o.createdAt)}</td><td>${pending ? '<span class="pill pill-pending">⏳ Awaiting approval</span>' : '<span class="pill pill-approved">Approved</span>'}</td><td>${act}</td></tr>`;
     });
     h += `</tbody></table></div></div>`;
     wrap.innerHTML = h;
@@ -5490,22 +6116,32 @@ async function addOutlet() {
   const inp = document.getElementById('outletNewName');
   const err = document.getElementById('outletAddErr');
   const name = (inp.value || '').trim();
-  err.textContent = '';
+  err.textContent = ''; err.style.color = '#E15C5C';
   if (!name) { err.textContent = 'Enter an outlet name first.'; return; }
   try {
-    await db.collection('outlets').add({
-      name, createdByUid: currentUser.uid, createdByName: currentUser.displayName || currentUser.email,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    // Owner: saved at once (keeps a number typed in the name, else the next free one).
+    // Everyone else: a new name is sent to the owner for approval; a name already in the list is refused.
+    const r = await outletCreate(name, '');
     inp.value = '';
+    if (r.status === 'pending') { err.style.color = '#D6923B'; err.textContent = '\u23f3 Sent to the owner for approval as ' + r.built.name + '. You can use it once it is approved.'; }
+    else { err.style.color = '#3FB874'; err.textContent = '\u2713 Saved as ' + r.built.name; }
     loadOutletsPanel();
   } catch (e) {
-    err.textContent = "Couldn't save: " + e.message;
+    err.textContent = (e.code === 'permission-denied') ? "Couldn't save: permission denied \u2014 the outlets collection must allow signed-in users to create documents (see the Firestore rules note)." : "Couldn't save: " + e.message;
   }
 }
+async function approveOutlet(id, approve) {
+  if (approve === false && !confirm('Decline this outlet request? It will be removed.')) return;
+  await setOutletStatus(id, approve);
+  loadOutletsPanel();
+}
 async function deleteOutlet(id) {
+  const o = obFire.find(x => x.id === id);
+  const mineAndPending = !!(o && outletStatus(o) === 'pending' && currentUser && o.createdByUid === currentUser.uid);
+  if (!isOwner && !mineAndPending) { alert('Only the owner can remove outlets.'); return; }
   try {
     await db.collection('outlets').doc(id).delete();
+    obFire = obFire.filter(x => x.id !== id);
     loadOutletsPanel();
   } catch (e) {
     alert("Couldn't remove outlet: " + e.message);
@@ -5518,16 +6154,21 @@ async function loadAuditHistoryPanel() {
   if (!wrap) return;
   wrap.innerHTML = '<p style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:12px;">Loading…</p>';
   try {
-    const [outletsSnap, auditsSnap] = await Promise.all([
-      db.collection('outlets').limit(200).get(),
-      db.collection('audits').orderBy('ts', 'desc').limit(300).get()
+    const staff = isStaffUser();
+    // Staff see ONLY their own outlet's audits (queried by outlet, so other outlets' audits are never loaded)
+    const [outletsSnap, auditDocs] = await Promise.all([
+      staff ? Promise.resolve(null) : db.collection('outlets').limit(200).get(),
+      scopedDocs('audits', 300)
     ]);
-    const outletNames = outletsSnap.docs.map(d => d.data().name).filter(Boolean);
-    const audits = auditsSnap.docs.map(d => d.data());
+    const outletNames = staff ? [myOutletName].filter(Boolean) : outletsSnap.docs.map(d => d.data().name).filter(Boolean);
+    const audits = auditDocs.map(d => d.data());
 
     // Group audits per outlet, most recent first
     const byOutlet = {};
-    audits.forEach(a => {
+    if (staff) {
+      // every audit here is already this outlet's, whichever spelling of its name it was saved under
+      if (myOutletName) byOutlet[myOutletName.trim().toLowerCase()] = audits.slice();
+    } else audits.forEach(a => {
       const key = (a.outletName || '').trim().toLowerCase();
       if (!key) return;
       (byOutlet[key] = byOutlet[key] || []).push(a);
@@ -5606,32 +6247,181 @@ function saveAuditRecord(stats, shortItems, excessItems) {
 // ══════════════════════════════════════════════════════════════
 // OUTLET DROPDOWN — autocomplete from Outlet Manager's saved list
 // ══════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════
+// OUTLET SEARCH DROPDOWN — one shared list for everyone:
+// the master sheet (001-109) + outlets the OWNER adds in Outlet Manager.
+// Typing a code, a name, part of a name, or even a misspelling ("hosure" → 051 Hosur) shows matches.
+// ══════════════════════════════════════════════════════════════
+let obFire = [], obLoadedAt = 0;
+const OB_IDS = ['p3OutletName','pcOutletName','clOutletName','ogInput'];
+const OB_STOP = new Set(['bolas','boals','factory','outlet','the','store','stores']);
+const obNorm = s => String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+function obMaster(){ return Object.values(P14_BUILTIN).map(o=>({code:o.code,name:o.code+' '+o.name,type:o.type})); }
+function obAll(){
+  const m = {}, extra = [], seen = new Set();
+  obMaster().forEach(o=>{ m[o.code] = Object.assign({alias:[]}, o); });
+  const add = (o, nm, type) => {
+    const c = outletCodeOf(o);
+    if(c && m[c]) { m[c].alias.push(nm); return; }
+    const k = obNorm(nm); if(!k || seen.has(k)) return; seen.add(k);
+    extra.push({code:c, name:nm, type:type||'', alias:[]});
+  };
+  obFire.filter(outletIsApproved).forEach(o=>add(o, o.name||'', ''));   // outlets still waiting for the owner's approval are NOT in the list yet
+  Object.values(p14Dir||{}).forEach(o=>add({number:o.code,name:o.name}, o.code+' '+o.name, o.type));
+  return outletSorted(Object.values(m).concat(extra));
+}
+function obListed(name){ const n = obNorm(name); return !!n && obAll().some(o=>obNorm(o.name)===n || o.alias.some(a=>obNorm(a)===n)); }
+function obCheck(name){ return isOwner || !String(name||'').trim() || obListed(name) || (isStaffUser() && !!myOutletName && obNorm(name)===obNorm(myOutletName)); }
+// Same as obListed, but ignores the leading outlet number ("Bolas Factory Outlet Hospete" matches "011 Bolas Factory Outlet Hospete")
+function obBareListed(name){
+  const n = obNorm(outletBareName(name)); if(!n) return false;
+  return obAll().some(o=>obNorm(outletBareName(o.name))===n || o.alias.some(a=>obNorm(outletBareName(a))===n));
+}
+// A request for this name that's already waiting for the owner (anyone's)
+function obPendingFor(name){
+  const n = obNorm(outletBareName(name)); if(!n) return null;
+  return obFire.find(o=>outletStatus(o)==='pending' && obNorm(outletBareName(o.name))===n) || null;
+}
+function obBlockMsg(name){
+  return obPendingFor(name)
+    ? '"'+name+'" is waiting for the owner\'s approval — you can use it as soon as it is approved.'
+    : 'Pick the outlet from the list. If it is a new outlet, add it in Outlet Manager — the owner has to approve it first.';
+}
+function obVariants(name){
+  const n = obNorm(name), o = obAll().find(x=>obNorm(x.name)===n || x.alias.some(a=>obNorm(a)===n));
+  return [...new Set([name].concat(o ? [o.name].concat(o.alias) : []).map(s=>String(s).trim()).filter(Boolean))].slice(0,10);
+}
+function obLev(a,b){
+  const p = [...Array(b.length+1).keys()];
+  for(let i=1;i<=a.length;i++){ let prev = p[0]; p[0] = i;
+    for(let j=1;j<=b.length;j++){ const t = p[j]; p[j] = Math.min(p[j]+1, p[j-1]+1, prev+(a[i-1]===b[j-1]?0:1)); prev = t; } }
+  return p[b.length];
+}
+function obTok(t, words, hay){
+  if(words.some(w=>w.startsWith(t))) return 3;
+  if(t.length>=3 && hay.includes(t)) return 2;
+  if(t.length>=4){ const k = t.length>=7 ? 2 : 1;
+    for(const w of words){ if(obLev(t,w)<=k || obLev(t,w.slice(0,t.length))<=k) return 1; } }
+  return 0;
+}
+function obSearch(q){
+  const all = obAll(), toks = obNorm(q).split(' ').filter(Boolean);
+  if(!toks.length) return all;
+  const rows = all.map(o=>{
+    const hay = obNorm(o.name+' '+o.alias.join(' ')), words = hay.split(' '), c0 = o.code.replace(/^0+/,'');
+    return {o, sc: toks.map(t=>{
+      if(/^\d+$/.test(t)){ const n = t.replace(/^0+/,''); return c0===n ? 5 : (n && c0.startsWith(n)) ? 2 : 0; }
+      return obTok(t, words, hay);
+    })};
+  });
+  const df = toks.map((t,i)=>Math.max(1, rows.filter(r=>r.sc[i]).length));   // rarer words count for more
+  const hasReal = toks.some(t=>!OB_STOP.has(t)), full = [], part = [];
+  rows.forEach(r=>{
+    if(!r.sc.some(Boolean)) return;
+    if(hasReal && !toks.some((t,i)=>r.sc[i] && !OB_STOP.has(t))) return;
+    const miss = toks.some((t,i)=>!r.sc[i] && !OB_STOP.has(t));
+    const sum = r.sc.reduce((a,s,i)=>a+s/df[i], 0);
+    (miss ? part : full).push({o:r.o, sum});
+  });
+  const by = (a,b)=>b.sum-a.sum || a.o.code.localeCompare(b.o.code);
+  full.sort(by); part.sort(by);
+  return full.length < 3 ? full.concat(part).map(x=>x.o).slice(0,8) : full.map(x=>x.o).slice(0,40);
+}
+(function obInit(){
+  const css = document.createElement('style');
+  css.textContent = '#obPanel{position:fixed;z-index:10050;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.35)}'
+    + '.ob-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border);color:var(--text)}'
+    + '.ob-row.on,.ob-row:hover{background:var(--surface2)}.ob-tag{font-family:"DM Mono",monospace;font-size:9.5px;color:var(--muted);white-space:nowrap}'
+    + '.ob-empty{padding:12px;font-size:12px;color:var(--muted);font-family:"DM Mono",monospace}';
+  document.head.appendChild(css);
+  const P = document.createElement('div'); P.id = 'obPanel'; P.style.display = 'none'; document.body.appendChild(P);
+  let inp = null, hits = [], idx = -1, picking = false;
+  const hide = () => { P.style.display = 'none'; inp = null; };
+  function pos(){
+    if(!inp) return;
+    const r = inp.getBoundingClientRect(), below = innerHeight - r.bottom - 10;
+    P.style.left = r.left+'px'; P.style.width = r.width+'px';
+    if(below < 180 && r.top > below){ P.style.top = 'auto'; P.style.bottom = (innerHeight-r.top+4)+'px'; P.style.maxHeight = Math.min(300, r.top-10)+'px'; }
+    else { P.style.bottom = 'auto'; P.style.top = (r.bottom+4)+'px'; P.style.maxHeight = Math.min(300, below)+'px'; }
+  }
+  function render(){
+    P.innerHTML = hits.length ? hits.map((o,i)=>`<div class="ob-row${i===idx?' on':''}" data-i="${i}"><span>${escHtml(o.name)}</span>${o.type?`<span class="ob-tag">${o.type==='franchise'?'Franchise':'Company'}</span>`:''}</div>`).join('')
+      : `<div class="ob-empty">No match in the outlet list.${isOwner?' To add a new outlet, type its full name and use "+ Save to Outlet Manager".':' Ask the owner to add this outlet.'}</div>`;
+  }
+  function show(el){ inp = el; hits = obSearch(el.value); idx = hits.length && el.value.trim() ? 0 : -1; render(); P.style.display = 'block'; pos(); }
+  function pick(i){
+    const o = hits[i]; if(!o || !inp) return;
+    const el = inp; picking = true; el.value = o.name; el.dispatchEvent(new Event('input',{bubbles:true})); picking = false; hide();
+  }
+  document.addEventListener('focusin', e=>{
+    const t = e.target;
+    if(OB_IDS.includes(t.id) && !t.readOnly){   // a staff member's locked outlet box never opens the picker
+      if(Date.now()-obLoadedAt > 60000 && typeof db !== 'undefined' && currentUser){ obLoadedAt = Date.now(); p3LoadOutletDatalist(); }
+      show(t);
+    } else if(!P.contains(t)) hide();
+  });
+  document.addEventListener('input', e=>{ if(!picking && OB_IDS.includes(e.target.id) && !e.target.readOnly) show(e.target); });
+  document.addEventListener('keydown', e=>{
+    if(!inp || e.target !== inp || P.style.display === 'none') return;
+    if(e.key==='ArrowDown' || e.key==='ArrowUp'){
+      e.preventDefault(); if(!hits.length) return;
+      idx = (idx + (e.key==='ArrowDown'?1:-1) + hits.length) % hits.length; render();
+      const on = P.querySelector('.on'); if(on) on.scrollIntoView({block:'nearest'});
+    } else if(e.key==='Enter' && idx>=0){ e.preventDefault(); pick(idx); }
+    else if(e.key==='Escape') hide();
+  });
+  document.addEventListener('mousedown', e=>{
+    const r = e.target.closest && e.target.closest('.ob-row');
+    if(r && P.contains(r)){ e.preventDefault(); pick(+r.dataset.i); }
+    else if(e.target !== inp && !P.contains(e.target)) hide();
+  });
+  addEventListener('scroll', pos, true); addEventListener('resize', pos);
+})();
+
 let p3SavedOutlets = [];
 async function p3LoadOutletDatalist(){
   try{
-    const snap = await db.collection('outlets').orderBy('createdAt','desc').limit(200).get();
-    p3SavedOutlets = snap.docs.map(d=>({id:d.id, name:(d.data().name||'')}));
+    const snap = await db.collection('outlets').orderBy('createdAt','desc').limit(1000).get();
+    p3SavedOutlets = outletSorted(snap.docs.map(d=>({id:d.id, name:(d.data().name||''), number:(d.data().number||''), status:(d.data().status||'approved'), createdByUid:(d.data().createdByUid||''), createdByName:(d.data().createdByName||'')})));
     const dl = document.getElementById('p3OutletDatalist');
-    if(dl) dl.innerHTML = p3SavedOutlets.map(o=>`<option value="${escHtml(o.name)}">`).join('');
+    obFire = p3SavedOutlets; obLoadedAt = Date.now();
+    if(dl) dl.innerHTML = '';
     p3CheckOutletSaved(document.getElementById('p3OutletName') ? document.getElementById('p3OutletName').value.trim() : '');
   }catch(e){ console.warn('p3LoadOutletDatalist failed:', e); }
 }
 function p3CheckOutletSaved(name){
-  const row = document.getElementById('p3SaveOutletRow'), nameEl = document.getElementById('p3SaveOutletName');
+  const row = document.getElementById('p3SaveOutletRow'), nameEl = document.getElementById('p3SaveOutletName'), note = document.getElementById('p3OutletNote');
   if(!row) return;
-  const trimmed = (name||'').trim();
-  const already = trimmed && p3SavedOutlets.some(o=>o.name.trim().toLowerCase()===trimmed.toLowerCase());
-  if(trimmed && !already){ nameEl.textContent = trimmed; row.style.display='block'; }
-  else { row.style.display='none'; }
+  const trimmed = (name||'').trim(), missing = trimmed && !obListed(trimmed);
+  const waiting = missing && !!obPendingFor(trimmed);
+  const btn = row.querySelector('button');
+  // Anyone can propose a new outlet: the owner saves it straight away, everyone else sends it for the owner's approval.
+  if(missing && !waiting){
+    nameEl.textContent = trimmed;
+    if(btn) btn.innerHTML = (isOwner ? '+ Save "' : '+ Request owner approval for "') + '<span id="p3SaveOutletName"></span>' + (isOwner ? '" to Outlet Manager' : '"');
+    const n2 = document.getElementById('p3SaveOutletName'); if(n2) n2.textContent = trimmed;
+    row.style.display='block';
+  } else { row.style.display='none'; }
+  if(note){
+    if(waiting){ note.textContent = '⏳ Waiting for the owner’s approval — you can use this outlet as soon as it is approved.'; note.style.color = '#D6923B'; note.style.display = 'block'; }
+    else if(missing && !isOwner){ note.textContent = '⚠ Not in the outlet list — pick one from the dropdown, or request it below. A new outlet is usable only after the owner approves it.'; note.style.color = '#E15C5C'; note.style.display = 'block'; }
+    else note.style.display = 'none';
+  }
 }
 async function p3SaveCurrentOutlet(){
-  const name = (document.getElementById('p3OutletName').value||'').trim();
+  const inp = document.getElementById('p3OutletName');
+  const name = (inp.value||'').trim();
   if(!name || !currentUser) return;
   try{
-    await db.collection('outlets').add({
-      name, createdByUid: currentUser.uid, createdByName: currentUser.displayName||currentUser.email,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    const r = await outletCreate(name, '');
+    if(r.status === 'pending'){
+      inp.value = name;   // keep what was typed — it can be used once the owner approves
+      alert('Sent to the owner for approval as "' + r.built.name + '". You can use it in the audit as soon as it is approved.');
+    } else {
+      inp.value = r.built.name;
+    }
+    try{ if(typeof p3UpdateOutletPreview==='function') p3UpdateOutletPreview(); }catch(_){}
     await p3LoadOutletDatalist();
   }catch(e){ alert("Couldn't save outlet: "+e.message); }
 }
@@ -5678,7 +6468,7 @@ async function p3LoadPriorAuditForOutlet(outletName){
   p3PriorStreaks = {};
   if(!outletName) return;
   try{
-    const snap = await db.collection('audits').where('outletName','==',outletName).limit(50).get();
+    const snap = await db.collection('audits').where('outletName','in',obVariants(outletName)).limit(50).get();
     const docs = snap.docs.map(d=>d.data());
     docs.sort((a,b)=>(b.ts&&b.ts.toMillis?b.ts.toMillis():0)-(a.ts&&a.ts.toMillis?a.ts.toMillis():0));
     // Walk backward from the most recent prior audit, counting each item's unbroken streak
@@ -5805,6 +6595,7 @@ async function pcSaveAudit(){
   const outlet = document.getElementById('pcOutletName').value.trim();
   const msg = document.getElementById('pcSaveMsg');
   if(!outlet){ msg.style.color='#E15C5C'; msg.textContent='Enter an outlet name first.'; return; }
+  if(!obCheck(outlet)){ msg.style.color='#E15C5C'; msg.textContent=obBlockMsg(outlet); return; }
   if(!currentUser){ msg.style.color='#E15C5C'; msg.textContent='Not signed in.'; return; }
   const calc = pcRecalc();
   const dateVal = document.getElementById('pcDate').value || new Date().toISOString().slice(0,10);
@@ -5838,8 +6629,7 @@ async function pcLoadHistory(){
   const wrap = document.getElementById('pettyCashHistoryWrap');
   if(!wrap) return;
   try{
-    const snap = await db.collection('petty_cash_audits').orderBy('ts','desc').limit(50).get();
-    const rows = snap.docs.map(d=>d.data());
+    const rows = (await scopedDocs('petty_cash_audits', 50)).map(d=>d.data());   // staff: only their own outlet's
     if(!rows.length){ wrap.innerHTML = `<div class="table-wrap" style="padding:18px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No petty cash audits saved yet.</div>`; return; }
     let h = `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th>Date</th><th>Closing Balance</th><th>Denom Total</th><th>Diff</th><th style="text-align:left">Verified By</th><th>When</th></tr></thead><tbody>`;
     rows.forEach(a=>{
@@ -5989,6 +6779,7 @@ async function clSaveAudit(){
   const outlet = document.getElementById('clOutletName').value.trim();
   const msg = document.getElementById('clSaveMsg');
   if(!outlet){ msg.style.color='#E15C5C'; msg.textContent='Enter an outlet name first.'; return; }
+  if(!obCheck(outlet)){ msg.style.color='#E15C5C'; msg.textContent=obBlockMsg(outlet); return; }
   if(!currentUser){ msg.style.color='#E15C5C'; msg.textContent='Not signed in.'; return; }
   if(!Object.keys(clRatings).length){ msg.style.color='#E15C5C'; msg.textContent='Rate at least one area first.'; return; }
   msg.style.color='var(--muted)'; msg.textContent='Saving…';
@@ -6015,8 +6806,7 @@ async function clLoadHistory(){
   const wrap = document.getElementById('cleanlinessHistoryWrap');
   if(!wrap) return;
   try{
-    const snap = await db.collection('cleanliness_audits').orderBy('ts','desc').limit(50).get();
-    const rows = snap.docs.map(d=>d.data());
+    const rows = (await scopedDocs('cleanliness_audits', 50)).map(d=>d.data());   // staff: only their own outlet's
     if(!rows.length){ wrap.innerHTML = `<div class="table-wrap" style="padding:18px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No cleanliness audits saved yet.</div>`; return; }
     let h = `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th>Score</th><th style="text-align:left">Photo</th><th style="text-align:left">Verified By</th><th>When</th></tr></thead><tbody>`;
     rows.forEach(a=>{
