@@ -5566,7 +5566,7 @@ function p14Build(days, keys) {
   });
 }
 
-function p14Sheet(wb, name, title, period, labelHead, subHead, rows, totalLabel, w1, w2) {
+function p14Sheet(wb, name, title, period, labelHead, subHead, rows, totalLabel, w1, w2, heading) {
   const ws = wb.addWorksheet(name, { views: [{ state: 'frozen', xSplit: 2, ySplit: 4, showGridLines: false }], pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
   [w1 || 12, w2 || 9, 13, 13, 13, 13, 13, 16, 2, 10, 10, 10, 10, 10, 13].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
   const line = { style: 'thin', color: { argb: 'FFC5CCD8' } }, box = { top: line, left: line, bottom: line, right: line };
@@ -5579,7 +5579,7 @@ function p14Sheet(wb, name, title, period, labelHead, subHead, rows, totalLabel,
     if (o.fmt) x.numFmt = o.fmt;
   };
   const NAVY = '1F2A44', GOLD = 'F5B700', SLATE = '374151', AMT = '#,##0.00;-#,##0.00;"-"', CNT = '0;-0;"-"';
-  ws.mergeCells(1, 1, 1, 15); put(1, 1, 'BOLAS AGRO PRIVATE LIMITED, Karkala', { size: 14, bold: true, color: 'FFFFFF', fill: NAVY, nobox: true });
+  ws.mergeCells(1, 1, 1, 15); put(1, 1, heading || 'BOLAS AGRO PRIVATE LIMITED, Karkala', { size: 14, bold: true, color: 'FFFFFF', fill: NAVY, nobox: true });
   ws.mergeCells(2, 1, 2, 15); put(2, 1, `Sales Report — ${title}${period ? '   ·   Invoice List ' + period : ''}`, { size: 11, bold: true, fill: 'DCE3F0', nobox: true });
   ws.getRow(1).height = 26; ws.getRow(2).height = 20;
   put(3, 1, '', { fill: SLATE }); put(3, 2, '', { fill: SLATE });
@@ -5706,27 +5706,110 @@ function p14Blocks(wb, name, blocks, w1) {
   });
   return ws;
 }
-function p14BuildExcel(D, codes) {
-  const outs = codes ? D.outlets.filter(o => codes.includes(o.code)) : D.outlets;
-  p14Relabel();
+// The Excel never mentions Company-owned / Franchise — each sheet is headed by the outlet's own name ("053 Bolas Factory Outlet Bangalore Vijayanagara").
+// fmt 'month' = Format 1: one sheet per month (Jan 2026, Feb 2026 …) · fmt 'one' = Format 2: all months stacked in ONE sheet per outlet.
+const p14MonShort = m => m.sheet.slice(0, 3) + '-' + m.sheet.slice(-2);
+const p14SheetSafe = s => String(s).replace(/[\\\/\?\*\[\]:]/g, '').slice(0, 31);
+// Excel caps a sheet TAB at 31 characters (the heading inside the sheet always shows the full outlet name).
+// Keep the outlet recognisable in the tab: drop filler words (The / Bolas / Factory Outlet …) only when the name does not fit, and never cut the month suffix.
+function p14TabName(o, suffix) {
+  const clean = x => String(x).replace(/[\\\/\?\*\[\]:]/g, '').replace(/\s+/g, ' ').trim();
+  const room = 31 - (suffix ? suffix.length + 1 : 0);
+  let n = clean(o.label);
+  for (const re of [/\bThe\b\s*/i, /\bBolas\b\s*/i, /\bFactory Outlet\b\s*/i, /\bOutlet\b\s*/i, /\bPrivate Limited\b\s*/i]) { if (n.length <= room) break; const t = clean(n.replace(re, '')); if (t.length > 4) n = t; }
+  if (n.length > room) n = n.slice(0, room).trim();
+  return suffix ? n + ' ' + suffix : n;
+}
+const p14UniqName = (used, nm) => { let t = nm, k = 2; while (used.has(t.toLowerCase())) { const sfx = ' (' + k++ + ')'; t = nm.slice(0, 31 - sfx.length) + sfx; } used.add(t.toLowerCase()); return t; };
+// "Invoice List 01-09-2026 to 30-09-2026" for one month — the month's own days, trimmed to what the uploaded file actually covers
+function p14MonthPeriod(D, m) {
+  const key = s => { const t = String(s || '').match(/(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/); return t ? t[3] + '-' + t[2].padStart(2, '0') + '-' + t[1].padStart(2, '0') : ''; };
+  const show = k => k.slice(8) + '-' + k.slice(5, 7) + '-' + k.slice(0, 4);
+  const f0 = key(m.rows[0].label), l0 = key(m.rows[m.rows.length - 1].label);
+  let a = f0, b = l0;
+  const pm = String(D.period || '').match(/(\d{1,2}[-\/.]\d{1,2}[-\/.]\d{4}).*?(\d{1,2}[-\/.]\d{1,2}[-\/.]\d{4})/);
+  if (pm) { const pa = key(pm[1]), pb = key(pm[2]); if (pa > a) a = pa; if (pb < b) b = pb; if (a > b) { a = f0; b = l0; } }
+  return show(a) + ' to ' + show(b);
+}
+function p14BuildMonthSheets(D, outs) {
   const wb = new ExcelJS.Workbook(); wb.creator = 'Bolas Stock Suite';
-  const mlab = m => m.sheet.slice(0, 3) + '-' + m.sheet.slice(-2);
-  const tlab = o => P14_TYPE[o.type] || 'Not set';
-  const sumBlocks = (list, title) => {
-    const bl = D.months.map((m, mi) => ({ label: mlab(m), title, firstHead: 'Outlet', lastHead: 'Type', rows: list.map(o => ({ label: o.label, s: o.months[mi].s, o: o.months[mi].o, extra: tlab(o) })) }));
-    if (D.months.length > 1) bl.push({ label: 'Total', title: title + ' — full period', firstHead: 'Outlet', lastHead: 'Type', rows: list.map(o => ({ label: o.label, s: o.s, o: o.o, extra: tlab(o) })) });
-    return bl;
-  };
-  p14Blocks(wb, 'All Outlets', sumBlocks(outs, 'All Outlets'), 38);
-  Object.keys(P14_TYPE).forEach(t => {
-    const list = outs.filter(o => o.type === t);
-    if (list.length) p14Blocks(wb, P14_TYPE[t], sumBlocks(list, P14_TYPE[t] + ' outlets'), 38);
-  });
+  const multi = outs.length > 1, used = new Set();
+  outs.forEach(o => o.months.forEach(m => {
+    const nm = p14UniqName(used, multi ? p14TabName(o, p14MonShort(m)) : p14SheetSafe(m.sheet));
+    p14Sheet(wb, nm, m.name, p14MonthPeriod(D, m), 'Date', 'Day', m.rows, 'MONTH TOTAL', 12, 9, o.label);
+  }));
+  return wb;
+}
+function p14BuildOneSheet(D, outs) {
+  const wb = new ExcelJS.Workbook(); wb.creator = 'Bolas Stock Suite';
+  if (outs.length > 1) {
+    const bl = D.months.map((m, mi) => ({ label: p14MonShort(m), title: 'All Outlets', firstHead: 'Outlet', lastHead: 'Rating', rows: outs.map(o => ({ label: o.label, s: o.months[mi].s, o: o.months[mi].o })) }));
+    if (D.months.length > 1) bl.push({ label: 'Total', title: 'All Outlets — full period', firstHead: 'Outlet', lastHead: 'Rating', rows: outs.map(o => ({ label: o.label, s: o.s, o: o.o })) });
+    p14Blocks(wb, 'All Outlets', bl, 50);
+  }
+  const used = new Set(outs.length > 1 ? ['all outlets'] : []);
   outs.forEach(o => {
-    p14Blocks(wb, o.label.replace(/[\\\/\?\*\[\]:]/g, '').slice(0, 31),
-      o.months.map(m => ({ label: mlab(m), title: o.label + (o.type ? ' · ' + P14_TYPE[o.type] : ''), firstHead: 'Date', lastHead: 'Rating', rows: m.rows.map(x => ({ label: x.label, s: x.s, o: x.o })) })), 13);
+    p14Blocks(wb, p14UniqName(used, p14TabName(o, '')),
+      o.months.map(m => ({ label: p14MonShort(m), title: o.label, firstHead: 'Date', lastHead: 'Rating', rows: m.rows.map(x => ({ label: x.label, s: x.s, o: x.o })) })), 13);
   });
   return wb;
+}
+function p14BuildExcel(D, codes, fmt) {
+  const outs = codes ? D.outlets.filter(o => codes.includes(o.code)) : D.outlets;
+  p14Relabel();
+  return fmt === 'one' ? p14BuildOneSheet(D, outs) : p14BuildMonthSheets(D, outs);
+}
+
+// ── Layout chooser: shows a small preview of each Excel layout (built from the person's own first selected outlet / month) ──
+function p14LayoutPreview(kind, o, m, D) {
+  const f = v => v ? Math.round(v).toLocaleString('en-IN') : '';
+  const cell = (t, bg, fg, b, al) => `<div style="background:${bg};color:${fg || '#1F2937'};font-weight:${b ? 700 : 400};text-align:${al || 'center'};padding:2px 3px;border:.5px solid #c5ccd8;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${t}</div>`;
+  const grid = cells => `<div style="display:grid;grid-template-columns:minmax(0,1.6fr) repeat(5,minmax(0,1fr)) minmax(0,1.2fr);font-size:8.5px">${cells.join('')}</div>`;
+  const box = 'background:#fff;border:1px solid #c5ccd8;border-radius:6px;overflow:hidden;font-family:Calibri,Arial,sans-serif;color:#1F2937';
+  const rows = m.rows.slice(0, 4), name = escHtml(o.label);
+  if (kind === 'month') {
+    const c = [cell('Date', '#1F2A44', '#fff', 1)].concat(P14_CH.map(x => cell(escHtml(x[1].replace(' Orders', '')), '#' + x[2], '#fff', 1)), [cell('TOTAL', '#1F2A44', '#fff', 1)]);
+    rows.forEach(r => { c.push(cell(r.label, '#fff', null, 0, 'left')); P14_CH.forEach((x, i) => c.push(cell(f(r.s[i]), '#' + x[3], null, 0, 'right'))); c.push(cell(f(p14Sum(r.s)), '#EEF1F6', null, 1, 'right')); });
+    c.push(cell('MONTH TOTAL', '#1F2A44', '#fff', 1, 'left')); m.s.forEach(v => c.push(cell(f(v), '#1F2A44', '#fff', 1, 'right'))); c.push(cell(f(p14Sum(m.s)), '#F5B700', '#1F2A44', 1, 'right'));
+    const tabs = D.months.slice(0, 3).map((x, i) => `<span style="padding:1px 7px;border-radius:3px 3px 0 0;background:${i ? '#d4d8e0' : '#fff'};font-weight:${i ? 400 : 700};font-size:8.5px">${escHtml(x.sheet)}</span>`).join('') + (D.months.length > 3 ? '<span style="padding:1px 4px;font-size:8.5px">…</span>' : '');
+    return `<div style="${box}"><div style="background:#1F2A44;color:#fff;text-align:center;font-weight:700;padding:5px 4px;font-size:10px">${name}</div><div style="background:#DCE3F0;text-align:center;padding:2px;font-size:8.5px;font-weight:600">Sales Report — ${escHtml(m.name)}</div>${grid(c)}<div style="display:flex;gap:2px;background:#e5e7eb;padding:3px 4px 0">${tabs}</div></div>`;
+  }
+  const bar = (t, sz) => `<div style="background:#FFFF00;text-align:center;font-weight:700;font-size:${sz}px;padding:2px;border:.5px solid #000">${t}</div>`;
+  const hd = ['Date'].concat(P14_HEAD, ['TOTAL SALE']);
+  const c = hd.map(t => cell(escHtml(t), '#D9E1F2', null, 1));
+  rows.forEach(r => { c.push(cell(r.label, '#8EA9DB', null, 1)); P14_OFF.forEach(i => c.push(cell(f(r.s[i]), '#fff', null, 0, 'right'))); c.push(cell(f(p14Sum(r.s)), '#8EA9DB', null, 1, 'right')); });
+  const mon = escHtml(p14MonShort(m)), nxt = D.months[1] ? escHtml(p14MonShort(D.months[1])) : '';
+  return `<div style="${box};padding-bottom:4px"><div style="display:inline-block;background:#FFFF00;font-weight:700;font-size:8.5px;padding:1px 8px;border:.5px solid #000;margin:3px">${mon}</div>${bar(name, 10)}${bar('Sale (Value)', 9)}${grid(c)}<div style="font-size:8px;color:#6b7280;padding:3px 5px;font-style:italic">… Order (in Numbers) table sits beside it</div>${nxt ? `<div style="display:inline-block;background:#FFFF00;font-weight:700;font-size:8.5px;padding:1px 8px;border:.5px solid #000;margin:2px 3px 0">${nxt}</div><div style="font-size:8px;color:#6b7280;padding:2px 5px;font-style:italic">… next month block below</div>` : ''}</div>`;
+}
+function p14FormatPicker(D, codes) {
+  return new Promise(resolve => {
+    const outs = D.outlets.filter(o => codes.includes(o.code)), o0 = outs[0], m0 = o0.months[0];
+    const nOut = outs.length, nMon = D.months.length, nMonthSheets = nOut * nMon, nOneSheets = nOut + (nOut > 1 ? 1 : 0);
+    const monthNames = nOut === 1 ? D.months.slice(0, 4).map(x => x.sheet).join(', ') + (nMon > 4 ? ' …' : '') : '';
+    let pick = 'month';
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:14px;overflow:auto';
+    const card = (k, title, desc, sheets, warn) => `<div data-f="${k}" style="cursor:pointer;border:2px solid var(--border);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px">${p14LayoutPreview(k, o0, m0, D)}<div style="font-weight:800;font-size:13.5px">${title}</div><div style="font-size:11.5px;color:var(--muted);line-height:1.5">${desc}</div><div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--t1);line-height:1.5">${sheets}</div>${warn ? `<div style="font-size:11px;color:#D6923B">${warn}</div>` : ''}</div>`;
+    ov.innerHTML = `<div style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:16px;width:100%;max-width:780px;margin:auto;padding:16px;display:flex;flex-direction:column;gap:12px">
+      <div style="font-weight:800;font-size:15px">Which Excel layout do you want?</div>
+      <div style="font-size:11.5px;color:var(--muted)">Tap a layout, then Download. Previews use your own data. The outlet name is the heading on every sheet.</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
+        ${card('month', 'Format 1 — Month-wise sheets', 'One sheet for each month (Jan, Feb, Mar …). Each sheet shows that month day by day, Sales on the left and Orders on the right.',
+          nOut === 1 ? `${nMon} sheet${nMon > 1 ? 's' : ''}: ${escHtml(monthNames)}` : `${nMonthSheets} sheets — one per outlet per month (e.g. ${escHtml(p14TabName(o0, p14MonShort(m0)))})`,
+          nMonthSheets > 100 ? 'That is a lot of sheets — pick fewer outlets, or use Format 2.' : '')}
+        ${card('one', 'Format 2 — All months in one sheet', 'Every month stacked down a single sheet (Oct-26, Nov-26 …). Sale (Value) on the left, Order (in Numbers) on the right.',
+          nOut === 1 ? '1 sheet for this outlet' : `${nOneSheets} sheets — an All Outlets summary + one sheet per outlet`, '')}
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px"><button class="mini-btn" id="fmCancel" style="border:1px solid var(--border);color:var(--muted)">Cancel</button> <button class="mini-btn mini-btn-ok" id="fmOk">⬇ Download</button></div></div>`;
+    document.body.appendChild(ov);
+    const paint = () => ov.querySelectorAll('[data-f]').forEach(c => { const on = c.dataset.f === pick; c.style.borderColor = on ? 'var(--t1)' : 'var(--border)'; c.style.background = on ? 'rgba(91,127,224,.08)' : 'transparent'; });
+    const done = v => { ov.remove(); resolve(v); };
+    ov.querySelectorAll('[data-f]').forEach(c => c.addEventListener('click', () => { pick = c.dataset.f; paint(); }));
+    ov.querySelector('#fmCancel').addEventListener('click', () => done(null));
+    ov.addEventListener('click', e => { if (e.target === ov) done(null); });
+    ov.querySelector('#fmOk').addEventListener('click', () => done(pick));
+    paint();
+  });
 }
 
 function p14FillSelect(keep) {
@@ -6383,8 +6466,10 @@ $14('p14DownloadBtn').addEventListener('click', async () => {
         list: p14Data.outlets, selected: everyone, okLabel: 'Download' });
       if (!codes) return;
     }
-    const suffix = codes.length === everyone.length ? '' : codes.length === 1 ? '_' + codes[0] : `_${codes.length}_outlets`;
-    const buf = await p14BuildExcel(p14Data, codes).xlsx.writeBuffer();
+    const fmt = await p14FormatPicker(p14Data, codes);   // Format 1 (month-wise sheets) or Format 2 (all months in one sheet)
+    if (!fmt) return;
+    const suffix = (codes.length === everyone.length ? '' : codes.length === 1 ? '_' + codes[0] : `_${codes.length}_outlets`) + (fmt === 'one' ? '_AllMonthsOneSheet' : '_MonthWise');
+    const buf = await p14BuildExcel(p14Data, codes, fmt).xlsx.writeBuffer();
     const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
     const fname = p14Data.file.replace(/\.xlsx$/, suffix + '.xlsx');
     const a = document.createElement('a'); a.href = url; a.download = fname;
