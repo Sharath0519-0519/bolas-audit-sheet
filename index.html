@@ -6,6 +6,7 @@
 <title>Bolas Stock Suite — 3-in-1 Tool</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
@@ -486,6 +487,20 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 .mini-btn-ok:hover{background:rgba(63,184,116,.1)}
 .mini-btn-no{border:1px solid #E15C5C;color:#E15C5C}
 .mini-btn-no:hover{background:rgba(225,92,92,.1)}
+/* Sales Comparison tab */
+.sc-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:20px}
+.sc-dd summary{list-style:none;cursor:pointer;padding:8px 10px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:9px;font-size:13px;min-width:210px}
+.sc-dd summary::-webkit-details-marker{display:none}
+.sc-dd summary::after{content:' ▾';color:var(--muted)}
+.sc-ddpanel{position:absolute;z-index:40;top:100%;left:0;margin-top:4px;width:min(380px,86vw);max-height:60vh;overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px;box-shadow:0 12px 32px rgba(0,0,0,.45)}
+.sc-quick{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.sc-quick button{padding:5px 10px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer}
+.sc-quick button:hover{border-color:var(--t1)}
+.sc-opt{display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12.5px;cursor:pointer;border-radius:6px}
+.sc-opt:hover{background:var(--surface2)}
+.sc-opt em{margin-left:auto;font-style:normal;color:var(--muted);font-size:10px}
+.sc-chip{padding:6px 11px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:16px;font-size:12px;cursor:pointer}
+.sc-chip.on{background:rgba(91,127,224,.18);color:var(--text);border-color:var(--t1);font-weight:600}
 </style>
 </head>
 <body>
@@ -562,6 +577,9 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     </button>
     <button class="tab" data-tab="14" onclick="switchTab(14)">
       <span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span><span class="tab-label">Sales Report</span>
+    </button>
+    <button class="tab" data-tab="16" onclick="switchTab(16)">
+      <span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/><path d="M13 7l3-3 3 3"/></svg></span><span class="tab-label">Sales Comparison</span>
     </button>
     <button class="tab" data-tab="3" onclick="switchTab(3)">
       <span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 011-1h4a1 1 0 011 1v1"/><path d="M9 12l2 2 4-4"/></svg></span><span class="tab-label">Stock Audit</span>
@@ -1158,13 +1176,30 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
       <div style="min-width:160px"><label for="p14TypeSel" style="display:block;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px">TYPE</label><select id="p14TypeSel" style="width:100%;padding:9px 11px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:9px;font-size:13px"><option value="ALL">All types</option><option value="company">Company-owned</option><option value="franchise">Franchise</option><option value="none">Not set</option></select></div>
     </div>
     <div id="p14CardsArea" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:11px;margin-bottom:24px"></div>
-    <div id="p14Cmp" style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:24px"></div>
     <div class="table-wrap"><div class="table-scroll"><table>
       <thead id="p14TableHead"></thead>
       <tbody id="p14TableBody"></tbody>
     </table></div></div>
     <button class="download-btn dl-c1" id="p14DownloadBtn"><span>⬇</span> Download Sales_Report.xlsx</button>
     <div class="note-strip note-c1"><strong>How it's counted:</strong> Swiggy / Zomato / Ownly = customer name “Sale Through …”. Web Orders = Online Payment. Walk-in = every other bill (Cash, UPI, Card, Advance, Sodexo, split payments). Total Sale = sum of all five. Orders = number of invoices.</div>
+  </div>
+</div>
+<!-- ══ PANEL 16 — SALES COMPARISON (compare 2 / 3 / all outlets and months, charts, Excel download) ══ -->
+<div class="panel" id="panel16">
+  <div class="section-head">
+    <span class="dot" style="background:#E8710A"></span>
+    <div><h2>Sales Comparison</h2><p>Compare 2, 3 or all outlets and months — tables, bar / line / pie charts — download everything in Excel</p></div>
+  </div>
+  <div id="scEmpty" class="sc-card" style="display:none;text-align:center">
+    <div style="font-weight:700;margin-bottom:6px">No sales data loaded yet</div>
+    <div style="color:var(--muted);font-size:12.5px;margin-bottom:12px">Upload and process the Invoice List in the Sales Report tab first — the comparison uses that data.</div>
+    <button class="mini-btn" style="border:1px solid var(--border);color:var(--text)" onclick="switchTab(14)">Go to Sales Report →</button>
+  </div>
+  <div id="scBody" style="display:none">
+    <div class="sc-card" id="scControls"></div>
+    <div class="sc-card" id="scResults"></div>
+    <button class="download-btn dl-c1" id="scDownloadBtn" onclick="scDownload()"><span>⬇</span> Download in Excel (.xlsx) — settings, tables &amp; charts</button>
+    <div class="note-strip note-c1" style="margin-top:14px"><strong>In the Excel file:</strong> a “Comparison” sheet (your settings, the table with live formulas, and <strong>real Excel charts you can edit</strong> — they are linked to the table cells), an “Outlet x Month” sheet, and a “Details” sheet with every outlet × month × channel that you can filter or pivot.</div>
   </div>
 </div>
 <!-- ══ PANEL 15 — OUTLET DOCUMENTS (Cluster Manager + Owner only) ══ -->
@@ -3774,7 +3809,7 @@ let ogMode = '', ogPicked = null;   // outlet gate: '' | 'first' (mandatory) | '
 function isStaffUser() { return !!currentUser && !isOwner && !isClusterManager; }
 function canSeeOutletDocs() { return isOwner || isClusterManager || (isStaffUser() && !!(myOutletCode || myOutletName)); }
 let odOutlets = [], odDocs = [], odExpanded = null;
-const PANEL_NAMES = {1:'Kernel Report',2:'Flavoured Report',3:'Stock Audit',4:'Owner Dashboard',5:'Dashboard',6:'History',7:'Settings',8:'Rate Manager',9:'Outlet Manager',10:'Audit History',11:'Petty Cash',12:'Cleanliness',13:'Ready Files',14:'Sales Report',15:'Outlet Documents'};
+const PANEL_NAMES = {1:'Kernel Report',2:'Flavoured Report',3:'Stock Audit',4:'Owner Dashboard',5:'Dashboard',6:'History',7:'Settings',8:'Rate Manager',9:'Outlet Manager',10:'Audit History',11:'Petty Cash',12:'Cleanliness',13:'Ready Files',14:'Sales Report',15:'Outlet Documents',16:'Sales Comparison'};
 
 // ---- Sign-in ----
 document.getElementById('googleSignInBtn').addEventListener('click', () => {
@@ -3904,8 +3939,10 @@ fbAuth.onAuthStateChanged(async (user) => {
       myAllAccess = !!(isClusterManager && d.allOutletsAccess === true);
       myAllReq = d.allOutletsRequest || '';
       // null = every outlet (only when the owner approved it). Otherwise ONLY the outlets the owner ticked; none ticked = none.
-      p14MyOutlets = !isClusterManager ? [] : myAllAccess ? null
-        : (Array.isArray(ao) ? ao.map(c => String(c).replace(/\D/g, '').padStart(3, '0')) : []);
+      // Cluster manager: all outlets (if approved) or only the ticked ones. Regular staff: ONLY their own outlet (picked at first sign-in).
+      const staffCode = isClusterManager ? '' : odCode(d.myOutletCode || outletLeadCode(d.myOutletName));
+      p14MyOutlets = isClusterManager ? (myAllAccess ? null : (Array.isArray(ao) ? ao.map(c => String(c).replace(/\D/g, '').padStart(3, '0')) : []))
+        : (staffCode ? [staffCode] : []);
       const sig = JSON.stringify(p14MyOutlets);
       if (lastScopeSig !== null && sig !== lastScopeSig && p14Data) {
         // his access changed after he processed a file → wipe the old view so nothing out-of-scope stays on screen
@@ -3942,11 +3979,13 @@ fbAuth.onAuthStateChanged(async (user) => {
   });
 });
 
-// ---- Hide outlet tools (Sales Report) from anyone who isn't the owner or a cluster manager ----
+// ---- Sales Report is for everyone; Sales Comparison is hidden from anyone who isn't the owner or a cluster manager ----
 function applyAccessTabs() {
-  const t = document.querySelector('.tab[data-tab="14"]');
-  if (t) t.style.display = canUseOutletTools() ? '' : 'none';
-  if (!canUseOutletTools() && document.getElementById('panel14')?.classList.contains('active')) switchTab(5);
+  const t = document.querySelector('.tab[data-tab="14"]');   // Sales Report: everyone (staff only ever see their own outlet)
+  if (t) t.style.display = '';
+  const sct = document.querySelector('.tab[data-tab="16"]');
+  if (sct) sct.style.display = canUseOutletTools() ? '' : 'none';
+  if (!canUseOutletTools() && document.getElementById('panel16')?.classList.contains('active')) switchTab(5);
   // Outlet Manager lists EVERY outlet and who added it — staff are locked to one outlet, so it is hidden from them
   const om = document.querySelector('.tab[data-tab="9"]');
   if (om) om.style.display = isStaffUser() ? 'none' : '';
@@ -3964,7 +4003,7 @@ function renderAccessBar(elId) {
   if (!el) return;
   if (isStaffUser()) {
     // Staff: a fixed outlet + (optionally) a change request waiting for the owner
-    if (elId !== 'odScopeNote' || !myOutletName) { el.style.display = 'none'; el.innerHTML = ''; return; }
+    if ((elId !== 'odScopeNote' && elId !== 'p14AccessBar') || !myOutletName) { el.style.display = 'none'; el.innerHTML = ''; return; }
     el.style.display = 'block';
     let tail;
     if (myOutletChange.status === 'pending') tail = ' <span style="color:var(--muted)">· Change to <strong>' + escHtml(myOutletChange.name) + '</strong> requested — waiting for the owner to approve.</span>';
@@ -4157,7 +4196,7 @@ function logActivity(action, panel, detail) {
 // ---- Track tab switches (wraps the existing switchTab — doesn't change what it does) ----
 const _origSwitchTab = switchTab;
 switchTab = function(n) {
-  if (n === 14 && !canUseOutletTools()) n = 5;      // Sales Report is owner / cluster-manager only
+  if (n === 16 && !canUseOutletTools()) n = 5;      // Sales Comparison is owner / cluster-manager only
   if (n === 15 && !canSeeOutletDocs()) n = 5;       // Outlet Documents: owner, cluster managers, and staff (own outlet only)
   if (n === 9 && isStaffUser()) n = 5;              // Outlet Manager lists every outlet — not for staff
   _origSwitchTab(n);
@@ -4172,6 +4211,7 @@ switchTab = function(n) {
   if (n === 10) loadAuditHistoryPanel();
   if (n === 13) loadReadyFilesPanel();
   if (n === 14) { renderAccessBar('p14AccessBar'); p14LoadDirectory(); }
+  if (n === 16) scOpen();
   if (n === 15 && canSeeOutletDocs()) loadClusterDocsPanel();
   if (n === 11 && typeof pcInit === 'function') pcInit();
   if (n === 12 && typeof clInit === 'function') clInit();
@@ -5486,7 +5526,7 @@ function p14Outlet(est, inv, bos) {
   return { code, name: (P14_BUILTIN[code] && P14_BUILTIN[code].name) || name };
 }
 function p14Parse(rows) {
-  if (p14MyOutlets && p14MyOutlets.length === 0) throw new Error('No outlets have been assigned to you yet. Ask the owner to assign your outlets.');
+  if (p14MyOutlets && p14MyOutlets.length === 0) throw new Error(isStaffUser() ? 'Your outlet is not set yet. Choose your outlet first (you are asked at sign-in), then try again.' : 'No outlets have been assigned to you yet. Ask the owner to assign your outlets.');
   const norm = v => String(v == null ? '' : v).trim();
   const found = p14FindHeader(rows), h = found ? found.h : -1, col = found ? found.col : {};
   if (h < 0) throw new Error('Could not find the Date Time, Customer Name, Invoice Amount and Payment Mode columns. Is this the Invoice List file?');
@@ -5720,78 +5760,562 @@ function p14Render() {
   $14('p14PeriodBadge').textContent = D.period || D.months.map(m => m.sheet).join(', ');
   $14('p14DownloadBtn').innerHTML = `<span>⬇</span> Download ${D.file}`;
   $14('p14ResultsSection').classList.add('visible');
-  p14CmpRender();
+  scOnData();   // feeds the Sales Comparison tab
 }
 
-// ---- Compare periods: months, quarters, years, days, custom ranges, outlets, types, weekdays, trends (owner + cluster managers) ----
-const P14_MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], P14_PAL = ['1F6FD1','F5B700','2E7D6B','D62839','6F42C1','E8710A'];
-let p14Cmp = { mode: 'm', a: '', b: '', mon: '', metric: 's', basis: 't', chart: 'both', ch: 'all', d1: '', d2: '', f1: '', t1: '', f2: '', t2: '', n: '7', within: 'all', o1: '', o2: '' }, p14CmpCsv = [];
-function p14CmpSet(k, v) { p14Cmp[k] = v; p14CmpRender(); }
-function p14CmpDownload() { const t = p14CmpCsv.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n'); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], { type: 'text/csv' })); a.download = 'Sales_Comparison.csv'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
-function p14CmpRender() {
-  const box = $14('p14Cmp'); if (!box || !p14Data) return;
-  const C = p14Cmp, sc = p14Scope(), one = p14Pick === 'ALL' ? null : sc.find(o => o.code === p14Pick), list = one ? [one] : sc;
-  const dm = l => { const d = {}; l.forEach(o => o.months.forEach(m => m.rows.forEach(r => { if (!p14Sum(r.o)) return; const [dd, mm, yy] = r.label.split('-'), k = `${yy}-${mm}-${dd}`, e = d[k] || (d[k] = { s: [0, 0, 0, 0, 0], o: [0, 0, 0, 0, 0] }); r.s.forEach((v, i) => { e.s[i] += v; e.o[i] += r.o[i]; }); }))); return d; };
-  const d = dm(list), keys = Object.keys(d).sort(), mn = keys[0], mx = keys[keys.length - 1];
-  const SEL = 'padding:8px 10px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:9px;font-size:13px';
-  const lab = t => `<label style="display:block;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px">${t}</label>`;
-  const sel = (k, opts, lb) => `<div>${lab(lb)}<select style="${SEL}" onchange="p14CmpSet('${k}',this.value)">${opts.map(([v, t]) => `<option value="${v}"${v === C[k] ? ' selected' : ''}>${escHtml(t)}</option>`).join('')}</select></div>`;
-  const dt = (k, lb) => `<div>${lab(lb)}<input type="date" style="${SEL}" value="${C[k]}" min="${mn || ''}" max="${mx || ''}" onchange="p14CmpSet('${k}',this.value)"></div>`;
-  if (!mx) { box.innerHTML = '<div style="color:var(--muted);font-size:12.5px">No sales found for the selected outlet.</div>'; return; }
-  const sh = (k, n) => new Date(Date.parse(k) + n * 864e5).toISOString().slice(0, 10), pad = n => String(n).padStart(2, '0'), ld = k => k.slice(8) + '-' + k.slice(5, 7) + '-' + k.slice(0, 4);
-  const ml = ym => P14_MN[+ym.slice(5) - 1] + ' ' + ym.slice(0, 4), ms = [...new Set(keys.map(k => k.slice(0, 7)))], ys = [...new Set(keys.map(k => k.slice(0, 4)))];
-  const qs = [...new Set(keys.map(k => k.slice(0, 4) + '-Q' + Math.ceil(+k.slice(5, 7) / 3)))], ql = q => q.slice(5) + ' ' + q.slice(0, 4);
-  const mkP = (label, a, b, dd = d) => { const s = [0, 0, 0, 0, 0], o = [0, 0, 0, 0, 0]; for (const k in dd) if (k >= a && k <= b) dd[k].s.forEach((v, i) => { s[i] += v; o[i] += dd[k].o[i]; }); const lo = a > mn ? a : mn, hi = b < mx ? b : mx; return { label, s, o, days: Math.max(1, Math.round((Date.parse(hi) - Date.parse(lo)) / 864e5) + 1) }; };
-  const mr = ym => mkP(ml(ym), ym + '-01', ym + '-31'), qr = q => { const n = +q[6], y = q.slice(0, 4); return mkP(ql(q), `${y}-${pad(n * 3 - 2)}-01`, `${y}-${pad(n * 3)}-31`); };
+// ══════════════════════════════════════════════════════════════
+// PANEL 16 — SALES COMPARISON
+// Compare 2, 3 or ALL outlets and/or months. Uses the data processed in the Sales Report tab (p14Data).
+// Download = real .xlsx with settings, tables, formulas and the charts as pictures.
+// ══════════════════════════════════════════════════════════════
+const SC_MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const SC_PAL = ['1F6FD1','F5B700','2E7D6B','D62839','6F42C1','E8710A','0EA5A5','C026D3','65A30D','64748B','DB2777','0284C7'];
+const SC_MODES = [['o','Outlets side by side (2, 3 or all)'],['om','Outlet × Month grid'],['m','Months side by side (2, 3 or all)'],['trend','Month-by-month trend'],['q','Quarter vs quarter'],['y','Year vs year'],['sm','Same month, different years'],['ytd','This year so far vs same dates last year'],['last','Last N days vs the N days before'],['d','Day vs day'],['r','Custom date range vs range'],['dow','Day of week (Mon–Sun)'],['ty','Company vs Franchise outlets']];
+const SC_TIME = ['m','trend','q','y','sm','ytd','last','d','r','om'];
+let SC = { mode: 'o', outlets: null, months: null, tO: false, tM: false, a: '', b: '', mon: '', metric: 's', basis: 't', chart: 'both', ch: 'all', d1: '', d2: '', f1: '', t1: '', f2: '', t2: '', n: '7', within: 'all' };
+let scCache = null, scM = null;
+
+const scPad = n => String(n).padStart(2, '0');
+const scMl = ym => SC_MN[+ym.slice(5) - 1] + ' ' + ym.slice(0, 4);
+const scEnd = ym => ym + '-' + scPad(new Date(+ym.slice(0, 4), +ym.slice(5), 0).getDate());
+const scLd = k => k.slice(8) + '-' + k.slice(5, 7) + '-' + k.slice(0, 4);
+const scSh = (k, n) => new Date(Date.parse(k) + n * 864e5).toISOString().slice(0, 10);
+const scDiff = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 864e5) + 1;
+const scTr = (s, n) => { s = String(s); return s.length > n ? s.slice(0, n - 1) + '…' : s; };
+const scZ = () => ({ s: [0, 0, 0, 0, 0], o: [0, 0, 0, 0, 0], days: 0 });
+const scAdd = (t, c) => { c.s.forEach((v, i) => { t.s[i] += v; t.o[i] += c.o[i]; }); return t; };
+const scSumRows = (cells, label) => { const t = scZ(); t.label = label; cells.forEach(c => { scAdd(t, c); t.days = Math.max(t.days, c.days); }); return t; };   // same period, several outlets
+const scSumCols = (cells, label) => { const t = scZ(); t.label = label; cells.forEach(c => { scAdd(t, c); t.days += c.days; }); return t; };   // several periods, same outlet
+const scTot = c => p14Sum(c.s);
+
+function scDayMap(o) {
+  const d = {};
+  o.months.forEach(m => m.rows.forEach(r => { if (!p14Sum(r.o)) return; const [dd, mm, yy] = r.label.split('-'); d[`${yy}-${mm}-${dd}`] = { s: r.s.slice(), o: r.o.slice() }; }));
+  return d;
+}
+function scMerge(maps) {
+  const d = {};
+  maps.forEach(m => { for (const k in m) { const e = d[k] || (d[k] = { s: [0, 0, 0, 0, 0], o: [0, 0, 0, 0, 0] }); m[k].s.forEach((v, i) => { e.s[i] += v; e.o[i] += m[k].o[i]; }); } });
+  return d;
+}
+function scOnData() {
+  if (!p14Data) { scCache = null; return; }
+  p14Relabel();
+  const maps = {}, ms = new Set(); let mn = '9999-99-99', mx = '0';
+  p14Data.outlets.forEach(o => { const m = scDayMap(o); maps[o.code] = m; for (const k in m) { if (k < mn) mn = k; if (k > mx) mx = k; ms.add(k.slice(0, 7)); } });
+  scCache = { maps, mn, mx, ms: [...ms].sort() };
+  const codes = new Set(p14Data.outlets.map(o => o.code));
+  if (SC.outlets) { SC.outlets = new Set([...SC.outlets].filter(c => codes.has(c))); if (!SC.outlets.size) { SC.outlets = null; SC.tO = false; } }
+  if (SC.months) { SC.months = new Set([...SC.months].filter(m => ms.has(m))); if (!SC.months.size) { SC.months = null; SC.tM = false; } }
+  if ($14('panel16') && $14('panel16').classList.contains('active')) scOpen();
+}
+const scTop = n => p14Data.outlets.slice().sort((a, b) => p14Sum(b.s) - p14Sum(a.s)).slice(0, n).map(o => o.code);
+function scDefaults() {
+  const X = scCache, all = p14Data.outlets.map(o => o.code);
+  if (!SC.outlets || !SC.tO) SC.outlets = new Set(SC.mode === 'o' ? scTop(3) : SC.mode === 'om' ? scTop(5) : all);
+  if (!SC.months || !SC.tM) SC.months = new Set(SC.mode === 'm' ? X.ms.slice(-2) : X.ms);
+}
+const scScope = () => p14Data.outlets.filter(o => SC.outlets && SC.outlets.has(o.code));
+const scMonthsSel = () => [...SC.months].sort();
+
+// ---- shared context: the selected outlets' data + helpers (also normalises the mode's own selections) ----
+function scCtx() {
+  const X = scCache, C = SC, sc = scScope(), dd = scMerge(sc.map(o => X.maps[o.code])), keys = Object.keys(dd).sort();
+  const x = { X, sc, dd, keys, mn: keys[0], mx: keys[keys.length - 1] };
+  if (!keys.length) return x;
+  x.ms = [...new Set(keys.map(k => k.slice(0, 7)))]; x.ys = [...new Set(keys.map(k => k.slice(0, 4)))];
+  x.qs = [...new Set(keys.map(k => k.slice(0, 4) + '-Q' + Math.ceil(+k.slice(5, 7) / 3)))];
+  x.ql = q => q.slice(5) + ' ' + q.slice(0, 4);
+  x.mkR = (label, a, b, m = dd) => {
+    const c = scZ(); c.label = label;
+    for (const k in m) if (k >= a && k <= b) scAdd(c, m[k]);
+    const lo = a > x.mn ? a : x.mn, hi = b < x.mx ? b : x.mx; c.days = lo <= hi ? Math.max(1, scDiff(lo, hi)) : 1; return c;
+  };
+  x.mkMo = (label, set, m) => {
+    const c = scZ(); c.label = label;
+    for (const k in m) if (set.has(k.slice(0, 7))) scAdd(c, m[k]);
+    set.forEach(ym => { const lo = ym + '-01' > X.mn ? ym + '-01' : X.mn, e = scEnd(ym), hi = e < X.mx ? e : X.mx; if (lo <= hi) c.days += scDiff(lo, hi); });
+    c.days = Math.max(1, c.days); return c;
+  };
   const vld = (k, opts, i) => { if (!opts.includes(C[k])) C[k] = opts[Math.max(0, opts.length - 2 + i)] || ''; };
-  const dflt = { d1: sh(mx, -1), d2: mx, f1: sh(mx, -13), t1: sh(mx, -7), f2: sh(mx, -6), t2: mx }; Object.keys(dflt).forEach(k => { if (!C[k]) C[k] = dflt[k]; });
-  const wopts = [['all', 'All data'], ...ms.map(m => [m, ml(m)])], wr = C.within === 'all' || !ms.includes(C.within) ? [mn, mx] : [C.within + '-01', C.within + '-31'];
-  if (!ms.includes(C.within)) C.within = 'all';
-  const MODES = [['m', 'Month vs month'], ['sm', 'Same month, different years'], ['q', 'Quarter vs quarter'], ['y', 'Year vs year'], ['ytd', 'This year so far vs same dates last year'], ['last', 'Last N days vs the N days before'], ['d', 'Day vs day'], ['r', 'Custom date range vs range'], ['trend', 'Month-by-month trend'], ['dow', 'Day of week (Mon–Sun)'], ['o', 'Outlet vs outlet'], ['ty', 'Company vs Franchise outlets']];
-  let ctl = '', P = [];
-  if (C.mode === 'm') { vld('a', ms, 0); vld('b', ms, 1); ctl = sel('a', ms.map(m => [m, ml(m)]), 'MONTH A') + sel('b', ms.map(m => [m, ml(m)]), 'MONTH B'); P = [mr(C.a), mr(C.b)]; }
-  else if (C.mode === 'q') { vld('a', qs, 0); vld('b', qs, 1); ctl = sel('a', qs.map(q => [q, ql(q)]), 'QUARTER A') + sel('b', qs.map(q => [q, ql(q)]), 'QUARTER B'); P = [qr(C.a), qr(C.b)]; }
-  else if (C.mode === 'sm') { const mo = [...new Set(keys.map(k => k.slice(5, 7)))]; if (!mo.includes(C.mon)) C.mon = mo[mo.length - 1]; ctl = sel('mon', mo.map(m => [m, P14_MN[+m - 1]]), 'MONTH'); P = ys.filter(y => ms.includes(`${y}-${C.mon}`)).map(y => mr(`${y}-${C.mon}`)); }
-  else if (C.mode === 'y') P = ys.map(y => { const p = mkP(y, y + '-01-01', y + '-12-31'); p.label += ms.filter(m => m.startsWith(y)).length < 12 ? ` (${ms.filter(m => m.startsWith(y)).length} mo)` : ''; return p; });
-  else if (C.mode === 'ytd') { const y = +mx.slice(0, 4); P = [mkP(`${y - 1} (to ${mx.slice(8)}-${mx.slice(5, 7)})`, `${y - 1}-01-01`, `${y - 1}${mx.slice(4)}`), mkP(`${y} (to ${mx.slice(8)}-${mx.slice(5, 7)})`, `${y}-01-01`, mx)]; }
-  else if (C.mode === 'last') { const n = +C.n; ctl = sel('n', [7, 14, 30, 60, 90].map(x => [String(x), x + ' days']), 'N'); P = [mkP(`Previous ${n} days`, sh(mx, -2 * n + 1), sh(mx, -n)), mkP(`Last ${n} days`, sh(mx, -n + 1), mx)]; }
-  else if (C.mode === 'd') { ctl = dt('d1', 'DAY A') + dt('d2', 'DAY B'); P = [mkP(ld(C.d1), C.d1, C.d1), mkP(ld(C.d2), C.d2, C.d2)]; }
-  else if (C.mode === 'r') { ctl = dt('f1', 'A FROM') + dt('t1', 'A TO') + dt('f2', 'B FROM') + dt('t2', 'B TO'); P = [mkP(ld(C.f1) + ' → ' + ld(C.t1), C.f1, C.t1), mkP(ld(C.f2) + ' → ' + ld(C.t2), C.f2, C.t2)]; }
-  else if (C.mode === 'trend') P = ms.map(mr);
-  else if (C.mode === 'dow') { ctl = sel('within', wopts, 'WITHIN'); const D = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], x = D.map(n => ({ label: n, s: [0, 0, 0, 0, 0], o: [0, 0, 0, 0, 0], days: 0 })); keys.forEach(k => { if (k < wr[0] || k > wr[1]) return; const p = x[new Date(Date.parse(k)).getUTCDay()]; d[k].s.forEach((v, i) => { p.s[i] += v; p.o[i] += d[k].o[i]; }); p.days++; }); P = [1, 2, 3, 4, 5, 6, 0].map(i => ({ ...x[i], days: Math.max(1, x[i].days) })); }
-  else if (C.mode === 'o') { const co = sc.map(o => o.code); vld('o1', co, 0); vld('o2', co, 1); const oo = sc.map(o => [o.code, o.label]); ctl = sel('o1', oo, 'OUTLET A') + sel('o2', oo, 'OUTLET B') + sel('within', wopts, 'WITHIN'); P = [C.o1, C.o2].map(c => { const o = sc.find(z => z.code === c); return mkP(o ? o.label : c, wr[0], wr[1], dm(o ? [o] : [])); }); }
-  else if (C.mode === 'ty') { ctl = sel('within', wopts, 'WITHIN'); P = [['company', 'Company outlets'], ['franchise', 'Franchise outlets']].map(([t, n]) => mkP(n, wr[0], wr[1], dm(list.filter(o => o.type === t)))); }
-  const CI = C.ch === 'all' ? [0, 1, 2, 3, 4] : [+C.ch], m = C.metric, sum = a => a.reduce((x, y) => x + y, 0);
-  const g = (p, i) => { const ix = i < 5 ? [i] : CI, S = sum(ix.map(j => p.s[j])), O = sum(ix.map(j => p.o[j])); let v = m === 'o' ? O : m === 'a' ? (O ? S / O : 0) : S; return C.basis === 'd' && m !== 'a' ? v / p.days : v; };
+  const dflt = { d1: scSh(x.mx, -1), d2: x.mx, f1: scSh(x.mx, -13), t1: scSh(x.mx, -7), f2: scSh(x.mx, -6), t2: x.mx };
+  Object.keys(dflt).forEach(k => { if (!C[k]) C[k] = dflt[k]; });
+  x.wopts = [['all', 'All data'], ...x.ms.map(m => [m, scMl(m)])];
+  if (!x.ms.includes(C.within)) C.within = 'all';
+  x.wr = C.within === 'all' ? [x.mn, x.mx] : [C.within + '-01', scEnd(C.within)];
+  if (C.mode === 'q') { vld('a', x.qs, 0); vld('b', x.qs, 1); }
+  if (C.mode === 'sm') { const mo = [...new Set(keys.map(k => k.slice(5, 7)))].sort(); x.mo = mo; if (!mo.includes(C.mon)) C.mon = mo.includes(x.mx.slice(5, 7)) ? x.mx.slice(5, 7) : mo[mo.length - 1]; }
+  return x;
+}
+
+// ---- metric helpers (channel filter, Sales / Orders / Avg bill, total / per day) ----
+function scMetric() {
+  const C = SC, CI = C.ch === 'all' ? [0, 1, 2, 3, 4] : [+C.ch], m = C.metric, sum = a => a.reduce((x, y) => x + y, 0);
+  const g = (c, i) => { const ix = i < 5 ? [i] : CI, S = sum(ix.map(j => c.s[j])), O = sum(ix.map(j => c.o[j])); const v = m === 'o' ? O : m === 'a' ? (O ? S / O : 0) : S; return C.basis === 'd' && m !== 'a' ? v / Math.max(1, c.days) : v; };
   const f = v => m === 'o' ? (C.basis === 'd' ? v.toFixed(1) : String(Math.round(v))) : '₹' + v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const ax = v => v >= 1e7 ? (v / 1e7).toFixed(1) + 'Cr' : v >= 1e5 ? (v / 1e5).toFixed(1) + 'L' : v >= 1e3 ? (v / 1e3).toFixed(0) + 'k' : (v < 10 && m === 'o' ? v.toFixed(1) : String(Math.round(v)));
-  let h = `<div style="font-weight:700;font-size:15px;margin-bottom:10px">📊 Compare periods</div><div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">`
-    + sel('mode', MODES, 'COMPARE') + ctl + sel('ch', [['all', 'All channels'], ...P14_CH.map((c, i) => [String(i), c[1] + ' only'])], 'CHANNEL')
-    + sel('metric', [['s', 'Sales (₹)'], ['o', 'Orders'], ['a', 'Average bill (₹/order)']], 'SHOW') + sel('basis', [['t', 'Total'], ['d', 'Average per day']], 'VALUE') + sel('chart', [['bar', 'Bar chart'], ['line', 'Line chart'], ['pie', 'Pie chart'], ['both', 'Bar + Pie'], ['none', 'Table only']], 'CHART') + '</div>';
-  if (P.length < 2) { box.innerHTML = h + `<div style="color:var(--muted);font-size:12.5px">Need at least two periods to compare. Upload an Invoice List that covers them (e.g. a file spanning both years).</div>`; return; }
-  const rows = [...CI.map(i => [P14_CH[i][1], i])].concat(CI.length > 1 ? [['Total', 5]] : []), first = P[0], last = P[P.length - 1], tot = CI.length > 1 ? 5 : CI[0];
-  const best = P.reduce((b, p, k) => g(p, tot) > g(P[b], tot) ? k : b, 0);
-  const chg = i => { const a = g(first, i), b = g(last, i), df = b - a, pc = a ? (df / a * 100).toFixed(1) + '%' : '—', col = df > 0 ? '#3FB874' : df < 0 ? '#E15C5C' : 'var(--muted)'; return `<td class="has-val" style="color:${col}">${df > 0 ? '▲' : df < 0 ? '▼' : ''} ${f(Math.abs(df))} <span style="font-size:10px">(${pc})</span></td>`; };
-  const a0 = g(first, tot), a1 = g(last, tot), pt = a0 ? (a1 - a0) / a0 * 100 : 0;
-  const mv = CI.length > 1 ? CI.map(i => [i, g(first, i) ? (g(last, i) - g(first, i)) / g(first, i) * 100 : 0]).sort((x, y) => Math.abs(y[1]) - Math.abs(x[1]))[0] : null;
-  h += `<div style="background:var(--surface2);border-radius:10px;padding:10px 12px;font-size:12.5px;margin-bottom:12px">💡 <strong>${escHtml(last.label)}</strong> vs <strong>${escHtml(first.label)}</strong>: ${m === 's' ? 'sales' : m === 'o' ? 'orders' : 'average bill'} ${pt >= 0 ? 'up' : 'down'} <strong style="color:${pt >= 0 ? '#3FB874' : '#E15C5C'}">${Math.abs(pt).toFixed(1)}%</strong> (${f(a0)} → ${f(a1)}).${mv && mv[1] ? ` Biggest mover: <strong>${P14_CH[mv[0]][1]}</strong> ${mv[1] > 0 ? '+' : ''}${mv[1].toFixed(1)}%.` : ''} Best period: <strong>${escHtml(P[best].label)}</strong> ★</div>`;
-  h += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th class="h-date">Channel</th>${P.map((p, k) => `<th>${escHtml(p.label)}${k === best ? ' ★' : ''}</th>`).join('')}<th>Change (last vs first)</th></tr></thead><tbody>`
-    + rows.map(([n, i]) => `<tr${i === 5 ? ' class="total-row"' : ''}><td class="date-cell">${n}</td>${P.map(p => `<td class="has-val">${f(g(p, i))}</td>`).join('')}${chg(i)}</tr>`).join('') + '</tbody></table></div></div>';
-  p14CmpCsv = [['Channel', ...P.map(p => p.label)], ...rows.map(([n, i]) => [n, ...P.map(p => g(p, i).toFixed(2))])];
-  h += `<button class="mini-btn" style="margin-top:10px;border:1px solid var(--border);color:var(--text)" onclick="p14CmpDownload()">⬇ Download comparison (CSV)</button>`;
-  const leg = it => `<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;font-size:11.5px;margin:6px 0 14px">${it.map(([c, t]) => `<span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#${c};margin-right:5px"></span>${escHtml(t)}</span>`).join('')}</div>`;
-  const W = 640, H = 290, L = 52, B = 40, T = 14, R = 10, pw = W - L - R, ph = H - T - B, mxv = Math.max(1e-9, ...P.flatMap(p => CI.map(i => g(p, i)))) * 1.1, n = CI.length;
-  const grid = [0, 1, 2, 3, 4].map(q => { const y = T + ph - ph * q / 4; return `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" stroke="var(--border)"/><text x="${L - 6}" y="${y + 4}" text-anchor="end" font-size="10" style="fill:var(--muted)">${ax(mxv * q / 4)}</text>`; }).join('');
-  const svg = x => `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:760px;display:block;margin:0 auto">${grid}${x}</svg>`;
-  const doBar = () => { const gw = pw / n, bw = gw * 0.8 / P.length; return svg(CI.map((i, j) => `<text x="${L + gw * j + gw / 2}" y="${H - 18}" text-anchor="middle" font-size="11" style="fill:var(--muted)">${P14_CH[i][1]}</text>` + P.map((p, k) => { const v = g(p, i), bh = ph * v / mxv; return `<rect x="${L + gw * j + gw * 0.1 + bw * k}" y="${T + ph - bh}" width="${Math.max(1, bw - 2)}" height="${bh}" rx="3" fill="#${P14_PAL[k % 6]}"><title>${escHtml(p.label)} · ${P14_CH[i][1]}: ${f(v)}</title></rect>`; }).join('')).join('')) + leg(P.map((p, k) => [P14_PAL[k % 6], p.label])); };
-  const doLine = () => { const xs = k => L + 20 + (pw - 40) * k / (P.length - 1), yv = (p, i) => T + ph - ph * g(p, i) / mxv, ser = CI.concat(CI.length > 1 ? [5] : []); return svg(ser.map(i => { const c = i < 5 ? P14_CH[i][2] : '9CA3AF'; return `<polyline fill="none" stroke="#${c}" stroke-width="2.5"${i === 5 ? ' stroke-dasharray="5 4"' : ''} points="${P.map((p, k) => xs(k) + ',' + yv(p, i)).join(' ')}"/>` + P.map((p, k) => `<circle cx="${xs(k)}" cy="${yv(p, i)}" r="4" fill="#${c}"><title>${i < 5 ? P14_CH[i][1] : 'Total'} · ${escHtml(p.label)}: ${f(g(p, i))}</title></circle>`).join(''); }).join('') + P.map((p, k) => `<text x="${xs(k)}" y="${H - 18}" text-anchor="middle" font-size="10" style="fill:var(--muted)">${escHtml(p.label)}</text>`).join('')) + leg(CI.map(i => [P14_CH[i][2], P14_CH[i][1]]).concat(CI.length > 1 ? [['9CA3AF', 'Total (dashed)']] : [])); };
-  const doPie = () => `<div style="display:flex;gap:22px;flex-wrap:wrap;justify-content:center">` + P.map(p => {
-    const t = sum(CI.map(i => g(p, i))); let a0 = -Math.PI / 2, sl = '';
-    if (t > 0) CI.forEach(i => { const v = g(p, i), c = P14_CH[i]; if (!v) return; const fr = v / t, a1 = a0 + fr * 2 * Math.PI; sl += fr > 0.9999 ? `<circle cx="60" cy="60" r="54" fill="#${c[2]}"/>` : `<path d="M60 60 L${60 + 54 * Math.cos(a0)} ${60 + 54 * Math.sin(a0)} A54 54 0 ${fr > 0.5 ? 1 : 0} 1 ${60 + 54 * Math.cos(a1)} ${60 + 54 * Math.sin(a1)} Z" fill="#${c[2]}"><title>${c[1]}: ${f(v)}</title></path>`; a0 = a1; });
-    return `<div style="text-align:center;min-width:150px"><div style="font-weight:600;font-size:13px;margin-bottom:6px">${escHtml(p.label)}</div>${t > 0 ? `<svg viewBox="0 0 120 120" style="width:140px;height:140px">${sl}</svg>` : '<div style="color:var(--muted);font-size:12px;padding:50px 0">No data</div>'}<div style="font-size:11px;text-align:left;display:inline-block;margin-top:6px">${CI.map(i => `<div><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#${P14_CH[i][2]};margin-right:5px"></span>${P14_CH[i][1]} ${t ? (g(p, i) / t * 100).toFixed(1) : '0.0'}%</div>`).join('')}</div></div>`; }).join('') + '</div>';
-  const ch = C.chart;
-  h += `<div style="margin-top:16px">${ch === 'bar' || ch === 'both' ? doBar() : ''}${ch === 'line' ? doLine() : ''}${ch === 'pie' || ch === 'both' ? doPie() : ''}</div><div style="color:var(--muted);font-size:11px;margin-top:10px">Tip: use “Average per day” when comparing months or ranges of different length, or partial months. Charts follow the outlet and type selected above.</div>`;
+  const name = m === 's' ? 'Sales (₹)' : m === 'o' ? 'Orders' : 'Average bill (₹/order)';
+  return { CI, m, g, f, ax, name };
+}
+
+// ---- the comparison model: columns (periods / outlets / months) × rows (channels / outlets) ----
+function scBuildM() {
+  const C = SC, x = scCtx(), V = scMetric();
+  if (!x.sc.length) return { err: 'Select at least one outlet.' };
+  if (!x.keys.length) return { err: 'No sales found for the selected outlet(s).' };
+  const { X, sc, dd, mn, mx, ms, ys, qs } = x, mkR = x.mkR, mkMo = x.mkMo;
+  let P = [], grid = false;
+  if (C.mode === 'o') {
+    const mm = scMonthsSel(); if (sc.length < 2) return { err: 'Pick at least 2 outlets to compare (use the Outlets box — try “Top 3”).' };
+    if (!mm.length) return { err: 'Pick at least one month.' };
+    const set = new Set(mm); P = sc.map(o => mkMo(o.label, set, X.maps[o.code]));
+  } else if (C.mode === 'm') {
+    const mm = scMonthsSel(); if (mm.length < 2) return { err: 'Pick at least 2 months to compare (or tap “All”).' };
+    P = mm.map(ym => mkMo(scMl(ym), new Set([ym]), dd));
+  } else if (C.mode === 'om') {
+    const mm = scMonthsSel(); if (mm.length < 2) return { err: 'Pick at least 2 months for the grid (or tap “All”).' };
+    grid = mm;
+  } else if (C.mode === 'trend') { if (ms.length < 2) return { err: 'Need at least two months of data for a trend.' }; P = ms.map(ym => mkMo(scMl(ym), new Set([ym]), dd)); }
+  else if (C.mode === 'q') P = [mkR(x.ql(C.a), ...scQr(C.a), dd), mkR(x.ql(C.b), ...scQr(C.b), dd)];
+  else if (C.mode === 'sm') P = ys.filter(y => ms.includes(`${y}-${C.mon}`)).map(y => mkMo(scMl(`${y}-${C.mon}`), new Set([`${y}-${C.mon}`]), dd));
+  else if (C.mode === 'y') P = ys.map(y => { const p = mkR(y, y + '-01-01', y + '-12-31'), n = ms.filter(m => m.startsWith(y)).length; if (n < 12) p.label += ` (${n} mo)`; return p; });
+  else if (C.mode === 'ytd') { const y = +mx.slice(0, 4), t = mx.slice(8) + '-' + mx.slice(5, 7); P = [mkR(`${y - 1} (to ${t})`, `${y - 1}-01-01`, `${y - 1}${mx.slice(4)}`), mkR(`${y} (to ${t})`, `${y}-01-01`, mx)]; }
+  else if (C.mode === 'last') { const n = +C.n; P = [mkR(`Previous ${n} days`, scSh(mx, -2 * n + 1), scSh(mx, -n)), mkR(`Last ${n} days`, scSh(mx, -n + 1), mx)]; }
+  else if (C.mode === 'd') P = [mkR(scLd(C.d1), C.d1, C.d1), mkR(scLd(C.d2), C.d2, C.d2)];
+  else if (C.mode === 'r') P = [mkR(scLd(C.f1) + ' → ' + scLd(C.t1), C.f1, C.t1), mkR(scLd(C.f2) + ' → ' + scLd(C.t2), C.f2, C.t2)];
+  else if (C.mode === 'dow') {
+    const N = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], q = N.map(n => { const c = scZ(); c.label = n; return c; });
+    x.keys.forEach(k => { if (k < x.wr[0] || k > x.wr[1]) return; const p = q[new Date(Date.parse(k)).getUTCDay()]; scAdd(p, dd[k]); p.days++; });
+    P = [1, 2, 3, 4, 5, 6, 0].map(i => ({ ...q[i], days: Math.max(1, q[i].days) }));
+  } else if (C.mode === 'ty') {
+    P = [['company', 'Company outlets'], ['franchise', 'Franchise outlets']].map(([t, n]) => mkR(n, x.wr[0], x.wr[1], scMerge(sc.filter(o => o.type === t).map(o => X.maps[o.code]))));
+  }
+  const M = { mode: C.mode, V, x };
+  if (grid) {
+    M.kind = 'grid'; M.firstHead = 'Outlet'; M.totalCol = true;
+    const rows = sc.map((o, k) => ({ label: o.label, idx: 5, color: SC_PAL[k % 12], cells: grid.map(ym => mkMo(scMl(ym), new Set([ym]), X.maps[o.code])) }));
+    const tc = grid.map((ym, i) => scSumRows(rows.map(r => r.cells[i]), scMl(ym)));
+    M.cols = tc; M.rows = rows.concat([{ label: 'Total', idx: 5, total: true, cells: tc }]);
+  } else {
+    if (P.length < 2) return { err: 'Need at least two periods to compare. Upload an Invoice List that covers them.' };
+    M.kind = 'ch'; M.firstHead = 'Channel'; M.totalCol = false; M.cols = P;
+    M.rows = V.CI.map(i => ({ label: P14_CH[i][1], idx: i, color: P14_CH[i][2], cells: P }));
+    if (V.CI.length > 1) M.rows.push({ label: 'Total', idx: 5, total: true, cells: P });
+  }
+  return M;
+}
+function scQr(q) { const n = +q[6], y = q.slice(0, 4); return [`${y}-${scPad(n * 3 - 2)}-01`, scEnd(`${y}-${scPad(n * 3)}`)]; }
+
+// ---- chart data: keep the busiest 12 rows / columns, fold the rest into "Others" (the table still shows everything) ----
+function scCap(M, maxR = 12, maxC = 12) {
+  let cols = M.cols.map((c, i) => i), rows = M.rows.filter(r => !r.total);
+  const lab = M.cols.map(c => c.label);
+  let keep = cols, oth = [];
+  if (cols.length > maxC) { const rank = cols.slice().sort((a, b) => scTot(M.cols[b]) - scTot(M.cols[a])).slice(0, maxC); keep = cols.filter(i => rank.includes(i)); oth = cols.filter(i => !rank.includes(i)); }
+  const mkRow = r => { const cells = keep.map(i => r.cells[i]); if (oth.length) cells.push(scSumCols(oth.map(i => r.cells[i]), `Others (${oth.length})`)); return { ...r, cells }; };
+  let R = rows.map(mkRow);
+  if (R.length > maxR) {
+    const rk = R.slice().sort((a, b) => a.cells.reduce((t, c) => t + scTot(c), 0) < b.cells.reduce((t, c) => t + scTot(c), 0) ? 1 : -1).slice(0, maxR), rest = R.filter(r => !rk.includes(r));
+    R = R.filter(r => rk.includes(r));
+    R.push({ label: `Others (${rest.length})`, idx: rest[0].idx, color: '9CA3AF', cells: R[0].cells.map((c, i) => scSumRows(rest.map(r => r.cells[i]), c.label)) });
+  }
+  const cl = keep.map(i => lab[i]); if (oth.length) cl.push(`Others (${oth.length})`);
+  const cells0 = R.length ? R[0].cells : [];
+  return { rows: R, cols: cells0.map((c, i) => ({ ...c, label: cl[i] })), kind: M.kind, V: M.V, capped: oth.length > 0 || rows.length > maxR };
+}
+
+// ══ UI ══
+function scOpen() {
+  const empty = $14('scEmpty'), body = $14('scBody');
+  if (!p14Data) { empty.style.display = 'block'; body.style.display = 'none'; return; }
+  empty.style.display = 'none'; body.style.display = 'block';
+  if (!scCache) scOnData();
+  scDefaults(); scRenderControls(); scRenderResults();
+}
+function scSet(k, v) {
+  SC[k] = v;
+  if (k === 'mode') { SC.tO = false; SC.tM = false; scDefaults(); scRenderControls(); }
+  scRenderResults();
+}
+function scSetAndRebuild(k, v) { SC[k] = v; scRenderControls(); scRenderResults(); }
+const SC_SEL = 'padding:8px 10px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:9px;font-size:13px;max-width:100%';
+const scLab = t => `<label style="display:block;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px">${t}</label>`;
+const scSel = (k, opts, lb, rebuild) => `<div>${scLab(lb)}<select style="${SC_SEL}" onchange="${rebuild ? 'scSetAndRebuild' : 'scSet'}('${k}',this.value)">${opts.map(([v, t]) => `<option value="${v}"${v === SC[k] ? ' selected' : ''}>${escHtml(t)}</option>`).join('')}</select></div>`;
+function scRenderControls() {
+  const box = $14('scControls'); if (!box || !p14Data || !scCache) return;
+  const x = scCtx(), X = scCache, C = SC;
+  const dt = (k, lb) => `<div>${scLab(lb)}<input type="date" style="${SC_SEL}" value="${C[k]}" min="${X.mn}" max="${X.mx}" onchange="scSet('${k}',this.value)"></div>`;
+  let ctl = '';
+  if (x.keys.length) {
+    if (C.mode === 'q') ctl = scSel('a', x.qs.map(q => [q, x.ql(q)]), 'QUARTER A') + scSel('b', x.qs.map(q => [q, x.ql(q)]), 'QUARTER B');
+    else if (C.mode === 'sm') ctl = scSel('mon', x.mo.map(m => [m, SC_MN[+m - 1]]), 'MONTH');
+    else if (C.mode === 'last') ctl = scSel('n', [7, 14, 30, 60, 90].map(n => [String(n), n + ' days']), 'N');
+    else if (C.mode === 'd') ctl = dt('d1', 'DAY A') + dt('d2', 'DAY B');
+    else if (C.mode === 'r') ctl = dt('f1', 'A FROM') + dt('t1', 'A TO') + dt('f2', 'B FROM') + dt('t2', 'B TO');
+    else if (C.mode === 'dow' || C.mode === 'ty') ctl = scSel('within', x.wopts, 'WITHIN');
+  }
+  const eachOut = C.mode === 'o' || C.mode === 'om';
+  const outBox = `<div style="position:relative">${scLab(eachOut ? 'OUTLETS (compared)' : 'OUTLETS (combined)')}
+    <details class="sc-dd" id="scOutDD"><summary id="scOutSum"></summary><div class="sc-ddpanel">
+      <input type="search" id="scOutSearch" placeholder="Search outlet or code…" oninput="scFilterOut(this.value)" style="${SC_SEL};width:100%;margin-bottom:8px">
+      <div class="sc-quick">${[['all', 'All'], ['none', 'None'], ['top2', 'Top 2'], ['top3', 'Top 3'], ['top5', 'Top 5'], ['company', 'Company'], ['franchise', 'Franchise']].map(([k, t]) => `<button type="button" onclick="scQuickOut('${k}')">${t}</button>`).join('')}</div>
+      <div id="scOutList">${p14Data.outlets.map(o => `<label class="sc-opt" data-q="${escHtml(o.label.toLowerCase())}"><input type="checkbox" value="${o.code}" ${SC.outlets.has(o.code) ? 'checked' : ''} onchange="scTogOut(this)"> <span>${escHtml(o.label)}</span>${o.type ? `<em>${P14_TYPE[o.type]}</em>` : ''}</label>`).join('')}</div>
+    </div></details></div>`;
+  let h = `<div style="font-weight:700;font-size:15px;margin-bottom:10px">📊 Compare</div><div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:flex-end">`
+    + scSel('mode', SC_MODES, 'COMPARE') + outBox + ctl + '</div>';
+  if (['o', 'om', 'm'].includes(C.mode)) {
+    h += `<div style="margin-bottom:12px">${scLab('MONTHS' + (C.mode === 'm' ? ' (compared)' : ''))}<div class="sc-quick" style="margin-bottom:6px">${[['all', 'All months'], ['none', 'None'], ['l2', 'Last 2'], ['l3', 'Last 3'], ['l6', 'Last 6']].map(([k, t]) => `<button type="button" onclick="scQuickMon('${k}')">${t}</button>`).join('')}</div><div id="scMonChips" style="display:flex;gap:6px;flex-wrap:wrap">${X.ms.map(m => `<button type="button" class="sc-chip${SC.months.has(m) ? ' on' : ''}" data-m="${m}" onclick="scTogMon('${m}')">${scMl(m)}</button>`).join('')}</div></div>`;
+  }
+  h += `<div style="display:flex;gap:10px;flex-wrap:wrap">` + scSel('ch', [['all', 'All channels'], ...P14_CH.map((c, i) => [String(i), c[1] + ' only'])], 'CHANNEL')
+    + scSel('metric', [['s', 'Sales (₹)'], ['o', 'Orders'], ['a', 'Average bill (₹/order)']], 'SHOW') + scSel('basis', [['t', 'Total'], ['d', 'Average per day']], 'VALUE')
+    + scSel('chart', [['bar', 'Bar chart'], ['line', 'Line chart'], ['pie', 'Pie chart'], ['both', 'Bar + Pie'], ['all', 'Bar + Line + Pie'], ['none', 'Table only']], 'CHART') + '</div>';
+  box.innerHTML = h; scOutSummary();
+}
+function scOutSummary() { const e = $14('scOutSum'); if (e) e.textContent = `${SC.outlets.size} of ${p14Data.outlets.length} outlets selected`; }
+function scFilterOut(q) { q = q.trim().toLowerCase(); document.querySelectorAll('#scOutList .sc-opt').forEach(l => { l.style.display = !q || l.dataset.q.includes(q) ? '' : 'none'; }); }
+function scTogOut(el) { el.checked ? SC.outlets.add(el.value) : SC.outlets.delete(el.value); SC.tO = true; scOutSummary(); scRenderResults(); }
+function scQuickOut(k) {
+  const all = p14Data.outlets;
+  SC.outlets = new Set(k === 'all' ? all.map(o => o.code) : k === 'none' ? [] : k === 'company' ? all.filter(o => o.type === 'company').map(o => o.code) : k === 'franchise' ? all.filter(o => o.type === 'franchise').map(o => o.code) : scTop(+k.slice(3)));
+  SC.tO = true; document.querySelectorAll('#scOutList input').forEach(i => { i.checked = SC.outlets.has(i.value); }); scOutSummary(); scRenderResults();
+}
+function scTogMon(m) { SC.months.has(m) ? SC.months.delete(m) : SC.months.add(m); SC.tM = true; scChips(); scRenderResults(); }
+function scQuickMon(k) { const ms = scCache.ms; SC.months = new Set(k === 'all' ? ms : k === 'none' ? [] : ms.slice(-(+k.slice(1)))); SC.tM = true; scChips(); scRenderResults(); }
+function scChips() { document.querySelectorAll('#scMonChips .sc-chip').forEach(b => b.classList.toggle('on', SC.months.has(b.dataset.m))); }
+document.addEventListener('click', e => { const d = $14('scOutDD'); if (d && d.open && !d.contains(e.target)) d.open = false; });
+
+// ---- results: insight line, table, charts ----
+function scInsight(M) {
+  const V = M.V, T = M.rows.find(r => r.total) || M.rows[0], vals = T.cells.map(c => V.g(c, T.idx)), n = vals.length, lab = T.cells.map(c => c.label);
+  const bi = vals.indexOf(Math.max(...vals)), li = vals.indexOf(Math.min(...vals)), avg = vals.reduce((a, b) => a + b, 0) / n;
+  const what = V.m === 's' ? 'sales' : V.m === 'o' ? 'orders' : 'average bill', col = p => p >= 0 ? '#3FB874' : '#E15C5C';
+  let t = '💡 ';
+  if (n === 2 || (SC_TIME.includes(M.mode) && n > 2)) {
+    const a0 = vals[0], a1 = vals[n - 1], pt = a0 ? (a1 - a0) / a0 * 100 : 0;
+    t += `<strong>${escHtml(lab[n - 1])}</strong> vs <strong>${escHtml(lab[0])}</strong>: ${what} ${pt >= 0 ? 'up' : 'down'} <strong style="color:${col(pt)}">${Math.abs(pt).toFixed(1)}%</strong> (${V.f(a0)} → ${V.f(a1)}). `;
+  }
+  const body = M.rows.filter(r => !r.total);
+  if (body.length > 1 && (n === 2 || SC_TIME.includes(M.mode))) {
+    const mv = body.map(r => { const a = V.g(r.cells[0], r.idx), b = V.g(r.cells[n - 1], r.idx); return [r.label, a ? (b - a) / a * 100 : 0]; }).sort((x, y) => Math.abs(y[1]) - Math.abs(x[1]))[0];
+    if (mv && mv[1]) t += `Biggest mover: <strong>${escHtml(mv[0])}</strong> ${mv[1] > 0 ? '+' : ''}${mv[1].toFixed(1)}%. `;
+  }
+  t += n > 2 ? `Highest: <strong>${escHtml(lab[bi])}</strong> ${V.f(vals[bi])} ★ · Lowest: <strong>${escHtml(lab[li])}</strong> ${V.f(vals[li])} · Average: ${V.f(avg)}` : `Best period: <strong>${escHtml(lab[bi])}</strong> ★`;
+  return { html: t, best: bi };
+}
+function scValues(M) {
+  const V = M.V;
+  return M.rows.map(r => {
+    const v = r.cells.map(c => V.g(c, r.idx)), tot = M.totalCol ? V.g(scSumCols(r.cells), r.idx) : null, a = v[0], b = v[v.length - 1];
+    return { v, tot, chg: b - a, pct: a ? (b - a) / a : null };
+  });
+}
+function scRenderResults() {
+  const box = $14('scResults'); if (!box) return;
+  let M; try { M = scBuildM(); } catch (e) { console.error(e); box.innerHTML = `<div style="color:#E15C5C;font-size:13px">Couldn't build this comparison: ${escHtml(e.message)}</div>`; scM = null; return; }
+  if (M.err) { scM = null; box.innerHTML = `<div style="color:var(--muted);font-size:13px">${escHtml(M.err)}</div>`; $14('scDownloadBtn').disabled = true; return; }
+  scM = M; $14('scDownloadBtn').disabled = false;
+  const V = M.V, ins = scInsight(M), vals = scValues(M);
+  const chgCell = (c, p) => { const col = c > 0 ? '#3FB874' : c < 0 ? '#E15C5C' : 'var(--muted)'; return `<td class="has-val" style="color:${col};white-space:nowrap">${c > 0 ? '▲' : c < 0 ? '▼' : ''} ${V.f(Math.abs(c))} <span style="font-size:10px">(${p == null ? '—' : (p * 100).toFixed(1) + '%'})</span></td>`; };
+  let h = `<div style="background:var(--surface2);border-radius:10px;padding:10px 12px;font-size:12.5px;margin-bottom:12px;line-height:1.5">${ins.html}</div>`;
+  h += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th class="h-date">${M.firstHead}</th>${M.cols.map((c, k) => `<th style="white-space:nowrap">${escHtml(c.label)}${k === ins.best ? ' ★' : ''}</th>`).join('')}${M.totalCol ? '<th>Total</th>' : ''}<th>Change (last vs first)</th></tr></thead><tbody>`
+    + M.rows.map((r, i) => `<tr${r.total ? ' class="total-row"' : ''}><td class="date-cell" style="white-space:nowrap">${escHtml(r.label)}</td>${vals[i].v.map(v => `<td class="has-val">${V.f(v)}</td>`).join('')}${M.totalCol ? `<td class="has-val">${V.f(vals[i].tot)}</td>` : ''}${chgCell(vals[i].chg, vals[i].pct)}</tr>`).join('') + '</tbody></table></div></div>';
+  const ch = SC.chart;
+  if (ch !== 'none') {
+    const C2 = scCap(M), types = scChartTypes();
+    h += `<div style="margin-top:8px">${types.map(t => t === 'bar' ? scSvgBar(C2) : t === 'line' ? scSvgLine(C2) : scSvgPie(C2)).join('')}</div>`;
+    if (C2.capped) h += `<div style="color:var(--muted);font-size:11px;margin-top:6px">Charts show the 12 biggest and group the rest as “Others” — the table and the Excel file have everything.</div>`;
+  }
+  h += `<div style="color:var(--muted);font-size:11px;margin-top:10px">Tip: use “Average per day” when comparing months, outlets or ranges of different length or partial months.</div>`;
   box.innerHTML = h;
+}
+const scChartTypes = () => SC.chart === 'both' ? ['bar', 'pie'] : SC.chart === 'all' ? ['bar', 'line', 'pie'] : SC.chart === 'none' ? [] : [SC.chart];
+
+// ---- SVG charts (on screen) ----
+function scLeg(items) { return `<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;font-size:11.5px;margin:6px 0 16px">${items.map(([c, t]) => `<span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#${c};margin-right:5px"></span>${escHtml(t)}</span>`).join('')}</div>`; }
+function scSvgFrame(C2, inner, rot, W, H, L, T, B, R) {
+  const V = C2.V, mxv = scMax(C2) * 1.1, ph = H - T - B;
+  const grid = [0, 1, 2, 3, 4].map(q => { const y = T + ph - ph * q / 4; return `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" stroke="var(--border)"/><text x="${L - 6}" y="${y + 4}" text-anchor="end" font-size="10" style="fill:var(--muted)">${V.ax(mxv * q / 4)}</text>`; }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:900px;display:block;margin:0 auto">${grid}${inner}</svg>`;
+}
+function scMax(C2) { return Math.max(1e-9, ...C2.rows.flatMap(r => r.cells.map(c => C2.V.g(c, r.idx)))); }
+function scSvgBar(C2) {
+  const V = C2.V, R = C2.rows, P = C2.cols, n = R.length, W = 900, H = 330, L = 56, Rr = 10, T = 14, B = n > 5 ? 84 : 44, pw = W - L - Rr, ph = H - T - B, mxv = scMax(C2) * 1.1, gw = pw / n, bw = gw * 0.8 / P.length;
+  const bars = R.map((r, j) => {
+    const cx = L + gw * j + gw / 2, lx = n > 5 ? `<text transform="translate(${cx},${H - B + 14}) rotate(-35)" text-anchor="end" font-size="10" style="fill:var(--muted)">${escHtml(scTr(r.label, 22))}</text>` : `<text x="${cx}" y="${H - B + 18}" text-anchor="middle" font-size="11" style="fill:var(--muted)">${escHtml(scTr(r.label, 16))}</text>`;
+    return lx + r.cells.map((c, k) => { const v = V.g(c, r.idx), bh = ph * v / mxv; return `<rect x="${L + gw * j + gw * 0.1 + bw * k}" y="${T + ph - bh}" width="${Math.max(1, bw - 1.5)}" height="${bh}" rx="2" fill="#${SC_PAL[k % 12]}"><title>${escHtml(c.label)} · ${escHtml(r.label)}: ${V.f(v)}</title></rect>`; }).join('');
+  }).join('');
+  return `<div style="font-weight:600;font-size:12.5px;text-align:center;margin:6px 0">Bar chart</div>` + scSvgFrame(C2, bars, 0, W, H, L, T, B, Rr) + scLeg(P.map((c, k) => [SC_PAL[k % 12], c.label]));
+}
+function scSvgLine(C2) {
+  const V = C2.V, R = C2.rows, P = C2.cols, W = 900, H = 330, L = 56, Rr = 10, T = 14, B = P.length > 6 ? 84 : 44, pw = W - L - Rr, ph = H - T - B, mxv = scMax(C2) * 1.1;
+  const xs = k => L + 20 + (pw - 40) * k / Math.max(1, P.length - 1), yv = (c, i) => T + ph - ph * V.g(c, i) / mxv;
+  const ser = R.slice(); if (C2.kind === 'ch' && R.length > 1) ser.push({ label: 'Total', idx: 5, color: '9CA3AF', cells: P, dash: true });
+  const lines = ser.map(r => { const c = r.color; return `<polyline fill="none" stroke="#${c}" stroke-width="2.5"${r.dash ? ' stroke-dasharray="5 4"' : ''} points="${r.cells.map((q, k) => xs(k) + ',' + yv(q, r.idx)).join(' ')}"/>` + r.cells.map((q, k) => `<circle cx="${xs(k)}" cy="${yv(q, r.idx)}" r="3.5" fill="#${c}"><title>${escHtml(r.label)} · ${escHtml(q.label)}: ${V.f(V.g(q, r.idx))}</title></circle>`).join(''); }).join('');
+  const xl = P.map((c, k) => P.length > 6 ? `<text transform="translate(${xs(k)},${H - B + 14}) rotate(-35)" text-anchor="end" font-size="10" style="fill:var(--muted)">${escHtml(scTr(c.label, 20))}</text>` : `<text x="${xs(k)}" y="${H - B + 18}" text-anchor="middle" font-size="10" style="fill:var(--muted)">${escHtml(scTr(c.label, 18))}</text>`).join('');
+  return `<div style="font-weight:600;font-size:12.5px;text-align:center;margin:6px 0">Line chart</div>` + scSvgFrame(C2, lines + xl, 0, W, H, L, T, B, Rr) + scLeg(ser.map(r => [r.color, r.label + (r.dash ? ' (dashed)' : '')]));
+}
+function scSvgPie(C2) {
+  const V = C2.V, R = C2.rows, P = C2.cols;
+  const pies = P.map((p, ci) => {
+    const t = R.reduce((s, r) => s + V.g(r.cells[ci], r.idx), 0); let a0 = -Math.PI / 2, sl = '';
+    if (t > 0) R.forEach(r => { const v = V.g(r.cells[ci], r.idx); if (v <= 0) return; const fr = v / t, a1 = a0 + fr * 2 * Math.PI; sl += fr > 0.9999 ? `<circle cx="60" cy="60" r="54" fill="#${r.color}"/>` : `<path d="M60 60 L${60 + 54 * Math.cos(a0)} ${60 + 54 * Math.sin(a0)} A54 54 0 ${fr > 0.5 ? 1 : 0} 1 ${60 + 54 * Math.cos(a1)} ${60 + 54 * Math.sin(a1)} Z" fill="#${r.color}"><title>${escHtml(r.label)}: ${V.f(v)}</title></path>`; a0 = a1; });
+    return `<div style="text-align:center;min-width:150px;max-width:200px"><div style="font-weight:600;font-size:12.5px;margin-bottom:6px">${escHtml(scTr(p.label, 30))}</div>${t > 0 ? `<svg viewBox="0 0 120 120" style="width:140px;height:140px">${sl}</svg>` : '<div style="color:var(--muted);font-size:12px;padding:50px 0">No data</div>'}<div style="font-size:11px;text-align:left;display:inline-block;margin-top:6px">${R.map(r => `<div><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#${r.color};margin-right:5px"></span>${escHtml(scTr(r.label, 22))} ${t ? (V.g(r.cells[ci], r.idx) / t * 100).toFixed(1) : '0.0'}%</div>`).join('')}</div></div>`;
+  }).join('');
+  return `<div style="font-weight:600;font-size:12.5px;text-align:center;margin:10px 0">Pie chart (share of each ${C2.kind === 'ch' ? 'channel' : 'outlet'})</div><div style="display:flex;gap:22px;flex-wrap:wrap;justify-content:center;margin-bottom:12px">${pies}</div>`;
+}
+
+// ---- charts as PNG pictures (for the Excel file) ----
+function scCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.fillStyle = '#FFFFFF'; x.fillRect(0, 0, w, h); return [c, x]; }
+function scLegendPng(x, items, W, y0) {
+  x.font = '13px Arial'; let px = 40, py = y0;
+  items.forEach(([c, t]) => { t = scTr(t, 34); const w = x.measureText(t).width + 30; if (px + w > W - 30) { px = 40; py += 22; } x.fillStyle = '#' + c; x.fillRect(px, py - 10, 12, 12); x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText(t, px + 18, py); px += w + 10; });
+  return py;
+}
+function scPngAxes(x, C2, W, H, L, T, B, R, title) {
+  const mxv = scMax(C2) * 1.1, ph = H - T - B;
+  x.fillStyle = '#1F2A44'; x.font = 'bold 18px Arial'; x.textAlign = 'center'; x.fillText(title, W / 2, 26);
+  x.font = '12px Arial'; x.strokeStyle = '#E3E6EC'; x.lineWidth = 1;
+  for (let q = 0; q <= 4; q++) { const y = T + ph - ph * q / 4; x.beginPath(); x.moveTo(L, y); x.lineTo(W - R, y); x.stroke(); x.fillStyle = '#666'; x.textAlign = 'right'; x.fillText(C2.V.ax(mxv * q / 4), L - 8, y + 4); }
+  return { mxv, ph };
+}
+function scPng(type, C2, title) {
+  const V = C2.V, R = C2.rows, P = C2.cols;
+  if (type === 'pie') {
+    const per = Math.min(4, P.length), nr = Math.ceil(P.length / per), cw = 250, ch = 60 + 190 + R.length * 17 + 24, W = Math.max(520, per * cw + 40), H = 44 + nr * ch;
+    const [c, x] = scCanvas(W, H); x.fillStyle = '#1F2A44'; x.font = 'bold 18px Arial'; x.textAlign = 'center'; x.fillText(title, W / 2, 26);
+    P.forEach((p, ci) => {
+      const gx = 20 + (ci % per) * cw, gy = 44 + Math.floor(ci / per) * ch, cx = gx + cw / 2, cy = gy + 40 + 90, t = R.reduce((s, r) => s + V.g(r.cells[ci], r.idx), 0);
+      x.fillStyle = '#222'; x.font = 'bold 13px Arial'; x.textAlign = 'center'; x.fillText(scTr(p.label, 30), cx, gy + 22);
+      if (t > 0) { let a0 = -Math.PI / 2; R.forEach(r => { const v = V.g(r.cells[ci], r.idx); if (v <= 0) return; const a1 = a0 + v / t * 2 * Math.PI; x.beginPath(); x.moveTo(cx, cy); x.arc(cx, cy, 85, a0, a1 >= a0 + 2 * Math.PI - 1e-6 ? a0 + 2 * Math.PI : a1); x.closePath(); x.fillStyle = '#' + r.color; x.fill(); x.strokeStyle = '#fff'; x.lineWidth = 1.5; x.stroke(); a0 = a1; }); }
+      else { x.fillStyle = '#999'; x.font = '12px Arial'; x.fillText('No data', cx, cy); }
+      x.font = '12px Arial'; x.textAlign = 'left';
+      R.forEach((r, k) => { const y = cy + 105 + k * 17, pc = t ? (V.g(r.cells[ci], r.idx) / t * 100).toFixed(1) : '0.0'; x.fillStyle = '#' + r.color; x.fillRect(gx + 18, y - 9, 10, 10); x.fillStyle = '#333'; x.fillText(scTr(r.label, 24) + '  ' + pc + '%', gx + 34, y); });
+    });
+    return { url: c.toDataURL('image/png'), w: W, h: H };
+  }
+  const W = 1000, T = 44, L = 80, Rr = 20, rot = (type === 'bar' ? R.length : P.length) > 5, B = rot ? 130 : 70, H = 430 + (rot ? 40 : 0), pw = W - L - Rr;
+  const [c, x] = scCanvas(W, H), { mxv, ph } = scPngAxes(x, C2, W, H, L, T, B, Rr, title);
+  const label = (txt, px, py) => { x.fillStyle = '#444'; x.font = '12px Arial'; if (rot) { x.save(); x.translate(px, py); x.rotate(-Math.PI / 6); x.textAlign = 'right'; x.fillText(scTr(txt, 24), 0, 0); x.restore(); } else { x.textAlign = 'center'; x.fillText(scTr(txt, 18), px, py); } };
+  let legY;
+  if (type === 'bar') {
+    const n = R.length, gw = pw / n, bw = gw * 0.8 / P.length;
+    R.forEach((r, j) => { r.cells.forEach((q, k) => { const v = V.g(q, r.idx), bh = ph * v / mxv; x.fillStyle = '#' + SC_PAL[k % 12]; x.fillRect(L + gw * j + gw * 0.1 + bw * k, T + ph - bh, Math.max(1, bw - 1.5), bh); }); label(r.label, L + gw * j + gw / 2, T + ph + 18); });
+    legY = scLegendPng(x, P.map((q, k) => [SC_PAL[k % 12], q.label]), W, H - 22);
+  } else {
+    const xs = k => L + 25 + (pw - 50) * k / Math.max(1, P.length - 1), yv = (q, i) => T + ph - ph * V.g(q, i) / mxv;
+    const ser = R.slice(); if (C2.kind === 'ch' && R.length > 1) ser.push({ label: 'Total (dashed)', idx: 5, color: '9CA3AF', cells: P, dash: true });
+    ser.forEach(r => { x.strokeStyle = '#' + r.color; x.fillStyle = '#' + r.color; x.lineWidth = 2.5; x.setLineDash(r.dash ? [6, 5] : []); x.beginPath(); r.cells.forEach((q, k) => { k ? x.lineTo(xs(k), yv(q, r.idx)) : x.moveTo(xs(k), yv(q, r.idx)); }); x.stroke(); x.setLineDash([]); r.cells.forEach((q, k) => { x.beginPath(); x.arc(xs(k), yv(q, r.idx), 4, 0, 7); x.fill(); }); });
+    P.forEach((q, k) => label(q.label, xs(k), T + ph + 18));
+    legY = scLegendPng(x, ser.map(r => [r.color, r.label]), W, H - 22);
+  }
+  return { url: c.toDataURL('image/png'), w: W, h: H };
+}
+
+// ══ EXCEL EXPORT ══
+const scColL = n => { let s = ''; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
+function scSettingsRows(M) {
+  const C = SC, x = M.x, all = p14Data.outlets.length;
+  const outs = x.sc.length === all ? `All outlets (${all})` : `${x.sc.length} of ${all}: ` + x.sc.map(o => o.label).join(', ');
+  const mm = scMonthsSel(), mon = mm.length === scCache.ms.length ? `All months (${mm.length})` : mm.map(scMl).join(', ');
+  const rows = [['Compare', (SC_MODES.find(m => m[0] === C.mode) || [])[1]], ['Outlets', outs]];
+  if (['o', 'om', 'm'].includes(C.mode)) rows.push(['Months', mon]);
+  rows.push(['Columns compared', M.cols.map(c => c.label).join(' | ')]);
+  rows.push(['Channel', C.ch === 'all' ? 'All channels' : P14_CH[+C.ch][1] + ' only'], ['Show', M.V.name], ['Value', C.basis === 'd' ? 'Average per day' : 'Total'], ['Chart', (SC.chart === 'none' ? 'Table only' : scChartTypes().map(t => t[0].toUpperCase() + t.slice(1)).join(' + '))]);
+  rows.push(['Data period', p14Data.period || p14Data.months.map(m => m.sheet).join(', ')], ['Created', new Date().toLocaleString('en-IN')]);
+  return rows;
+}
+// writes a comparison table into a sheet; returns the next free row
+function scWriteTable(ws, r0, M, fmts) {
+  const V = M.V, vals = scValues(M), nC = M.cols.length, c0 = 2, cT = c0 + nC, cChg = c0 + nC + (M.totalCol ? 1 : 0), cPct = cChg + 1;
+  const thin = { style: 'thin', color: { argb: 'FFB8C0CF' } }, box = { top: thin, left: thin, bottom: thin, right: thin };
+  const put = (r, c, v, o = {}) => { const e = ws.getCell(r, c); e.value = v; e.font = { name: 'Calibri', size: o.size || 11, bold: !!o.bold, color: { argb: 'FF' + (o.color || '1F2A44') } }; if (o.fill) e.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + o.fill } }; e.alignment = { horizontal: o.h || 'right', vertical: 'middle', wrapText: !!o.wrap }; e.border = box; if (o.nf) e.numFmt = o.nf; return e; };
+  const hd = { bold: true, color: 'FFFFFF', fill: '1F2A44', h: 'center', wrap: true };
+  put(r0, 1, M.firstHead, { ...hd, h: 'left' });
+  const T = M.rows.find(r => r.total) || M.rows[0], tv = T.cells.map(c => V.g(c, T.idx)), best = tv.indexOf(Math.max(...tv));
+  M.cols.forEach((c, k) => put(r0, c0 + k, c.label, k === best ? { ...hd, fill: 'B7791F' } : hd));
+  if (M.totalCol) put(r0, cT, 'Total', hd);
+  put(r0, cChg, 'Change (last − first)', hd); put(r0, cPct, 'Change %', hd);
+  ws.getRow(r0).height = 34;
+  const addRows = V.m !== 'a', rf = r0 + 1, rl = r0 + M.rows.filter(r => !r.total).length, round2 = v => Math.round(v * 100) / 100;
+  M.rows.forEach((r, i) => {
+    const rr = r0 + 1 + i, o = r.total ? { bold: true, fill: 'DCE3F0' } : { fill: i % 2 ? 'F6F8FC' : 'FFFFFF' };
+    put(rr, 1, r.label, { ...o, bold: true, h: 'left' });
+    vals[i].v.forEach((v, k) => { const L = scColL(c0 + k); put(rr, c0 + k, r.total && addRows && M.rows.length > 2 ? { formula: `SUM(${L}${rf}:${L}${rl})`, result: round2(v) } : round2(v), { ...o, nf: fmts.v }); });
+    if (M.totalCol) put(rr, cT, V.m !== 'a' && SC.basis === 't' ? { formula: `SUM(${scColL(c0)}${rr}:${scColL(c0 + nC - 1)}${rr})`, result: round2(vals[i].tot) } : round2(vals[i].tot), { ...o, bold: true, nf: fmts.v });
+    const F = `${scColL(c0)}${rr}`, La = `${scColL(c0 + nC - 1)}${rr}`;
+    put(rr, cChg, { formula: `${La}-${F}`, result: round2(vals[i].chg) }, { ...o, nf: fmts.chg });
+    put(rr, cPct, { formula: `IFERROR((${La}-${F})/${F},"—")`, result: vals[i].pct == null ? '—' : vals[i].pct }, { ...o, nf: '[Color10]"▲ "0.0%;[Red]"▼ "0.0%;0.0%' });
+  });
+  ws.getColumn(1).width = Math.max(ws.getColumn(1).width || 0, 30);
+  for (let c = c0; c <= cPct; c++) ws.getColumn(c).width = Math.max(ws.getColumn(c).width || 0, c >= cChg ? 20 : 17);
+  return { next: r0 + M.rows.length + 2, hdr: r0, first: r0 + 1, nBody: M.rows.filter(r => !r.total).length, hasTotal: M.rows.some(r => r.total), c0, nC };
+}
+async function scBuildWorkbook(M, native) {
+  const V = M.V, wb = new ExcelJS.Workbook(); wb.creator = 'Bolas Stock Suite'; wb.created = new Date();
+  const money = '"₹"#,##0.00', fmts = { v: V.m === 'o' ? (SC.basis === 'd' ? '#,##0.0' : '#,##0') : money };
+  fmts.chg = V.m === 'o' ? '[Color10]"▲ "' + fmts.v.slice(0) + ';[Red]"▼ "' + fmts.v.slice(0) + ';0' : '[Color10]"▲ "' + money + ';[Red]"▼ "' + money + ';0.00';
+  const ws = wb.addWorksheet('Comparison', { views: [{ showGridLines: false }] });
+  ws.getColumn(1).width = 30;
+  const t = ws.getCell(1, 1); t.value = 'Sales Comparison — Bolas Stock Suite'; t.font = { name: 'Calibri', size: 16, bold: true, color: { argb: 'FF1F2A44' } };
+  let r = 3; const sh = ws.getCell(r, 1); sh.value = 'SETTINGS USED'; sh.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } }; sh.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F2A44' } };
+  for (let c = 2; c <= 6; c++) ws.getCell(r, c).fill = sh.fill;
+  scSettingsRows(M).forEach(([k, v]) => { r++; const a = ws.getCell(r, 1), b = ws.getCell(r, 2); a.value = k; a.font = { name: 'Calibri', size: 11, bold: true }; a.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F4FA' } }; b.value = v; b.font = { name: 'Calibri', size: 11 }; });
+  r += 2; const ins = ws.getCell(r, 1); ins.value = scInsight(M).html.replace(/<[^>]+>/g, '').replace('💡 ', 'Insight: ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&'); ins.font = { name: 'Calibri', size: 11, italic: true, color: { argb: 'FF444444' } };
+  const L1 = scWriteTable(ws, r + 2, M, fmts); r = L1.next;
+  ws.getCell(r - 1, 1).value = 'Gold column heading = highest in this comparison (★ on screen).'; ws.getCell(r - 1, 1).font = { name: 'Calibri', size: 9, italic: true, color: { argb: 'FF777777' } };
+  ws.views = [{ showGridLines: false }];
+  let specs = [];
+  // charts: native (editable) when possible, otherwise pictures
+  const types = SC.chart === 'none' ? [] : scChartTypes(), tail = SC.basis === 'd' && V.m !== 'a' ? ' (avg per day)' : '';
+  if (types.length) {
+    const C2 = scCap(M), hh = ws.getCell(r, 1); hh.value = 'CHARTS' + (native ? ' (click a chart in Excel to edit its colours, titles, data or type)' : ''); hh.font = { name: 'Calibri', size: 12, bold: true, color: { argb: 'FF1F2A44' } }; r += 1;
+    if (native) {
+      let src = L1, D = M, sheet = 'Comparison';
+      if (C2.capped) {
+        const cd = wb.addWorksheet('Chart Data', { views: [{ showGridLines: false }] });
+        cd.getCell(1, 1).value = 'Data behind the charts (biggest 12, the rest grouped as “Others”) — edit these cells and the charts update.'; cd.getCell(1, 1).font = { name: 'Calibri', size: 12, bold: true };
+        cd.getColumn(1).width = 42; D = { ...C2, firstHead: M.firstHead, totalCol: false, mode: M.mode, x: M.x }; src = scWriteTable(cd, 3, D, fmts); sheet = 'Chart Data';
+      }
+      const res = scChartSpecs(types, sheet, src, D, ws, r, fmts, tail); specs = res.charts; r = res.endRow;
+    } else {
+      const nm = { bar: 'Bar chart', line: 'Line chart', pie: 'Pie chart' };
+      for (const ty of types) {
+        try {
+          const img = scPng(ty, C2, `${nm[ty]} — ${V.name}${tail}`), id = wb.addImage({ base64: img.url, extension: 'png' });
+          ws.addImage(id, { tl: { col: 0, row: r }, ext: { width: img.w, height: img.h } }); r += Math.ceil(img.h / 20) + 2;
+        } catch (e) { console.warn('chart image failed', e); ws.getCell(r, 1).value = nm[ty] + ' could not be drawn.'; r += 2; }
+      }
+    }
+  }
+  // Outlet × Month grid (always useful when outlets / months were picked)
+  const x = M.x, monthsAll = (['o', 'om', 'm'].includes(SC.mode) ? scMonthsSel() : scCache.ms);
+  if (x.sc.length && monthsAll.length) {
+    const g = wb.addWorksheet('Outlet x Month', { views: [{ showGridLines: false }] });
+    const rows = x.sc.map((o, k) => ({ label: o.label, idx: 5, color: SC_PAL[k % 12], cells: monthsAll.map(ym => x.mkMo(scMl(ym), new Set([ym]), scCache.maps[o.code])) }));
+    const tc = monthsAll.map((ym, i) => scSumRows(rows.map(q => q.cells[i]), scMl(ym)));
+    const G = { mode: 'om', kind: 'grid', V, firstHead: 'Outlet', totalCol: true, cols: tc, rows: rows.concat([{ label: 'Total', idx: 5, total: true, cells: tc }]), x };
+    g.getCell(1, 1).value = `Outlet × Month — ${V.name}${SC.basis === 'd' && V.m !== 'a' ? ' (avg per day)' : ''}`; g.getCell(1, 1).font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF1F2A44' } };
+    g.getColumn(1).width = 42; scWriteTable(g, 3, G, fmts); g.views = [{ showGridLines: false, state: 'frozen', xSplit: 1, ySplit: 3 }];
+    // Details: every outlet × month × channel, as plain data (filter / pivot friendly)
+    const d = wb.addWorksheet('Details'), heads = ['Outlet', 'Type', 'Month', ...P14_CH.map(c => c[1] + ' ₹'), 'Total Sales ₹', ...P14_CH.map(c => c[1] + ' orders'), 'Total Orders', 'Avg bill ₹'];
+    heads.forEach((h, i) => { const e = d.getCell(1, i + 1); e.value = h; e.font = { name: 'Calibri', bold: true, color: { argb: 'FFFFFFFF' } }; e.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F2A44' } }; e.alignment = { horizontal: 'center', wrapText: true, vertical: 'middle' }; d.getColumn(i + 1).width = i === 0 ? 40 : i < 3 ? 14 : 14; });
+    d.getRow(1).height = 32; let dr = 1; const r2 = v => Math.round(v * 100) / 100, DT = new Array(17).fill(0);
+    x.sc.forEach(o => monthsAll.forEach(ym => {
+      const c = x.mkMo(scMl(ym), new Set([ym]), scCache.maps[o.code]); dr++;
+      const vals = [o.label, P14_TYPE[o.type] || 'Not set', scMl(ym)]; vals.forEach((v, i) => { d.getCell(dr, i + 1).value = v; });
+      c.s.forEach((v, i) => { const e = d.getCell(dr, 4 + i); e.value = r2(v); e.numFmt = '#,##0.00'; DT[4 + i] += v; }); DT[9] += p14Sum(c.s); DT[15] += p14Sum(c.o);
+      const e1 = d.getCell(dr, 9); e1.value = { formula: `SUM(D${dr}:H${dr})`, result: r2(p14Sum(c.s)) }; e1.numFmt = '#,##0.00'; e1.font = { bold: true };
+      c.o.forEach((v, i) => { d.getCell(dr, 10 + i).value = v; DT[10 + i] += v; });
+      const e2 = d.getCell(dr, 15); e2.value = { formula: `SUM(J${dr}:N${dr})`, result: p14Sum(c.o) }; e2.font = { bold: true };
+      const e3 = d.getCell(dr, 16); e3.value = { formula: `IFERROR(I${dr}/O${dr},0)`, result: p14Sum(c.o) ? r2(p14Sum(c.s) / p14Sum(c.o)) : 0 }; e3.numFmt = '#,##0.00';
+    }));
+    if (dr > 1) { dr++; d.getCell(dr, 1).value = 'TOTAL'; d.getCell(dr, 1).font = { bold: true }; for (let c = 4; c <= 15; c++) { const L = scColL(c), e = d.getCell(dr, c); e.value = { formula: `SUM(${L}2:${L}${dr - 1})`, result: r2(DT[c] || 0) }; e.font = { bold: true }; e.numFmt = c <= 9 ? '#,##0.00' : '#,##0'; } const a = d.getCell(dr, 16); a.value = { formula: `IFERROR(I${dr}/O${dr},0)`, result: DT[15] ? r2(DT[9] / DT[15]) : 0 }; a.numFmt = '#,##0.00'; d.autoFilter = { from: { row: 1, column: 1 }, to: { row: dr - 1, column: 16 } }; }
+    d.views = [{ state: 'frozen', xSplit: 1, ySplit: 1 }];
+  }
+  wb._scSpecs = specs; return wb;
+}
+async function scDownload() {
+  if (!scM) return;
+  const btn = $14('scDownloadBtn'), old = btn.innerHTML; btn.disabled = true; btn.innerHTML = 'Building Excel…';
+  try {
+    let wb = await scBuildWorkbook(scM, true), buf = await wb.xlsx.writeBuffer(), note = '';
+    if (wb._scSpecs.length) {
+      try { buf = await scInjectCharts(buf, 'Comparison', wb._scSpecs); }
+      catch (e) { console.warn('Editable charts failed, using pictures instead', e); wb = await scBuildWorkbook(scM, false); buf = await wb.xlsx.writeBuffer(); note = 'Editable charts could not be added, so the charts were saved as pictures.'; }
+    }
+    const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    const fname = `Sales_Comparison_${SC.mode}_${new Date().toISOString().slice(0, 10)}.xlsx`, a = document.createElement('a'); a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+    if (typeof logActivity === 'function') logActivity('download_file', 16, fname);
+    if (note) alert(note);
+  } catch (e) { console.error(e); alert("Couldn't build the Excel file: " + e.message); }
+  btn.innerHTML = old; btn.disabled = false;
+}
+
+// ══ NATIVE (EDITABLE) EXCEL CHARTS ══
+// ExcelJS can't write charts, so after it builds the .xlsx we open the zip (JSZip) and add real chart parts:
+// xl/charts/chartN.xml + xl/drawings/drawingN.xml, linked to the table cells. Charts then stay editable in Excel.
+const scXe = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const scQ = n => "'" + String(n).replace(/'/g, "''") + "'";
+const scRng = (sh, c1, r1, c2, r2) => `${scQ(sh)}!$${scColL(c1)}$${r1}` + (c1 === c2 && r1 === r2 ? '' : `:$${scColL(c2)}$${r2}`);
+const scStrRef = (f, arr) => `<c:strRef><c:f>${scXe(f)}</c:f><c:strCache><c:ptCount val="${arr.length}"/>${arr.map((t, i) => `<c:pt idx="${i}"><c:v>${scXe(t)}</c:v></c:pt>`).join('')}</c:strCache></c:strRef>`;
+const scNumRef = (f, arr, fmt) => `<c:numRef><c:f>${scXe(f)}</c:f><c:numCache><c:formatCode>${scXe(fmt)}</c:formatCode><c:ptCount val="${arr.length}"/>${arr.map((v, i) => `<c:pt idx="${i}"><c:v>${+v || 0}</c:v></c:pt>`).join('')}</c:numCache></c:numRef>`;
+const scFill = c => `<a:solidFill><a:srgbClr val="${c}"/></a:solidFill>`;
+const scTxPr = (sz, b) => `<c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="${sz}" b="${b ? 1 : 0}"/></a:pPr><a:endParaRPr lang="en-US"/></a:p></c:txPr>`;
+function scSerXml(type, i, s, vf) {
+  const tx = `<c:tx>${scStrRef(s.nameRef, [s.name])}</c:tx>`, cat = `<c:cat>${scStrRef(s.catRef, s.cats)}</c:cat>`, val = `<c:val>${scNumRef(s.valRef, s.vals, vf)}</c:val>`, head = `<c:idx val="${i}"/><c:order val="${i}"/>${tx}`;
+  if (type === 'bar') return `<c:ser>${head}<c:spPr>${scFill(s.color)}</c:spPr><c:invertIfNegative val="0"/>${cat}${val}</c:ser>`;
+  if (type === 'line') return `<c:ser>${head}<c:spPr><a:ln w="28575" cap="rnd">${scFill(s.color)}${s.dash ? '<a:prstDash val="dash"/>' : ''}<a:round/></a:ln></c:spPr><c:marker><c:symbol val="circle"/><c:size val="6"/><c:spPr>${scFill(s.color)}<a:ln w="9525">${scFill(s.color)}</a:ln></c:spPr></c:marker>${cat}${val}<c:smooth val="0"/></c:ser>`;
+  const pts = s.colors.map((c, k) => `<c:dPt><c:idx val="${k}"/><c:bubble3D val="0"/><c:spPr>${scFill(c)}<a:ln w="12700">${scFill('FFFFFF')}</a:ln></c:spPr></c:dPt>`).join('');
+  const lbl = `<c:dLbls><c:numFmt formatCode="0.0%" sourceLinked="0"/><c:spPr><a:noFill/><a:ln><a:noFill/></a:ln></c:spPr>${scTxPr(900, 0)}<c:showLegendKey val="0"/><c:showVal val="0"/><c:showCatName val="0"/><c:showSerName val="0"/><c:showPercent val="1"/><c:showBubbleSize val="0"/><c:showLeaderLines val="1"/></c:dLbls>`;
+  return `<c:ser>${head}${pts}${s.colors.length > 6 ? '' : lbl}${cat}${val}</c:ser>`;
+}
+function scChartXml(ch) {
+  const vf = ch.fmt, ser = ch.series.map((s, i) => scSerXml(ch.type, i, s, vf)).join('');
+  const title = `<c:title><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="1400" b="1"/></a:pPr><a:r><a:rPr lang="en-US" sz="1400" b="1"/><a:t>${scXe(ch.title)}</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:title>`;
+  const axes = `<c:catAx><c:axId val="500001"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="0"/><c:majorTickMark val="out"/><c:minorTickMark val="none"/><c:tickLblPos val="low"/>${scTxPr(900, 0)}<c:crossAx val="500002"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/><c:noMultiLvlLbl val="0"/></c:catAx>`
+    + `<c:valAx><c:axId val="500002"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:majorGridlines><c:spPr><a:ln w="9525">${scFill('E3E6EC')}</a:ln></c:spPr></c:majorGridlines><c:numFmt formatCode="${scXe(ch.axFmt)}" sourceLinked="0"/><c:majorTickMark val="out"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/>${scTxPr(900, 0)}<c:crossAx val="500001"/><c:crosses val="autoZero"/><c:crossBetween val="between"/></c:valAx>`;
+  const plot = ch.type === 'bar' ? `<c:barChart><c:barDir val="col"/><c:grouping val="clustered"/><c:varyColors val="0"/>${ser}<c:gapWidth val="80"/><c:axId val="500001"/><c:axId val="500002"/></c:barChart>${axes}`
+    : ch.type === 'line' ? `<c:lineChart><c:grouping val="standard"/><c:varyColors val="0"/>${ser}<c:marker val="1"/><c:axId val="500001"/><c:axId val="500002"/></c:lineChart>${axes}`
+      : `<c:pieChart><c:varyColors val="1"/>${ser}<c:firstSliceAng val="0"/></c:pieChart>`;
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><c:roundedCorners val="0"/><c:chart>${title}<c:autoTitleDeleted val="0"/><c:plotArea><c:layout/>${plot}</c:plotArea><c:legend><c:legendPos val="${ch.type === 'pie' ? 'r' : 'b'}"/><c:overlay val="0"/></c:legend><c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart><c:spPr>${scFill('FFFFFF')}<a:ln w="9525">${scFill('C9D0DE')}</a:ln></c:spPr></c:chartSpace>`;
+}
+function scDrawingXml(charts) {
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">` + charts.map((c, i) =>
+    `<xdr:oneCellAnchor><xdr:from><xdr:col>${c.col}</xdr:col><xdr:colOff>${c.colOff}</xdr:colOff><xdr:row>${c.row}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:ext cx="${c.w * 9525}" cy="${c.h * 9525}"/><xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="${i + 2}" name="Chart ${i + 1}"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr><xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart"><c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="rIdC${i + 1}"/></a:graphicData></a:graphic></xdr:graphicFrame><xdr:clientData/></xdr:oneCellAnchor>`).join('') + '</xdr:wsDr>';
+}
+async function scLoadJSZip() {
+  if (typeof JSZip !== 'undefined') return;
+  await new Promise((ok, no) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'; s.onload = ok; s.onerror = () => no(new Error('JSZip could not be loaded')); document.head.appendChild(s); });
+}
+async function scInjectCharts(buf, sheetName, charts) {
+  await scLoadJSZip();
+  const NF = { createFolders: false }, Z = await JSZip.loadAsync(buf), rd = async p => { const f = Z.file(p); return f ? await f.async('string') : null; };
+  const wbx = await rd('xl/workbook.xml'), wrel = await rd('xl/_rels/workbook.xml.rels'); if (!wbx || !wrel) throw new Error('workbook parts missing');
+  let rid = null; for (const m of wbx.matchAll(/<sheet\b[^>]*>/g)) if (new RegExp('name="' + scXe(sheetName) + '"').test(m[0])) rid = /r:id="([^"]+)"/.exec(m[0])[1];
+  let target = null; for (const m of wrel.matchAll(/<Relationship\b[^>]*>/g)) if (rid && m[0].includes(`Id="${rid}"`)) target = /Target="([^"]+)"/.exec(m[0])[1];
+  if (!target) throw new Error('sheet not found');
+  target = target.replace(/^\//, ''); if (!target.startsWith('xl/')) target = 'xl/' + target;
+  const sheetXml = await rd(target); if (!sheetXml || /<drawing\b/.test(sheetXml)) throw new Error('sheet already has a drawing');
+  const dir = target.slice(0, target.lastIndexOf('/')), base = target.slice(target.lastIndexOf('/') + 1), relPath = `${dir}/_rels/${base}.rels`;
+  let nC = 1; Z.forEach(p => { const m = /^xl\/charts\/chart(\d+)\.xml$/.exec(p); if (m) nC = Math.max(nC, +m[1] + 1); });
+  let nD = 1; Z.forEach(p => { const m = /^xl\/drawings\/drawing(\d+)\.xml$/.exec(p); if (m) nD = Math.max(nD, +m[1] + 1); });
+  charts.forEach((c, i) => Z.file(`xl/charts/chart${nC + i}.xml`, scChartXml(c), NF));
+  Z.file(`xl/drawings/drawing${nD}.xml`, scDrawingXml(charts), NF);
+  Z.file(`xl/drawings/_rels/drawing${nD}.xml.rels`, `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` + charts.map((c, i) => `<Relationship Id="rIdC${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart${nC + i}.xml"/>`).join('') + '</Relationships>', NF);
+  const drel = `<Relationship Id="rIdScDrw" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing${nD}.xml"/>`, old = await rd(relPath);
+  Z.file(relPath, old ? old.replace('</Relationships>', drel + '</Relationships>') : `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${drel}</Relationships>`, NF);
+  let ct = await rd('[Content_Types].xml'); if (!ct) throw new Error('content types missing');
+  ct = ct.replace('</Types>', `<Override PartName="/xl/drawings/drawing${nD}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>` + charts.map((c, i) => `<Override PartName="/xl/charts/chart${nC + i}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>`).join('') + '</Types>');
+  Z.file('[Content_Types].xml', ct, NF);
+  let sx = sheetXml; if (!/<worksheet\b[^>]*xmlns:r=/.test(sx)) sx = sx.replace(/<worksheet\b/, '<worksheet xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"');
+  const tag = '<drawing r:id="rIdScDrw"/>', at = sx.search(/<legacyDrawing\b|<legacyDrawingHF\b|<picture\b|<oleObjects\b|<controls\b|<webPublishItems\b|<tableParts\b|<extLst\b/);
+  sx = at >= 0 ? sx.slice(0, at) + tag + sx.slice(at) : sx.replace('</worksheet>', tag + '</worksheet>');
+  Z.file(target, sx, NF);
+  return await Z.generateAsync({ type: 'arraybuffer', compression: 'DEFLATE' });
+}
+// chart specs that point at table cells (src = layout returned by scWriteTable, D = the data used for it)
+function scChartSpecs(types, sheet, src, D, ws, r0, fmts, titleTail) {
+  const V = D.V, body = D.rows.filter(r => !r.total), nB = body.length, nC = D.cols.length, c0 = src.c0, first = src.first;
+  const axFmt = V.m === 'o' && SC.basis === 'd' ? '0.0' : '#,##0', cats = body.map(r => r.label), colLab = D.cols.map(c => c.label);
+  const colRng = k => scRng(sheet, c0 + k, first, c0 + k, first + nB - 1), rowRng = i => scRng(sheet, c0, first + i, c0 + nC - 1, first + i), catRows = scRng(sheet, 1, first, 1, first + nB - 1), hdrRng = scRng(sheet, c0, src.hdr, c0 + nC - 1, src.hdr);
+  const wpx = c => Math.round(((ws.getColumn(c).width) || 8.43) * 7 + 5), at = x => { let c = 1; while (x >= wpx(c)) { x -= wpx(c); c++; } return { col: c - 1, colOff: Math.round(x * 9525) }; };
+  const out = []; let row = r0;
+  const nm = { bar: 'Bar chart', line: 'Line chart', pie: 'Pie chart' };
+  types.forEach(t => {
+    if (t === 'bar') {
+      out.push({ type: 'bar', title: `${nm.bar} — ${V.name}${titleTail}`, fmt: fmts.v, axFmt, series: D.cols.map((c, k) => ({ name: c.label, nameRef: scRng(sheet, c0 + k, src.hdr, c0 + k, src.hdr), cats, catRef: catRows, vals: body.map(r => V.g(r.cells[k], r.idx)), valRef: colRng(k), color: SC_PAL[k % 12] })), ...at(0), row, w: 960, h: 380 }); row += 20;
+    } else if (t === 'line') {
+      const ser = body.map((r, i) => ({ name: r.label, nameRef: scRng(sheet, 1, first + i, 1, first + i), cats: colLab, catRef: hdrRng, vals: r.cells.map(c => V.g(c, r.idx)), valRef: rowRng(i), color: r.color }));
+      if (src.hasTotal && D.rows.some(r => r.total) && D.kind === 'ch') { const T = D.rows.find(r => r.total); ser.push({ name: 'Total', nameRef: scRng(sheet, 1, first + nB, 1, first + nB), cats: colLab, catRef: hdrRng, vals: T.cells.map(c => V.g(c, T.idx)), valRef: rowRng(nB), color: '6B7280', dash: true }); }
+      out.push({ type: 'line', title: `${nm.line} — ${V.name}${titleTail}`, fmt: fmts.v, axFmt, series: ser, ...at(0), row, w: 960, h: 380 }); row += 20;
+    } else {
+      const per = 3, w = 420, h = 330;
+      D.cols.forEach((c, k) => { const gx = (k % per) * (w + 12), gy = row + Math.floor(k / per) * 17; out.push({ type: 'pie', title: `${c.label}`, fmt: fmts.v, axFmt, series: [{ name: c.label, nameRef: scRng(sheet, c0 + k, src.hdr, c0 + k, src.hdr), cats, catRef: catRows, vals: body.map(r => V.g(r.cells[k], r.idx)), valRef: colRng(k), colors: body.map(r => r.color) }], ...at(gx), row: gy, w, h }); });
+      row += Math.ceil(nC / per) * 17 + 2;
+    }
+  });
+  return { charts: out, endRow: row };
 }
 
 function p14Err(m) { const e = $14('p14ErrorBox'); e.textContent = m; e.classList.add('visible'); }
