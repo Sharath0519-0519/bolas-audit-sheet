@@ -733,7 +733,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     <button class="download-btn dl-c2" id="p2DownloadBtn"><span>⬇</span> Download Cashew_Flavoured.xlsx</button>
     <button class="download-btn" id="p2SaveReadyBtn" onclick="saveReadyFile(2)" style="margin-top:10px;border:2px solid #3FB874;color:#3FB874">💾 Save to Ready Files</button>
     <div id="p2SaveReadyMsg" style="margin-top:8px;font-family:'DM Mono',monospace;font-size:11.5px"></div>
-    <div class="note-strip note-c2"><strong>Note:</strong> All Cashew Flavoured SKUs auto-detected from file. Combo packs (e.g. 200gm(50gmx4)) are expanded to their inner pack count. Zeros left blank for clean copy-paste.</div>
+    <div class="note-strip note-c2"><strong>Note:</strong> All Cashew Flavoured SKUs auto-detected from file. Combo packs are expanded to their inner pack count: 200gm(50gmx4) counts as 4 × 50g, and 25g Pack Of 10 counts as 10 × 25g (1 sale = 10 packs in the 25g column). Zeros left blank for clean copy-paste.</div>
   </div>
 </div>
 
@@ -1296,6 +1296,10 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
       <label class="modal-item">
         <input type="checkbox" id="p3AddReasonCol">
         <div><div class="modal-item-label">Add a "Reason" column</div><div class="modal-item-sub">Blank column right after Remark, for noting why an item is Short or Excess</div></div>
+      </label>
+      <label class="modal-item">
+        <input type="checkbox" id="p3LiveSheet2">
+        <div><div class="modal-item-label">Keep Sheet 2 linked to Sheet 1 (advanced)</div><div class="modal-item-sub">Off (recommended): both sheets are standalone and can be copied to any new Excel. On: Sheet 2 re-fills when you edit counts in Excel, but it can't be copied on its own.</div></div>
       </label>
     </div>
     <div class="modal-ftr">
@@ -1898,8 +1902,8 @@ function p2ParseWeight(name) {
   const sl = s.toLowerCase();
   // "Honey Roasted Cashew Pack Of 200gm(50gmx4)" style: inner pack multiplier
   // Detect sub-pack pattern: NNgm(MMgxQQ) → each unit is really QQ packs of MM g
-  const subm = sl.match(/(\d+(?:\.\d+)?)gm?\s*\((\d+(?:\.\d+)?)g\s*[x×*]\s*(\d+)\)/i)
-             || sl.match(/(\d+(?:\.\d+)?)\s*g(?:m)?\s*\(\s*(\d+(?:\.\d+)?)\s*g\s*[x×*]\s*(\d+)\s*\)/i);
+  const GU = 'g(?:ram|rams|ms|m)?';
+  const subm = sl.match(new RegExp('(\\d+(?:\\.\\d+)?)\\s*' + GU + '\\s*\\(\\s*(\\d+(?:\\.\\d+)?)\\s*' + GU + '\\s*[x×*]\\s*(\\d+)\\s*\\)', 'i'));
   if (subm) {
     // outer is subm[1] g, inner pack is subm[2] g × subm[3] units
     const innerG = parseFloat(subm[2]), qty = parseFloat(subm[3]);
@@ -1907,15 +1911,19 @@ function p2ParseWeight(name) {
       return { type: 'weight', kg: innerG / 1000, multiplier: qty };
     }
   }
+  // "25g Pack Of 10" style: one sale = N packs of the stated weight. N must be a plain
+  // count (a weight like "Pack Of 200gm" has a unit right after the number, so it is skipped).
+  const pm = sl.match(/\bpacks?[\s-]*of[\s-]*(\d+)\b(?!\s*(?:g|kg|ml)\b)/i);
+  const packMult = pm && parseInt(pm[1], 10) > 0 ? parseInt(pm[1], 10) : 1;
   // ml
   let m = sl.match(/(\d+(?:\.\d+)?)\s*ml\b/);
-  if (m) return { type: 'weight', kg: parseFloat((parseFloat(m[1]) * 0.001).toFixed(4)), multiplier: 1 };
+  if (m) return { type: 'weight', kg: parseFloat((parseFloat(m[1]) * 0.001).toFixed(4)), multiplier: packMult };
   // kg
   m = s.match(/(\d+(?:\.\d+)?)\s*kg/i);
-  if (m) return { type: 'weight', kg: parseFloat(m[1]), multiplier: 1 };
+  if (m) return { type: 'weight', kg: parseFloat(m[1]), multiplier: packMult };
   // grams
   m = s.match(/(\d+(?:\.\d+)?)\s*g(?:m(?:s)?|ram(?:s)?)?(?:\b|$)/i);
-  if (m) { const g = parseFloat(m[1]); if (g >= 1) return { type: 'weight', kg: g / 1000, multiplier: 1 }; }
+  if (m) { const g = parseFloat(m[1]); if (g >= 1) return { type: 'weight', kg: g / 1000, multiplier: packMult }; }
   // counted items
   if (/\bin\s+numbers?\b|\bnos\b|\bpcs\b/i.test(s)) return { type: 'numbers', kg: null, multiplier: 1 };
   return { type: 'unknown', kg: null, multiplier: 1 };
@@ -2822,8 +2830,17 @@ function p3FindRateMatch(pkgName, shortCode){
   return null;
 }
 
-async function p3BuildExcelJS(rows, includeReason){
+async function p3BuildExcelJS(rows, includeReason, opts){
+  // copySafe (default): both sheets are standalone, no links between them and no hidden helper
+  // columns, so either sheet can be copied/moved to any new workbook. opts.live = true keeps the
+  // old self-updating Sheet 2 (formulas that read Sheet 1; cannot be copied on its own).
+  const copySafe = !(opts && opts.live);
+  const calcRows = rows.map(r=>({r, c:p3RowCalc(r)}));
+  const nShort = calcRows.filter(x=>x.c.remark==='SHORT').length;
+  const nExcess = calcRows.filter(x=>x.c.remark==='EXCESS').length;
+  const nMatched = calcRows.filter(x=>x.c.remark==='MATCHED').length;
   const wb=new ExcelJS.Workbook();wb.creator="SHARATH'S SYSTEM";wb.created=new Date();
+  wb.calcProperties={fullCalcOnLoad:true};
   const ws=wb.addWorksheet('Stock Audit',{views:[{state:'frozen',xSplit:3,ySplit:3}],pageSetup:{orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0}});
   const C={TITLE:'1B2A6B',DATE:'141A4A',HDR:'2E3F9F',ODD:'FFFFFF',EVEN:'F0F3FF',MAN:'FFFDE7',NEG:'FFF3CD',UNK:'F8F8F8',SBG:'FDECEA',SFG:'C0392B',EBG:'E8F5E9',EFG:'1E8449',MBG:'E3F2FD',MFG:'1A5276',STOT:'2E3F9F',SSHORT:'C0392B',SEXCESS:'1E8449',SMATCH:'1A5276',DARK:'1A1A2E',WHITE:'FFFFFF',DFGG:'AAAACC',FOOT:'7777AA',BRD:'C8CCE8',MUTED:'888888',NEGFG:'856404'};
   const FL=h=>({type:'pattern',pattern:'solid',fgColor:{argb:'FF'+h}});
@@ -2836,10 +2853,12 @@ async function p3BuildExcelJS(rows, includeReason){
     const best = p3FindRateMatch(pkgName, shortCode);
     return best ? (best[field]||'') : '';
   }
-  const p3ColDefs=[{width:5},{width:16},{width:44},{width:13},{width:15},{width:13},{width:13},{width:10},{width:13},{width:12},{width:14,hidden:true},{width:14,hidden:true},{width:10,hidden:true},{width:10,hidden:true}];
+  const p3ColDefs=[{width:5},{width:16},{width:44},{width:13},{width:15},{width:13},{width:13},{width:10},{width:13},{width:12}];
+  if(!copySafe) p3ColDefs.push({width:14,hidden:true},{width:14,hidden:true},{width:10,hidden:true},{width:10,hidden:true});
+  const reasonNum = copySafe ? 11 : 15, reasonCol = copySafe ? 'K' : 'O';
   if(includeReason) p3ColDefs.push({width:32});
   const hasPhotos = rows.some(r=>r.photoUrl);
-  const photoColNum = includeReason ? 16 : 15; // sits right after Reason if included, otherwise takes that slot itself
+  const photoColNum = includeReason ? reasonNum+1 : reasonNum; // sits right after Reason if included, otherwise takes that slot itself
   if(hasPhotos){ while(p3ColDefs.length < photoColNum-1) p3ColDefs.push({width:10}); p3ColDefs.push({width:16}); }
   ws.columns=p3ColDefs;
   const dateStr=p3TodayStr(),DS=4,DE=rows.length+3;
@@ -2857,9 +2876,9 @@ async function p3BuildExcelJS(rows, includeReason){
   [['A','Sr No','center'],['B','Item Name','left'],['C','Package Name','left'],['D','Closing Stock','center'],['E','Physical (Packs)','center'],['F','Store Count','center'],['G','Rack Count','center'],['H','Total','center'],['I','Difference','center'],['J','Remark','center']
   ].forEach(([col,label,align])=>{const c=ws.getCell(col+'3');c.value=label;c.font=FN(C.WHITE,true,10);c.fill=FL(C.HDR);c.alignment=AL(align,'middle',true);c.border=BD();});
   if(includeReason){
-    const c=ws.getCell('O3');c.value='Reason';c.font=FN(C.WHITE,true,10);c.fill=FL(C.HDR);c.alignment=AL('center','middle',true);c.border=BD();
+    const c=ws.getCell(reasonCol+'3');c.value='Reason';c.font=FN(C.WHITE,true,10);c.fill=FL(C.HDR);c.alignment=AL('center','middle',true);c.border=BD();
   }
-  ws.autoFilter={from:{row:3,column:1},to:{row:3,column:hasPhotos?photoColNum:(includeReason?15:10)}};
+  ws.autoFilter={from:{row:3,column:1},to:{row:3,column:hasPhotos?photoColNum:(includeReason?reasonNum:10)}};
   rows.forEach((r,ri)=>{
     const er=ri+DS,bg=r.hasNegative?C.NEG:(ri%2===0?C.ODD:C.EVEN);
     ws.getRow(er).height=18;
@@ -2875,18 +2894,20 @@ async function p3BuildExcelJS(rows, includeReason){
        c.font=FN(C.DARK,false,10);c.fill=FL(bg);c.alignment=AL('center','middle');c.border=BD();}
      else{c.value='?';c.font=FN(C.MUTED,false,9,true);c.fill=FL(C.UNK);c.alignment=AL('center','middle');c.border=BD();}}
     set('F',r.storeCount===null||r.storeCount===undefined?'':r.storeCount,C.DARK,false,C.MAN,'center');set('G',r.rackCount===null||r.rackCount===undefined?'':r.rackCount,C.DARK,false,C.MAN,'center');
-    {const c=ws.getCell('H'+er);c.value={formula:`IF(AND(F${er}="",G${er}=""),"",IF(F${er}="",0,F${er})+IF(G${er}="",0,G${er}))`,result:''};c.font=FN(C.DARK,false,10);c.fill=FL(bg);c.alignment=AL('center','middle');c.border=BD();}
-    {const c=ws.getCell('I'+er);c.value={formula:`IF(OR(H${er}="",E${er}=""),"",ROUND(H${er}-E${er},4))`,result:''};c.font=FN(C.DARK,false,10);c.fill=FL(bg);c.alignment=AL('center','middle');c.border=BD();}
-    {const c=ws.getCell('J'+er);c.value={formula:`IF(I${er}="","",IF(I${er}<0,"SHORT",IF(I${er}>0,"EXCESS","MATCHED")))`,result:''};c.font=FN(C.DARK,true,10);c.fill=FL(bg);c.alignment=AL('center','middle');c.border=BD();}
-    const bp=getRate2(r.pkgName,'billing',r.shortCode),sp=getRate2(r.pkgName,'selling',r.shortCode);
-    ws.getCell('K'+er).value = bp!=='' ? Number(bp) : '';
-    ws.getCell('L'+er).value = sp!=='' ? Number(sp) : '';
-    // Running rank among SHORT items so far / among EXCESS items so far (blank otherwise).
-    // Sheet 2 finds "the row whose rank = k" with a plain MATCH — no array formulas, no AGGREGATE.
-    ws.getCell('M'+er).value = {formula:`IF($J${er}="SHORT",COUNTIF($J$${DS}:J${er},"SHORT"),"")`,result:''};
-    ws.getCell('N'+er).value = {formula:`IF($J${er}="EXCESS",COUNTIF($J$${DS}:J${er},"EXCESS"),"")`,result:''};
+    {const c=ws.getCell('H'+er);c.value={formula:`IF(AND(F${er}="",G${er}=""),"",IF(F${er}="",0,F${er})+IF(G${er}="",0,G${er}))`,result:calcRows[ri].c.total??''};c.font=FN(C.DARK,false,10);c.fill=FL(bg);c.alignment=AL('center','middle');c.border=BD();}
+    {const c=ws.getCell('I'+er);c.value={formula:`IF(OR(H${er}="",E${er}=""),"",ROUND(H${er}-E${er},4))`,result:calcRows[ri].c.diff??''};c.font=FN(C.DARK,false,10);c.fill=FL(bg);c.alignment=AL('center','middle');c.border=BD();}
+    {const c=ws.getCell('J'+er);c.value={formula:`IF(I${er}="","",IF(I${er}<0,"SHORT",IF(I${er}>0,"EXCESS","MATCHED")))`,result:calcRows[ri].c.remark??''};c.font=FN(C.DARK,true,10);c.fill=FL(bg);c.alignment=AL('center','middle');c.border=BD();}
+    if(!copySafe){
+      const bp=getRate2(r.pkgName,'billing',r.shortCode),sp=getRate2(r.pkgName,'selling',r.shortCode);
+      ws.getCell('K'+er).value = bp!=='' ? Number(bp) : '';
+      ws.getCell('L'+er).value = sp!=='' ? Number(sp) : '';
+      // Running rank among SHORT items so far / among EXCESS items so far (blank otherwise).
+      // Sheet 2 finds "the row whose rank = k" with a plain MATCH — no array formulas, no AGGREGATE.
+      ws.getCell('M'+er).value = {formula:`IF($J${er}="SHORT",COUNTIF($J$${DS}:J${er},"SHORT"),"")`,result:''};
+      ws.getCell('N'+er).value = {formula:`IF($J${er}="EXCESS",COUNTIF($J$${DS}:J${er},"EXCESS"),"")`,result:''};
+    }
     if(includeReason){
-      const c=ws.getCell('O'+er);c.value='';c.font=FN(C.DARK,false,10);c.fill=FL(C.MAN);c.alignment=AL('left','middle');c.border=BD();
+      const c=ws.getCell(reasonCol+er);c.value='';c.font=FN(C.DARK,false,10);c.fill=FL(C.MAN);c.alignment=AL('left','middle');c.border=BD();
     }
     if(hasPhotos){
       const c=ws.getRow(er).getCell(photoColNum);
@@ -2907,7 +2928,7 @@ async function p3BuildExcelJS(rows, includeReason){
     ws.mergeCells(`${s.cols[0]}${slr}:${s.cols[1]}${slr}`);ws.mergeCells(`${s.cols[0]}${svr}:${s.cols[1]}${svr}`);
     const lc=ws.getCell(s.cols[0]+slr);lc.value=s.lbl;lc.font=FN(C.WHITE,true,9);lc.fill=FL(s.bg);lc.alignment=AL('center','middle');lc.border=BD();
     ws.getCell(s.cols[1]+slr).fill=FL(s.bg);ws.getCell(s.cols[1]+slr).border=BD();
-    const vc=ws.getCell(s.cols[0]+svr);vc.value={formula:s.f,result:si===0?rows.length:0};vc.font=FN(C.WHITE,true,20);vc.fill=FL(s.bg);vc.alignment=AL('center','middle');vc.border=BD();
+    const vc=ws.getCell(s.cols[0]+svr);vc.value={formula:s.f,result:[rows.length,nShort,nExcess,nMatched][si]};vc.font=FN(C.WHITE,true,20);vc.fill=FL(s.bg);vc.alignment=AL('center','middle');vc.border=BD();
     ws.getCell(s.cols[1]+svr).fill=FL(s.bg);ws.getCell(s.cols[1]+svr).border=BD();
   });
   ws.getRow(slr).height=22;ws.getRow(svr).height=36;
@@ -2957,7 +2978,9 @@ async function p3BuildExcelJS(rows, includeReason){
   // Instruction banner
   ws2.mergeCells('A3:I3'); ws2.getRow(3).height=20;
   const ib=ws2.getCell('A3');
-  ib.value='\u2713 Self-grouping \u2014 fill Store & Rack Count in Sheet 1 and the SHORT / EXCESS lists below populate and re-sort automatically. Nothing to click, no macro needed.';
+  ib.value = copySafe
+    ? '\u2713 SHORT / EXCESS items from the audit count ('+nShort+' short, '+nExcess+' excess). Plain values \u2014 this sheet can be copied to any workbook.'
+    : '\u2713 Auto-updating \u2014 fill Store & Rack Count in the Stock Audit sheet and the SHORT / EXCESS lists below refresh automatically.';
   ib.font=FN(C.WHITE,true,9,true); ib.fill=FL('2E3F9F'); ib.alignment=AL('center','middle',true); ib.border=BD();
   'BCDEFGHI'.split('').forEach(col=>{const c=ws2.getCell(col+'3');c.fill=FL('2E3F9F');c.border=BD();});
 
@@ -2981,14 +3004,47 @@ async function p3BuildExcelJS(rows, includeReason){
       c.fill=FL(themeBg); c.alignment=AL(align,'middle',true); c.border=BD();
     });
 
+    const list = copySafe ? calcRows.filter(x=>x.c.remark===statusWord) : null;
+    const M2 = copySafe ? list.length : N2;
+    let sumG=0, sumH=0;
     let de;
-    if (N2===0){
+    if (M2===0){
       de=ds;
       ws2.mergeCells(`A${ds}:I${ds}`);
       const nc=ws2.getCell('A'+ds);
       nc.value='\u2014 No Items Found \u2014';
       nc.font=FN(C.MUTED,false,10,true); nc.fill=FL(C.ODD); nc.alignment=AL('center','middle'); nc.border=BD();
       ws2.getRow(ds).height=18;
+    } else if (copySafe) {
+      de=ds+M2-1;
+      list.forEach((x,i)=>{
+        const r2=ds+i;
+        ws2.getRow(r2).height=18;
+        const bg=((i+1)%2===0)?C.ODD:'F0F3FF';
+        const qty=Math.abs(Math.round(x.c.diff));
+        const bp=getRate2(x.r.pkgName,'billing',x.r.shortCode), sp=getRate2(x.r.pkgName,'selling',x.r.shortCode);
+        const bpN=bp!==''?Number(bp):null, spN=sp!==''?Number(sp):null;
+        const gV=bpN===null?0:qty*bpN, hV=spN===null?0:qty*spN;
+        sumG+=gV; sumH+=hV;
+        set2(r2,'A',i+1,C.MUTED,false,bg,'center');
+        set2(r2,'B',x.r.shortCode,C.DARK,true,bg,'left');
+        set2(r2,'C',x.r.pkgName,C.DARK,false,bg,'left');
+        set2(r2,'D',qty,C.DARK,true,bg,'center');
+        set2(r2,'E',bpN,C.DARK,false,C.MAN,'center');
+        set2(r2,'F',spN,C.DARK,false,C.MAN,'center');
+        setF2(r2,'G',`IF(OR(D${r2}="",E${r2}=""),0,D${r2}*E${r2})`,gV,C.DARK,false,bg,'right');
+        setF2(r2,'H',`IF(OR(D${r2}="",F${r2}=""),0,D${r2}*F${r2})`,hV,C.DARK,false,bg,'right');
+        set2(r2,'I',statusWord,C.DARK,true,bg,'center');
+      });
+      const tCols='ABCDEFGHI'.split('');
+      const tRows=[];
+      for(let r2=ds;r2<=de;r2++){ tRows.push(tCols.map(c=>ws2.getCell(c+r2).value)); }
+      ws2.addTable({
+        name: tableName, ref: 'A'+colRow, headerRow: true, totalsRow: false,
+        style: { theme: null, showFirstColumn:false, showLastColumn:false, showRowStripes:false, showColumnStripes:false },
+        columns: COLS2.map(([col,lbl])=>({name:lbl, filterButton:true})),
+        rows: tRows
+      });
     } else {
       de=ds+N2-1;
       for (let k=1;k<=N2;k++){
@@ -3033,23 +3089,23 @@ async function p3BuildExcelJS(rows, includeReason){
     ws2.getRow(totRow).height=22;
     ws2.mergeCells(`A${totRow}:F${totRow}`);
     const tl=ws2.getCell('A'+totRow);
-    if (N2>0){
-      tl.value={formula:`"TOTAL \u2014 ${statusWord} ITEMS ("&COUNTIF(I${ds}:I${de},"${statusWord}")&" item(s)) (\u20b9)"`,result:`TOTAL \u2014 ${statusWord} ITEMS (\u20b9)`};
+    if (M2>0){
+      tl.value={formula:`"TOTAL \u2014 ${statusWord} ITEMS ("&COUNTIF(I${ds}:I${de},"${statusWord}")&" item(s)) (\u20b9)"`,result:copySafe?`TOTAL \u2014 ${statusWord} ITEMS (${M2} item(s)) (\u20b9)`:`TOTAL \u2014 ${statusWord} ITEMS (\u20b9)`};
     } else {
       tl.value=`TOTAL \u2014 ${statusWord} ITEMS (\u20b9)`;
     }
     tl.font=FN(C.WHITE,true,11); tl.fill=FL(themeBg); tl.alignment=AL('right','middle'); tl.border=BD();
     'BCDEF'.split('').forEach(col=>{const c=ws2.getCell(col+totRow);c.fill=FL(themeBg);c.border=BD();});
-    if (N2>0){
-      setF2(totRow,'G',`SUM(G${ds}:G${de})`,0,C.WHITE,true,themeBg,'right');
-      setF2(totRow,'H',`SUM(H${ds}:H${de})`,0,C.WHITE,true,themeBg,'right');
+    if (M2>0){
+      setF2(totRow,'G',`SUM(G${ds}:G${de})`,sumG,C.WHITE,true,themeBg,'right');
+      setF2(totRow,'H',`SUM(H${ds}:H${de})`,sumH,C.WHITE,true,themeBg,'right');
     } else {
       set2(totRow,'G',0,C.WHITE,true,themeBg,'right');
       set2(totRow,'H',0,C.WHITE,true,themeBg,'right');
     }
     ws2.getCell('I'+totRow).fill=FL(themeBg); ws2.getCell('I'+totRow).border=BD();
 
-    return {ds, de, totRow, nextRow: totRow+1};
+    return {ds, de, totRow, nextRow: totRow+1, sumG, sumH};
   }
 
   const shortBlock = buildGroupBlock(4, 'SHORT ITEMS', 'SHORT', 'C0392B', 'M', 'ShortItemsTbl');
@@ -3068,8 +3124,8 @@ async function p3BuildExcelJS(rows, includeReason){
   gtl.value = 'GRAND TOTAL \u2014 EXCESS \u2212 SHORT (\u20b9)';
   gtl.font = FN(C.WHITE, true, 12); gtl.fill = FL(C.STOT); gtl.alignment = AL('right', 'middle'); gtl.border = BD();
   'BCDEF'.split('').forEach(col => { const c = ws2.getCell(col + gtr2); c.fill = FL(C.STOT); c.border = BD(); });
-  setF2(gtr2, 'G', `G${excessBlock.totRow}-G${shortBlock.totRow}`, 0, C.WHITE, true, C.STOT, 'right');
-  setF2(gtr2, 'H', `H${excessBlock.totRow}-H${shortBlock.totRow}`, 0, C.WHITE, true, C.STOT, 'right');
+  setF2(gtr2, 'G', `G${excessBlock.totRow}-G${shortBlock.totRow}`, excessBlock.sumG-shortBlock.sumG, C.WHITE, true, C.STOT, 'right');
+  setF2(gtr2, 'H', `H${excessBlock.totRow}-H${shortBlock.totRow}`, excessBlock.sumH-shortBlock.sumH, C.WHITE, true, C.STOT, 'right');
   ws2.getCell('I'+gtr2).fill = FL(C.STOT); ws2.getCell('I'+gtr2).border = BD();
 
   // Footer
@@ -3317,6 +3373,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function p3ConfirmDownload() {
   const addReason = document.getElementById('p3AddReasonCol')?.checked || false;
+  const liveSheet2 = document.getElementById('p3LiveSheet2')?.checked || false;
   p3CloseModal();
   if (!p3AuditRows.length) return;
   // Re-build excel with filtered rows
@@ -3328,7 +3385,7 @@ async function p3ConfirmDownload() {
   // Show loader briefly
   p3Msg('Building filtered Excel…');
   try {
-    const blob = await p3BuildExcelJS(filtered, addReason);
+    const blob = await p3BuildExcelJS(filtered, addReason, {live: liveSheet2});
     const url = URL.createObjectURL(blob), a = document.createElement('a');
     a.href = url; a.download = p3GetFileName();
     document.body.appendChild(a); a.click();
