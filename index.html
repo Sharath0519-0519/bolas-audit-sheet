@@ -711,6 +711,14 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     <button class="remove-btn" id="p2RemoveBtn" aria-label="Remove file">✕</button>
   </div>
   <div class="error-box" id="p2ErrorBox"></div>
+  <div id="p2Options" style="margin:12px 0;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface2);font-size:12.5px">
+    <div style="font-weight:700;margin-bottom:8px">Options <span style="font-weight:400;color:var(--muted)">(all optional)</span></div>
+    <label style="display:block;margin-bottom:8px">Only include products whose name contains <span style="color:var(--muted)">(comma separated, e.g. pepper, masala)</span>
+      <input type="text" id="p2NameInclude" placeholder="leave empty to include every packed product" style="display:block;width:100%;margin-top:4px;padding:8px 10px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px"></label>
+    <label style="display:block;margin-bottom:8px">Skip products whose name contains <span style="color:var(--muted)">(e.g. kernel, w320)</span>
+      <input type="text" id="p2NameExclude" placeholder="leave empty to skip nothing" style="display:block;width:100%;margin-top:4px;padding:8px 10px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px"></label>
+    <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="p2PackOfOn" checked style="margin-top:2px"><span>Count “Pack Of N” as N packs <span style="color:var(--muted)">(25g Pack Of 10: 1 sale = 10 in the 25g column)</span></span></label>
+  </div>
   <button class="process-btn btn-c2" id="p2ProcessBtn">⚡ Process & Generate Excel</button>
 
   <div class="progress-section" id="p2ProgressSection">
@@ -725,12 +733,14 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
   <div class="results-section" id="p2ResultsSection">
     <div class="results-title">Summary <span class="badge badge-c2" id="p2PeriodBadge">—</span></div>
     <!-- Cards are built dynamically in p2RenderSummary() based on auto-detected size categories -->
+    <div id="p2SkipNote"></div>
     <div id="p2CardsArea" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:11px;margin-bottom:24px"></div>
     <div class="table-wrap"><div class="table-scroll"><table>
       <thead id="p2TableHead"></thead>
       <tbody id="p2TableBody"></tbody>
     </table></div></div>
     <button class="download-btn dl-c2" id="p2DownloadBtn"><span>⬇</span> Download Cashew_Flavoured.xlsx</button>
+    <button class="download-btn" id="p2ShareBtn" onclick="p2ShareSummary()" style="margin-top:10px;border:2px solid var(--border);color:var(--text)">📋 Share summary</button>
     <button class="download-btn" id="p2SaveReadyBtn" onclick="saveReadyFile(2)" style="margin-top:10px;border:2px solid #3FB874;color:#3FB874">💾 Save to Ready Files</button>
     <div id="p2SaveReadyMsg" style="margin-top:8px;font-family:'DM Mono',monospace;font-size:11.5px"></div>
     <div class="note-strip note-c2"><strong>Note:</strong> All Cashew Flavoured SKUs auto-detected from file. Combo packs are expanded to their inner pack count: 200gm(50gmx4) counts as 4 × 50g, and 25g Pack Of 10 counts as 10 × 25g (1 sale = 10 packs in the 25g column). Zeros left blank for clean copy-paste.</div>
@@ -813,6 +823,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
   <div class="actions-row">
     <button class="btn-go" id="p3BtnGo" disabled onclick="p3ProcessFile()">⚙️ Generate Audit Sheet</button>
     <button class="btn-dl" id="p3BtnDl" disabled onclick="p3OpenModal()">⬇️ Download Excel</button>
+    <button class="btn-dl" id="p3BtnShare" onclick="p3ShareSummary()" style="background:transparent;border:2px solid var(--border);color:var(--text)">📋 Share summary</button>
   </div>
 
   <div class="loader" id="p3Loader"><div class="spin"></div><div class="ltxt" id="p3LTxt">Reading file…</div></div>
@@ -831,13 +842,15 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     </div>
   </div>
 
+  <div id="p3TopDiff" style="display:none;margin:12px 0;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface2)"></div>
+
   <div class="info-strip" id="p3InfoStrip">
     <p>
       <span>✓ Full colours in Excel</span> — blue header, alternating rows, coloured Remark cells.<br>
       <span>✓ Physical (Packs)</span> — whole number pack count from closing stock weight.<br>
       <span>✓ Fill counts right here</span> — type Store &amp; Rack Count below, Total/Difference/Remark update instantly and the download already has them filled in.<br>
-      <span>✓ Sheet 2 auto-populates</span> — SHORT/EXCESS items appear there automatically, no extra step.<br>
-      <span>✓ Still editable in Excel</span> — every formula stays live if you tweak a count after downloading.
+      <span>✓ Sheet 2 is filled for you</span> — SHORT/EXCESS items from your counts, as plain values, so either sheet can be copied to any new Excel.<br>
+      <span>✓ Still editable in Excel</span> — Sheet 1 formulas stay live. Want Sheet 2 to re-fill from Sheet 1 too? Tick “Keep Sheet 2 linked” in the download options.
     </p>
   </div>
 
@@ -1137,7 +1150,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 <div class="panel" id="panel14">
   <div class="section-head">
     <span class="dot" style="background:#5B7FE0"></span>
-    <div><h2>Sales Report</h2><p>Upload the Invoice List → outlet-wise, day-by-day sales and orders for Walk-in, Swiggy, Zomato, Ownly and Web Orders</p></div>
+    <div><h2>Sales Report</h2><p>Upload the Invoice List → outlet-wise, day-by-day sales and orders for Walk-in, Swiggy, Zomato, Ownly, Tipplr and Web Orders</p></div>
   </div>
   <details id="p14DirCard" style="display:none;margin-bottom:16px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px">
     <summary style="cursor:pointer;font-weight:700;font-size:13px">Outlet Directory — add outlets · Franchise / Company-owned <span id="p14DirCount" style="color:var(--muted);font-weight:500;font-family:'DM Mono',monospace;font-size:11px"></span></summary>
@@ -1181,7 +1194,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
       <tbody id="p14TableBody"></tbody>
     </table></div></div>
     <button class="download-btn dl-c1" id="p14DownloadBtn"><span>⬇</span> Download Sales_Report.xlsx</button>
-    <div class="note-strip note-c1"><strong>How it's counted:</strong> Swiggy / Zomato / Ownly = customer name “Sale Through …”. Web Orders = Online Payment. Walk-in = every other bill (Cash, UPI, Card, Advance, Sodexo, split payments). Total Sale = sum of all five. Orders = number of invoices.</div>
+    <div class="note-strip note-c1"><strong>How it's counted:</strong> Swiggy / Zomato / Ownly / Tipplr = customer name “Sale Through …”. Web Orders = Online Payment. Walk-in = every other bill (Cash, UPI, Card, Advance, Sodexo, split payments). Total Sale = sum of all five. Orders = number of invoices.</div>
   </div>
 </div>
 <!-- ══ PANEL 16 — SALES COMPARISON (compare 2 / 3 / all outlets and months, charts, Excel download) ══ -->
@@ -1199,6 +1212,7 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     <div class="sc-card" id="scControls"></div>
     <div class="sc-card" id="scResults"></div>
     <button class="download-btn dl-c1" id="scDownloadBtn" onclick="scDownload()"><span>⬇</span> Download in Excel (.xlsx) — settings, tables &amp; charts</button>
+    <button class="download-btn" id="scShareBtn" onclick="scShareSummary()" style="margin-top:10px;border:2px solid var(--border);color:var(--text)">📋 Share summary</button>
     <div class="note-strip note-c1" style="margin-top:14px"><strong>In the Excel file:</strong> a “Comparison” sheet (your settings, the table with live formulas, and <strong>real Excel charts you can edit</strong> — they are linked to the table cells), an “Outlet x Month” sheet, and a “Details” sheet with every outlet × month × channel that you can filter or pivot.</div>
   </div>
 </div>
@@ -1913,7 +1927,7 @@ function p2ParseWeight(name) {
   }
   // "25g Pack Of 10" style: one sale = N packs of the stated weight. N must be a plain
   // count (a weight like "Pack Of 200gm" has a unit right after the number, so it is skipped).
-  const pm = sl.match(/\bpacks?[\s-]*of[\s-]*(\d+)\b(?!\s*(?:g|kg|ml)\b)/i);
+  const pm = (typeof p2PackOfOn === 'undefined' || p2PackOfOn) ? sl.match(/\bpacks?[\s-]*of[\s-]*(\d+)\b(?!\s*(?:g|kg|ml)\b)/i) : null;
   const packMult = pm && parseInt(pm[1], 10) > 0 ? parseInt(pm[1], 10) : 1;
   // ml
   let m = sl.match(/(\d+(?:\.\d+)?)\s*ml\b/);
@@ -1944,7 +1958,10 @@ function p2Classify(name) {
 }
 
 // ── Auto-discover all unique cashew-packed SKUs from the file rows ─
-function p2DiscoverProducts(rows) {
+let p2PackOfOn = true;
+const p2Terms = v => String(v || '').toLowerCase().split(',').map(t => t.trim()).filter(Boolean);
+function p2DiscoverProducts(rows, opts) {
+  const inc = p2Terms(opts && opts.include), exc = p2Terms(opts && opts.exclude), skipped = [], unclassified = [];
   const products = [];
   const seen = new Set();
   for (let i = 0; i < rows.length; i++) {
@@ -1956,9 +1973,12 @@ function p2DiscoverProducts(rows) {
     if (seen.has(name.toLowerCase())) continue;
     seen.add(name.toLowerCase());
     const cls = p2Classify(name);
-    if (!cls) continue; // skip non-weight / unrecognised items
+    if (!cls) { unclassified.push(name); continue; } // skip non-weight / unrecognised items (reported to the user)
+    const lo = name.toLowerCase();
+    if ((inc.length && !inc.some(t => lo.includes(t))) || exc.some(t => lo.includes(t))) { skipped.push(name); continue; }
     products.push({ name, cat: cls.cat, mult: cls.mult });
   }
+  products.skipped = skipped; products.unclassified = unclassified;
   return products;
 }
 
@@ -2006,6 +2026,8 @@ function p2ResetResults() {
   $2('p2ResultsSection').classList.remove('visible');
   $2('p2ProgressSection').classList.remove('visible');
   $2('p2ProgressLog').innerHTML = '';
+  if ($2('p2SkipNote')) $2('p2SkipNote').innerHTML = '';
+  window.p2LastSummary = null;
   p2Workbook = null;
   p2Period = '';
 }
@@ -2068,8 +2090,9 @@ $2('p2ProcessBtn').addEventListener('click', async () => {
     p2Log('info', `${allDates.length} dates · Period: ${period}`);
 
     p2SetProgress(60, 'Auto-detecting SKUs…');
-    const products = p2DiscoverProducts(rows);
-    if (!products.length) throw new Error('No cashew-flavoured packed SKUs found. Check the file.');
+    p2PackOfOn = $2('p2PackOfOn') ? $2('p2PackOfOn').checked : true;
+    const products = p2DiscoverProducts(rows, { include: $2('p2NameInclude') && $2('p2NameInclude').value, exclude: $2('p2NameExclude') && $2('p2NameExclude').value });
+    if (!products.length) throw new Error('No cashew-flavoured packed SKUs found. Check the file' + (products.skipped.length ? ' and your include / skip words (' + products.skipped.length + ' product(s) were filtered out).' : '.'));
     // Build unique size categories found in the file
     const catSet = new Set(products.map(p => p.cat));
     const cats = Array.from(catSet).sort((a, b) => {
@@ -2079,6 +2102,9 @@ $2('p2ProcessBtn').addEventListener('click', async () => {
     });
     p2Log('ok', `🔍 Found ${products.length} SKUs across ${cats.length} size bucket(s): ${cats.join(', ')}`);
     products.forEach(p => p2Log('ok', `  ✓ [${p.cat}×${p.mult}] ${p.name.slice(0, 55)}`));
+    if (products.skipped.length) products.skipped.forEach(n => p2Log('info', `  ⏭ skipped by your filter: ${n.slice(0, 55)}`));
+    if (products.unclassified.length) p2Log('warn', `⚠ ${products.unclassified.length} item(s) skipped — no pack size found in the name`);
+    if (typeof p2RenderSkipNote === 'function') p2RenderSkipNote(products.unclassified);
 
     p2SetProgress(75, 'Aggregating data…');
     const result = p2AggregateData(rows, allDates, products, cats);
@@ -2156,6 +2182,7 @@ function p2RenderSummary(result, dates, period, cats) {
     });
   });
 
+  window.p2LastSummary = { period, cats, totals };
   // Cards: rebuild the cards-3 area dynamically
   const cardsEl = $2('p2CardsArea');
   if (cardsEl) {
@@ -2895,7 +2922,7 @@ async function p3BuildExcelJS(rows, includeReason, opts){
      else{c.value='?';c.font=FN(C.MUTED,false,9,true);c.fill=FL(C.UNK);c.alignment=AL('center','middle');c.border=BD();}}
     set('F',r.storeCount===null||r.storeCount===undefined?'':r.storeCount,C.DARK,false,C.MAN,'center');set('G',r.rackCount===null||r.rackCount===undefined?'':r.rackCount,C.DARK,false,C.MAN,'center');
     {const c=ws.getCell('H'+er);c.value={formula:`IF(AND(F${er}="",G${er}=""),"",IF(F${er}="",0,F${er})+IF(G${er}="",0,G${er}))`,result:calcRows[ri].c.total??''};c.font=FN(C.DARK,false,10);c.fill=FL(bg);c.alignment=AL('center','middle');c.border=BD();}
-    {const c=ws.getCell('I'+er);c.value={formula:`IF(OR(H${er}="",E${er}=""),"",ROUND(H${er}-E${er},4))`,result:calcRows[ri].c.diff??''};c.font=FN(C.DARK,false,10);c.fill=FL(bg);c.alignment=AL('center','middle');c.border=BD();}
+    {const c=ws.getCell('I'+er);c.value={formula:`IF(OR(H${er}="",NOT(ISNUMBER(E${er}))),"",ROUND(H${er}-E${er},4))`,result:calcRows[ri].c.diff??''};c.font=FN(C.DARK,false,10);c.fill=FL(bg);c.alignment=AL('center','middle');c.border=BD();}
     {const c=ws.getCell('J'+er);c.value={formula:`IF(I${er}="","",IF(I${er}<0,"SHORT",IF(I${er}>0,"EXCESS","MATCHED")))`,result:calcRows[ri].c.remark??''};c.font=FN(C.DARK,true,10);c.fill=FL(bg);c.alignment=AL('center','middle');c.border=BD();}
     if(!copySafe){
       const bp=getRate2(r.pkgName,'billing',r.shortCode),sp=getRate2(r.pkgName,'selling',r.shortCode);
@@ -3542,6 +3569,7 @@ function p3RecalcSummary(){
   setTxt('p3SumShort',short); setTxt('p3SumExcess',excess); setTxt('p3SumMatch',matched);
   p3UpdateAccuracyRing(filled?matched/filled:0);
   p3ApplyFilter();
+  if (typeof p3RenderTopDiff === 'function') p3RenderTopDiff();
 }
 function p3UpdateAccuracyRing(frac){
   const arc=document.getElementById('p3RingArc'), pct=document.getElementById('p3RingPct');
@@ -3949,6 +3977,7 @@ fbAuth.onAuthStateChanged(async (user) => {
     return;
   }
   currentUser = user;
+  if (typeof appPrefsLoad === 'function') appPrefsLoad(user.uid);
   isOwner = (user.email || '').toLowerCase() === OWNER_EMAIL.toLowerCase();
   setHelloName(user);
 
@@ -5201,10 +5230,11 @@ async function deleteReadyFile(id) {
 }
 
 // ---- Sales Report: Invoice List → day-by-day sales + orders by channel ----
-// index: 0 Walk-in, 1 Swiggy, 2 Zomato, 3 Ownly, 4 Web Orders  ([key, label, header colour, light tint])
+// index: 0 Walk-in, 1 Swiggy, 2 Zomato, 3 Ownly, 4 Web Orders, 5 Tipplr  ([key, label, header colour, light tint])  — add new platforms at the END
 const $14 = id => document.getElementById(id); // must be declared BEFORE the first $14(...) call below
 const p14Sum = a => a.reduce((x, y) => x + y, 0);
-const P14_CH = [['walkin','Walk-in','2E7D6B','E3F3EE'],['swiggy','Swiggy','E8710A','FDEBD9'],['zomato','Zomato','D62839','FBE1E4'],['ownly','Ownly','6F42C1','ECE4F8'],['web','Web Orders','1F6FD1','DEEBFB']];
+const P14_CH = [['walkin','Walk-in','2E7D6B','E3F3EE'],['swiggy','Swiggy','E8710A','FDEBD9'],['zomato','Zomato','D62839','FBE1E4'],['ownly','Ownly','6F42C1','ECE4F8'],['web','Web Orders','1F6FD1','DEEBFB'],['tipplr','Tipplr','0E9AA7','DDF3F5']];
+const p14Zero = () => P14_CH.map(() => 0);   // one zero per channel — every total array is built from this
 let p14File = null, p14Data = null, p14Pick = 'ALL';
 // null = see every outlet (owner / normal user). For a cluster manager this becomes the list of outlet codes assigned to him.
 let p14MyOutlets = null;
@@ -5423,6 +5453,7 @@ function p14Channel(name, mode) {
   if (n.includes('swiggy')) return 1;
   if (n.includes('zomato')) return 2;
   if (n.includes('ownly')) return 3;
+  if (/tippl(e)?r/.test(n)) return 5;   // “Sale Through Tipplr”
   return /online/i.test(String(mode || '')) ? 4 : 0;
 }
 function p14ReadRows(buf) {
@@ -5601,7 +5632,7 @@ function p14Parse(rows) {
     const k = p14Channel(col.n >= 0 ? r[col.n] : '', r[col.p]);
     const key = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const od = days[ou.code] || (days[ou.code] = {});
-    const e = od[key] || (od[key] = { s: [0, 0, 0, 0, 0], o: [0, 0, 0, 0, 0] });
+    const e = od[key] || (od[key] = { s: p14Zero(), o: p14Zero() });
     e.s[k] += amt; e.o[k] += 1; n++;
   }
   if (!n) throw new Error(skipped ? 'This file has no invoices for the outlets assigned to you.' : 'No invoice rows found in this file.');
@@ -5615,17 +5646,18 @@ function p14Build(days, keys) {
   return (keys || [...new Set(Object.keys(days).map(k => k.slice(0, 7)))].sort()).map(k => {
     const [y, m] = k.split('-').map(Number), last = new Date(y, m, 0).getDate(), rows = [];
     for (let d = 1; d <= last; d++) {
-      const e = days[`${k}-${String(d).padStart(2, '0')}`] || { s: [0, 0, 0, 0, 0], o: [0, 0, 0, 0, 0] };
+      const e = days[`${k}-${String(d).padStart(2, '0')}`] || { s: p14Zero(), o: p14Zero() };
       rows.push({ label: `${String(d).padStart(2, '0')}-${String(m).padStart(2, '0')}-${y}`, sub: DAY[new Date(y, m - 1, d).getDay()], s: e.s, o: e.o });
     }
-    const tot = f => rows.reduce((a, r) => a.map((v, i) => v + r[f][i]), [0, 0, 0, 0, 0]);
+    const tot = f => rows.reduce((a, r) => a.map((v, i) => v + r[f][i]), p14Zero());
     return { name: `${MON[m - 1]} ${y}`, sheet: `${MON[m - 1].slice(0, 3)} ${y}`, rows, s: tot('s'), o: tot('o'), active: rows.filter(r => p14Sum(r.o) > 0).length };
   });
 }
 
 function p14Sheet(wb, name, title, period, labelHead, subHead, rows, totalLabel, w1, w2, heading) {
   const ws = wb.addWorksheet(name, { views: [{ state: 'frozen', xSplit: 2, ySplit: 4, showGridLines: false }], pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
-  [w1 || 12, w2 || 9, 13, 13, 13, 13, 13, 16, 2, 10, 10, 10, 10, 10, 13].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  const nC = P14_CH.length, cT = 3 + nC, cG = cT + 1, cO = cG + 1, cOT = cO + nC, LAST = cOT, CL = n => String.fromCharCode(64 + n);   // sale cols, total, gap, order cols, total orders
+  [w1 || 12, w2 || 9, ...P14_CH.map(() => 13), 16, 2, ...P14_CH.map(() => 10), 13].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
   const line = { style: 'thin', color: { argb: 'FFC5CCD8' } }, box = { top: line, left: line, bottom: line, right: line };
   const put = (r, c, v, o = {}) => {
     const x = ws.getCell(r, c); x.value = v;
@@ -5636,35 +5668,35 @@ function p14Sheet(wb, name, title, period, labelHead, subHead, rows, totalLabel,
     if (o.fmt) x.numFmt = o.fmt;
   };
   const NAVY = '1F2A44', GOLD = 'F5B700', SLATE = '374151', AMT = '#,##0.00;-#,##0.00;"-"', CNT = '0;-0;"-"';
-  ws.mergeCells(1, 1, 1, 15); put(1, 1, heading || 'BOLAS AGRO PRIVATE LIMITED, Karkala', { size: 14, bold: true, color: 'FFFFFF', fill: NAVY, nobox: true });
-  ws.mergeCells(2, 1, 2, 15); put(2, 1, `Sales Report — ${title}${period ? '   ·   Invoice List ' + period : ''}`, { size: 11, bold: true, fill: 'DCE3F0', nobox: true });
+  ws.mergeCells(1, 1, 1, LAST); put(1, 1, heading || 'BOLAS AGRO PRIVATE LIMITED, Karkala', { size: 14, bold: true, color: 'FFFFFF', fill: NAVY, nobox: true });
+  ws.mergeCells(2, 1, 2, LAST); put(2, 1, `Sales Report — ${title}${period ? '   ·   Invoice List ' + period : ''}`, { size: 11, bold: true, fill: 'DCE3F0', nobox: true });
   ws.getRow(1).height = 26; ws.getRow(2).height = 20;
   put(3, 1, '', { fill: SLATE }); put(3, 2, '', { fill: SLATE });
-  ws.mergeCells(3, 3, 3, 8); put(3, 3, 'SALES (₹)', { bold: true, color: 'FFFFFF', fill: SLATE });
-  ws.mergeCells(3, 10, 3, 15); put(3, 10, 'ORDERS (number of invoices)', { bold: true, color: 'FFFFFF', fill: SLATE });
+  ws.mergeCells(3, 3, 3, cT); put(3, 3, 'SALES (₹)', { bold: true, color: 'FFFFFF', fill: SLATE });
+  ws.mergeCells(3, cG + 1, 3, LAST); put(3, cG + 1, 'ORDERS (number of invoices)', { bold: true, color: 'FFFFFF', fill: SLATE });
   put(4, 1, labelHead, { bold: true, color: 'FFFFFF', fill: NAVY }); put(4, 2, subHead, { bold: true, color: 'FFFFFF', fill: NAVY });
-  P14_CH.forEach((c, i) => { const o = { bold: true, color: 'FFFFFF', fill: c[2], wrap: true }; put(4, 3 + i, c[1], o); put(4, 10 + i, c[1], o); });
-  put(4, 8, 'TOTAL SALE', { bold: true, color: 'FFFFFF', fill: NAVY }); put(4, 15, 'TOTAL ORDERS', { bold: true, color: 'FFFFFF', fill: NAVY });
+  P14_CH.forEach((c, i) => { const o = { bold: true, color: 'FFFFFF', fill: c[2], wrap: true }; put(4, 3 + i, c[1], o); put(4, cO + i, c[1], o); });
+  put(4, cT, 'TOTAL SALE', { bold: true, color: 'FFFFFF', fill: NAVY }); put(4, cOT, 'TOTAL ORDERS', { bold: true, color: 'FFFFFF', fill: NAVY });
   ws.getRow(4).height = 24;
   const r0 = 5, rN = r0 + rows.length - 1, rT = rN + 1;
   rows.forEach((row, k) => {
     const r = r0 + k;
     put(r, 1, row.label, { h: 'left' }); put(r, 2, row.sub);
-    P14_CH.forEach((c, i) => { put(r, 3 + i, row.s[i], { h: 'right', fill: c[3], fmt: AMT }); put(r, 10 + i, row.o[i], { fill: c[3], fmt: CNT }); });
-    put(r, 8, { formula: `SUM(C${r}:G${r})`, result: p14Sum(row.s) }, { bold: true, h: 'right', fill: 'EEF1F6', fmt: AMT });
-    put(r, 15, { formula: `SUM(J${r}:N${r})`, result: p14Sum(row.o) }, { bold: true, fill: 'EEF1F6', fmt: CNT });
+    P14_CH.forEach((c, i) => { put(r, 3 + i, row.s[i], { h: 'right', fill: c[3], fmt: AMT }); put(r, cO + i, row.o[i], { fill: c[3], fmt: CNT }); });
+    put(r, cT, { formula: `SUM(C${r}:${CL(cT - 1)}${r})`, result: p14Sum(row.s) }, { bold: true, h: 'right', fill: 'EEF1F6', fmt: AMT });
+    put(r, cOT, { formula: `SUM(${CL(cO)}${r}:${CL(cOT - 1)}${r})`, result: p14Sum(row.o) }, { bold: true, fill: 'EEF1F6', fmt: CNT });
     ws.getRow(r).height = 18;
   });
   ws.mergeCells(rT, 1, rT, 2); put(rT, 1, totalLabel, { bold: true, size: 11, color: 'FFFFFF', fill: NAVY, h: 'left' });
-  for (let c = 3; c <= 15; c++) {
-    if (c === 9) continue;
-    const L = String.fromCharCode(64 + c), money = c <= 8, key = money ? 's' : 'o', i = c - (money ? 3 : 10);
-    const res = rows.reduce((a, row) => a + (i < 5 ? row[key][i] : p14Sum(row[key])), 0), grand = c === 8 || c === 15;
+  for (let c = 3; c <= LAST; c++) {
+    if (c === cG) continue;
+    const L = CL(c), money = c <= cT, key = money ? 's' : 'o', i = c - (money ? 3 : cO);
+    const res = rows.reduce((a, row) => a + (i < nC ? row[key][i] : p14Sum(row[key])), 0), grand = c === cT || c === cOT;
     put(rT, c, { formula: `SUM(${L}${r0}:${L}${rN})`, result: res }, { bold: true, size: grand ? 12 : 11, color: grand ? NAVY : 'FFFFFF', fill: grand ? GOLD : NAVY, h: money ? 'right' : 'center', fmt: money ? AMT : CNT });
   }
   ws.getRow(rT).height = 24;
-  ws.mergeCells(rT + 2, 1, rT + 2, 15);
-  put(rT + 2, 1, 'Swiggy / Zomato / Ownly = customer name “Sale Through …”  ·  Web Orders = Online Payment  ·  Walk-in = all other bills (Cash, UPI, Card, Advance, Sodexo, split payments)  ·  Total Sale = sum of all five  ·  Orders = number of invoices', { italic: true, size: 9, color: '6B7280', h: 'left', wrap: true, nobox: true });
+  ws.mergeCells(rT + 2, 1, rT + 2, LAST);
+  put(rT + 2, 1, 'Swiggy / Zomato / Ownly / Tipplr = customer name “Sale Through …”  ·  Web Orders = Online Payment  ·  Walk-in = all other bills (Cash, UPI, Card, Advance, Sodexo, split payments)  ·  Total Sale = sum of all channels  ·  Orders = number of invoices', { italic: true, size: 9, color: '6B7280', h: 'left', wrap: true, nobox: true });
   ws.getRow(rT + 2).height = 30;
 }
 // Typed selection: "001-020, 053, Hubli", "001 to All", "All"
@@ -5720,15 +5752,16 @@ function p14Relabel() {
 }
 const p14Scope = () => p14Data.outlets.filter(o => p14TypePick === 'ALL' || (p14TypePick === 'none' ? !o.type : o.type === p14TypePick));
 // Excel layout: month blocks stacked down the sheet — Sale (Value) on the left, Order (in Numbers) on the right.
-const P14_OFF = [0, 2, 1, 3, 4];   // Offline, Zomato, Swiggy, Ownly, Web order  (internal order is Walk-in, Swiggy, Zomato, Ownly, Web)
-const P14_HEAD = ['Offline', 'Zomato', 'Swiggy', 'Ownly', 'Web order'];
+const P14_OFF = [0, 2, 1, 3, 5, 4];   // Offline, Zomato, Swiggy, Ownly, Tipplr, Web order  (internal order is Walk-in, Swiggy, Zomato, Ownly, Web, Tipplr)
+const P14_HEAD = ['Offline', 'Zomato', 'Swiggy', 'Ownly', 'Tipplr', 'Web order'];
 function p14Blocks(wb, name, blocks, w1) {
   const ws = wb.addWorksheet(name, { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
   const FONT = 'Times New Roman', YEL = 'FFFF00', HDR = 'D9E1F2', BLUE = '8EA9DB', thin = { style: 'thin', color: { argb: 'FF000000' } };
   const box = { top: thin, left: thin, bottom: thin, right: thin }, round2 = v => Math.round(v * 100) / 100;
   const col = c => String.fromCharCode(64 + c);
-  ws.getColumn(1).width = 9; ws.getColumn(10).width = 4;
-  [w1 || 13, 11, 11, 11, 11, 11, 13, 10].forEach((w, i) => { ws.getColumn(2 + i).width = w; ws.getColumn(11 + i).width = w; });
+  const nCh = P14_HEAD.length, BW = nCh + 3, C2 = 2 + BW + 1;   // block width = date + channels + total + rating; 2nd block starts after one gap column
+  ws.getColumn(1).width = 9; ws.getColumn(2 + BW).width = 4;
+  [w1 || 13, ...P14_HEAD.map(() => 11), 13, 10].forEach((w, i) => { ws.getColumn(2 + i).width = w; ws.getColumn(C2 + i).width = w; });
   const put = (r, c, v, o = {}) => {
     const x = ws.getCell(r, c); x.value = v;
     x.font = { name: FONT, size: o.size || 10, bold: !!o.bold };
@@ -5741,30 +5774,30 @@ function p14Blocks(wb, name, blocks, w1) {
   blocks.forEach(B => {
     const n = B.rows.length, rt = r + 4 + n;
     put(r, 1, B.label, { bold: true, fill: YEL });
-    [[2, 'Sale (Value)', 's'], [11, 'Order (in Numbers)', 'o']].forEach(([c0, sub, key]) => {
-      put(r + 1, c0, B.title, { bold: true, size: 12, fill: YEL }); ws.mergeCells(r + 1, c0, r + 1, c0 + 7);
-      put(r + 2, c0, sub, { bold: true, size: 11, fill: YEL }); ws.mergeCells(r + 2, c0, r + 2, c0 + 7);
+    [[2, 'Sale (Value)', 's'], [C2, 'Order (in Numbers)', 'o']].forEach(([c0, sub, key]) => {
+      put(r + 1, c0, B.title, { bold: true, size: 12, fill: YEL }); ws.mergeCells(r + 1, c0, r + 1, c0 + BW - 1);
+      put(r + 2, c0, sub, { bold: true, size: 11, fill: YEL }); ws.mergeCells(r + 2, c0, r + 2, c0 + BW - 1);
       const heads = [B.firstHead || 'Date', ...P14_HEAD, 'TOTAL SALE', B.lastHead || 'Rating'];
       heads.forEach((t, i) => put(r + 3, c0 + i, t, { bold: true, fill: HDR }));
-      const sums = [0, 0, 0, 0, 0];
+      const sums = p14Zero();
       B.rows.forEach((row, k) => {
         const rr = r + 4 + k; let tot = 0;
         put(rr, c0, row.label, { bold: true, fill: BLUE, h: B.firstHead === 'Outlet' ? 'left' : 'center' });
         P14_OFF.forEach((src, i) => { const v = round2(row[key][src]); sums[i] += v; tot += v; put(rr, c0 + 1 + i, v ? v : null); });
-        put(rr, c0 + 6, { formula: `SUM(${col(c0 + 1)}${rr}:${col(c0 + 5)}${rr})`, result: round2(tot) }, { bold: true, fill: BLUE });
-        put(rr, c0 + 7, row.extra || null, { size: 9 });
+        put(rr, c0 + nCh + 1, { formula: `SUM(${col(c0 + 1)}${rr}:${col(c0 + nCh)}${rr})`, result: round2(tot) }, { bold: true, fill: BLUE });
+        put(rr, c0 + nCh + 2, row.extra || null, { size: 9 });
       });
       put(rt, c0, 'TOTAL', { bold: true, fill: BLUE });
       sums.forEach((v, i) => put(rt, c0 + 1 + i, { formula: `SUM(${col(c0 + 1 + i)}${r + 4}:${col(c0 + 1 + i)}${rt - 1})`, result: round2(v) }, { bold: true, fill: BLUE }));
-      put(rt, c0 + 6, { formula: `SUM(${col(c0 + 6)}${r + 4}:${col(c0 + 6)}${rt - 1})`, result: round2(sums.reduce((a, x) => a + x, 0)) }, { bold: true, fill: BLUE });
-      put(rt, c0 + 7, null);
+      put(rt, c0 + nCh + 1, { formula: `SUM(${col(c0 + nCh + 1)}${r + 4}:${col(c0 + nCh + 1)}${rt - 1})`, result: round2(sums.reduce((a, x) => a + x, 0)) }, { bold: true, fill: BLUE });
+      put(rt, c0 + nCh + 2, null);
     });
     r = rt + 3;
   });
   return ws;
 }
 // The Excel never mentions Company-owned / Franchise — each sheet is headed by the outlet's own name ("053 Bolas Factory Outlet Bangalore Vijayanagara").
-// fmt 'month' = Format 1: one sheet per month (Jan 2026, Feb 2026 …) · fmt 'one' = Format 2: all months stacked in ONE sheet per outlet.
+// fmt 'month' = Format 1: a Summary sheet first, then one sheet per month (Jan 2026, Feb 2026 …) · fmt 'one' = Format 2: all months stacked in ONE sheet per outlet.
 const p14MonShort = m => m.sheet.slice(0, 3) + '-' + m.sheet.slice(-2);
 const p14SheetSafe = s => String(s).replace(/[\\\/\?\*\[\]:]/g, '').slice(0, 31);
 // Excel caps a sheet TAB at 31 characters (the heading inside the sheet always shows the full outlet name).
@@ -5790,7 +5823,21 @@ function p14MonthPeriod(D, m) {
 }
 function p14BuildMonthSheets(D, outs) {
   const wb = new ExcelJS.Workbook(); wb.creator = 'Bolas Stock Suite';
-  const multi = outs.length > 1, used = new Set();
+  const multi = outs.length > 1, used = new Set(['summary', 'summary by month']);
+  // Summary comes FIRST. One outlet: month by month. Several outlets: 'Summary' = one row per outlet for the whole period,
+  // 'Summary by Month' = all selected outlets added together, month by month.
+  const addAll = (a, b) => a.map((v, i) => v + b[i]);
+  if (!multi) {
+    const o = outs[0];
+    p14Sheet(wb, 'Summary', 'Summary by month', D.period, 'Month', 'Days sold', o.months.map(m => ({ label: m.sheet, sub: m.active, s: m.s, o: m.o })), 'GRAND TOTAL', 12, 9, o.label);
+  } else {
+    p14Sheet(wb, 'Summary', 'Summary by outlet', D.period, 'Outlet', 'Days sold', outs.map(o => ({ label: o.label, sub: o.months.reduce((a, m) => a + m.active, 0), s: o.s, o: o.o })), 'GRAND TOTAL', 46, 9, `${outs.length} outlets`);
+    const mrows = D.months.map((dm, mi) => {
+      const days = dm.rows.reduce((a, _, k) => a + (outs.some(o => p14Sum(o.months[mi].rows[k].o) > 0) ? 1 : 0), 0);
+      return { label: dm.sheet, sub: days, s: outs.reduce((a, o) => addAll(a, o.months[mi].s), p14Zero()), o: outs.reduce((a, o) => addAll(a, o.months[mi].o), p14Zero()) };
+    });
+    p14Sheet(wb, 'Summary by Month', 'Summary by month — all selected outlets', D.period, 'Month', 'Days sold', mrows, 'GRAND TOTAL', 12, 9, `${outs.length} outlets`);
+  }
   outs.forEach(o => o.months.forEach(m => {
     const nm = p14UniqName(used, multi ? p14TabName(o, p14MonShort(m)) : p14SheetSafe(m.sheet));
     p14Sheet(wb, nm, m.name, p14MonthPeriod(D, m), 'Date', 'Day', m.rows, 'MONTH TOTAL', 12, 9, o.label);
@@ -5821,14 +5868,14 @@ function p14BuildExcel(D, codes, fmt) {
 function p14LayoutPreview(kind, o, m, D) {
   const f = v => v ? Math.round(v).toLocaleString('en-IN') : '';
   const cell = (t, bg, fg, b, al) => `<div style="background:${bg};color:${fg || '#1F2937'};font-weight:${b ? 700 : 400};text-align:${al || 'center'};padding:2px 3px;border:.5px solid #c5ccd8;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${t}</div>`;
-  const grid = cells => `<div style="display:grid;grid-template-columns:minmax(0,1.6fr) repeat(5,minmax(0,1fr)) minmax(0,1.2fr);font-size:8.5px">${cells.join('')}</div>`;
+  const grid = cells => `<div style="display:grid;grid-template-columns:minmax(0,1.6fr) repeat(${P14_CH.length},minmax(0,1fr)) minmax(0,1.2fr);font-size:8.5px">${cells.join('')}</div>`;
   const box = 'background:#fff;border:1px solid #c5ccd8;border-radius:6px;overflow:hidden;font-family:Calibri,Arial,sans-serif;color:#1F2937';
   const rows = m.rows.slice(0, 4), name = escHtml(o.label);
   if (kind === 'month') {
     const c = [cell('Date', '#1F2A44', '#fff', 1)].concat(P14_CH.map(x => cell(escHtml(x[1].replace(' Orders', '')), '#' + x[2], '#fff', 1)), [cell('TOTAL', '#1F2A44', '#fff', 1)]);
     rows.forEach(r => { c.push(cell(r.label, '#fff', null, 0, 'left')); P14_CH.forEach((x, i) => c.push(cell(f(r.s[i]), '#' + x[3], null, 0, 'right'))); c.push(cell(f(p14Sum(r.s)), '#EEF1F6', null, 1, 'right')); });
     c.push(cell('MONTH TOTAL', '#1F2A44', '#fff', 1, 'left')); m.s.forEach(v => c.push(cell(f(v), '#1F2A44', '#fff', 1, 'right'))); c.push(cell(f(p14Sum(m.s)), '#F5B700', '#1F2A44', 1, 'right'));
-    const tabs = D.months.slice(0, 3).map((x, i) => `<span style="padding:1px 7px;border-radius:3px 3px 0 0;background:${i ? '#d4d8e0' : '#fff'};font-weight:${i ? 400 : 700};font-size:8.5px">${escHtml(x.sheet)}</span>`).join('') + (D.months.length > 3 ? '<span style="padding:1px 4px;font-size:8.5px">…</span>' : '');
+    const tabs = ['Summary', ...D.months.slice(0, 3).map(x => x.sheet)].map((n, i) => `<span style="padding:1px 7px;border-radius:3px 3px 0 0;background:${i === 1 ? '#fff' : '#d4d8e0'};font-weight:${i === 1 ? 700 : 400};font-size:8.5px">${escHtml(n)}</span>`).join('') + (D.months.length > 3 ? '<span style="padding:1px 4px;font-size:8.5px">…</span>' : '');
     return `<div style="${box}"><div style="background:#1F2A44;color:#fff;text-align:center;font-weight:700;padding:5px 4px;font-size:10px">${name}</div><div style="background:#DCE3F0;text-align:center;padding:2px;font-size:8.5px;font-weight:600">Sales Report — ${escHtml(m.name)}</div>${grid(c)}<div style="display:flex;gap:2px;background:#e5e7eb;padding:3px 4px 0">${tabs}</div></div>`;
   }
   const bar = (t, sz) => `<div style="background:#FFFF00;text-align:center;font-weight:700;font-size:${sz}px;padding:2px;border:.5px solid #000">${t}</div>`;
@@ -5842,7 +5889,7 @@ function p14FormatPicker(D, codes) {
   return new Promise(resolve => {
     const outs = D.outlets.filter(o => codes.includes(o.code)), o0 = outs[0], m0 = o0.months[0];
     const nOut = outs.length, nMon = D.months.length, nMonthSheets = nOut * nMon, nOneSheets = nOut + (nOut > 1 ? 1 : 0);
-    const monthNames = nOut === 1 ? D.months.slice(0, 4).map(x => x.sheet).join(', ') + (nMon > 4 ? ' …' : '') : '';
+    const monthNames = nOut === 1 ? ['Summary', ...D.months.slice(0, 4).map(x => x.sheet)].join(', ') + (nMon > 4 ? ' …' : '') : '';
     let pick = 'month';
     const ov = document.createElement('div');
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:14px;overflow:auto';
@@ -5851,9 +5898,9 @@ function p14FormatPicker(D, codes) {
       <div style="font-weight:800;font-size:15px">Which Excel layout do you want?</div>
       <div style="font-size:11.5px;color:var(--muted)">Tap a layout, then Download. Previews use your own data. The outlet name is the heading on every sheet.</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
-        ${card('month', 'Format 1 — Month-wise sheets', 'One sheet for each month (Jan, Feb, Mar …). Each sheet shows that month day by day, Sales on the left and Orders on the right.',
-          nOut === 1 ? `${nMon} sheet${nMon > 1 ? 's' : ''}: ${escHtml(monthNames)}` : `${nMonthSheets} sheets — one per outlet per month (e.g. ${escHtml(p14TabName(o0, p14MonShort(m0)))})`,
-          nMonthSheets > 100 ? 'That is a lot of sheets — pick fewer outlets, or use Format 2.' : '')}
+        ${card('month', 'Format 1 — Month-wise sheets', 'A Summary sheet comes first (month totals by channel, Sales and Orders), then one sheet for each month (Jan, Feb, Mar …) showing that month day by day.',
+          nOut === 1 ? `${nMon + 1} sheets: ${escHtml(monthNames)}` : `${nMonthSheets + 2} sheets — Summary, Summary by Month, then one per outlet per month (e.g. ${escHtml(p14TabName(o0, p14MonShort(m0)))})`,
+          nMonthSheets + 2 > 100 ? 'That is a lot of sheets — pick fewer outlets, or use Format 2.' : '')}
         ${card('one', 'Format 2 — All months in one sheet', 'Every month stacked down a single sheet (Oct-26, Nov-26 …). Sale (Value) on the left, Order (in Numbers) on the right.',
           nOut === 1 ? '1 sheet for this outlet' : `${nOneSheets} sheets — an All Outlets summary + one sheet per outlet`, '')}
       </div>
@@ -5883,7 +5930,7 @@ function p14Render() {
   p14Relabel();
   const D = p14Data, sc = p14Scope(), all = p14Pick === 'ALL', one = all ? null : sc.find(o => o.code === p14Pick);
   const f2 = n => n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const T = { s: [0, 0, 0, 0, 0], o: [0, 0, 0, 0, 0] };
+  const T = { s: p14Zero(), o: p14Zero() };
   (one ? [one] : sc).forEach(o => o.s.forEach((v, i) => { T.s[i] += v; T.o[i] += o.o[i]; }));
   const TS = p14Sum(T.s);
   const cards = [['Total Sale', 'F5B700', TS, p14Sum(T.o)]].concat(P14_CH.map((c, i) => [c[1], c[2], T.s[i], T.o[i]]));
@@ -5894,7 +5941,7 @@ function p14Render() {
   else { rows = one.months[0].rows; head = 'Date'; }
   const cell = (v, fmt) => v ? `<td class="has-val">${fmt(v)}</td>` : '<td>—</td>';
   const names = P14_CH.map(c => `<th style="color:#${c[2]}">${c[1]}</th>`).join('') + '<th>Total</th>';
-  $14('p14TableHead').innerHTML = `<tr><th class="h-date" rowspan="2">${head}</th><th colspan="6">Sales (₹)</th><th colspan="6">Orders</th></tr><tr class="subhead">${names}${names}</tr>`;
+  $14('p14TableHead').innerHTML = `<tr><th class="h-date" rowspan="2">${head}</th><th colspan="${P14_CH.length + 1}">Sales (₹)</th><th colspan="${P14_CH.length + 1}">Orders</th></tr><tr class="subhead">${names}${names}</tr>`;
   const line = (label, s, o, cls) => `<tr${cls ? ` class="${cls}"` : ''}><td class="date-cell">${label}</td>${[...s, p14Sum(s)].map(v => cell(v, f2)).join('')}${[...o, p14Sum(o)].map(v => cell(v, x => x)).join('')}</tr>`;
   $14('p14TableBody').innerHTML = rows.map(r => line(r.label, r.s, r.o)).join('') + line('TOTAL', T.s, T.o, 'total-row');
   $14('p14PeriodBadge').textContent = D.period || D.months.map(m => m.sheet).join(', ');
@@ -5922,7 +5969,7 @@ const scLd = k => k.slice(8) + '-' + k.slice(5, 7) + '-' + k.slice(0, 4);
 const scSh = (k, n) => new Date(Date.parse(k) + n * 864e5).toISOString().slice(0, 10);
 const scDiff = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 864e5) + 1;
 const scTr = (s, n) => { s = String(s); return s.length > n ? s.slice(0, n - 1) + '…' : s; };
-const scZ = () => ({ s: [0, 0, 0, 0, 0], o: [0, 0, 0, 0, 0], days: 0 });
+const scZ = () => ({ s: p14Zero(), o: p14Zero(), days: 0 });
 const scAdd = (t, c) => { c.s.forEach((v, i) => { t.s[i] += v; t.o[i] += c.o[i]; }); return t; };
 const scSumRows = (cells, label) => { const t = scZ(); t.label = label; cells.forEach(c => { scAdd(t, c); t.days = Math.max(t.days, c.days); }); return t; };   // same period, several outlets
 const scSumCols = (cells, label) => { const t = scZ(); t.label = label; cells.forEach(c => { scAdd(t, c); t.days += c.days; }); return t; };   // several periods, same outlet
@@ -5935,7 +5982,7 @@ function scDayMap(o) {
 }
 function scMerge(maps) {
   const d = {};
-  maps.forEach(m => { for (const k in m) { const e = d[k] || (d[k] = { s: [0, 0, 0, 0, 0], o: [0, 0, 0, 0, 0] }); m[k].s.forEach((v, i) => { e.s[i] += v; e.o[i] += m[k].o[i]; }); } });
+  maps.forEach(m => { for (const k in m) { const e = d[k] || (d[k] = { s: p14Zero(), o: p14Zero() }); m[k].s.forEach((v, i) => { e.s[i] += v; e.o[i] += m[k].o[i]; }); } });
   return d;
 }
 function scOnData() {
@@ -5990,8 +6037,8 @@ function scCtx() {
 
 // ---- metric helpers (channel filter, Sales / Orders / Avg bill, total / per day) ----
 function scMetric() {
-  const C = SC, CI = C.ch === 'all' ? [0, 1, 2, 3, 4] : [+C.ch], m = C.metric, sum = a => a.reduce((x, y) => x + y, 0);
-  const g = (c, i) => { const ix = i < 5 ? [i] : CI, S = sum(ix.map(j => c.s[j])), O = sum(ix.map(j => c.o[j])); const v = m === 'o' ? O : m === 'a' ? (O ? S / O : 0) : S; return C.basis === 'd' && m !== 'a' ? v / Math.max(1, c.days) : v; };
+  const C = SC, CI = C.ch === 'all' ? P14_CH.map((_, i) => i) : [+C.ch], m = C.metric, sum = a => a.reduce((x, y) => x + y, 0);
+  const g = (c, i) => { const ix = i < P14_CH.length ? [i] : CI, S = sum(ix.map(j => c.s[j])), O = sum(ix.map(j => c.o[j])); const v = m === 'o' ? O : m === 'a' ? (O ? S / O : 0) : S; return C.basis === 'd' && m !== 'a' ? v / Math.max(1, c.days) : v; };
   const f = v => m === 'o' ? (C.basis === 'd' ? v.toFixed(1) : String(Math.round(v))) : '₹' + v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const ax = v => v >= 1e7 ? (v / 1e7).toFixed(1) + 'Cr' : v >= 1e5 ? (v / 1e5).toFixed(1) + 'L' : v >= 1e3 ? (v / 1e3).toFixed(0) + 'k' : (v < 10 && m === 'o' ? v.toFixed(1) : String(Math.round(v)));
   const name = m === 's' ? 'Sales (₹)' : m === 'o' ? 'Orders' : 'Average bill (₹/order)';
@@ -6061,7 +6108,7 @@ function scCap(M, maxR = 12, maxC = 12) {
   }
   const cl = keep.map(i => lab[i]); if (oth.length) cl.push(`Others (${oth.length})`);
   const cells0 = R.length ? R[0].cells : [];
-  return { rows: R, cols: cells0.map((c, i) => ({ ...c, label: cl[i] })), kind: M.kind, V: M.V, capped: oth.length > 0 || rows.length > maxR };
+  return { rows: R, cols: cells0.map((c, i) => ({ ...c, label: cl[i] })), kind: M.kind, mode: M.mode, V: M.V, capped: oth.length > 0 || rows.length > maxR };
 }
 
 // ══ UI ══
@@ -6074,10 +6121,11 @@ function scOpen() {
 }
 function scSet(k, v) {
   SC[k] = v;
+  if (['metric', 'basis', 'chart', 'ch'].includes(k) && typeof scRemember === 'function') scRemember();
   if (k === 'mode') { SC.tO = false; SC.tM = false; scDefaults(); scRenderControls(); }
   scRenderResults();
 }
-function scSetAndRebuild(k, v) { SC[k] = v; scRenderControls(); scRenderResults(); }
+function scSetAndRebuild(k, v) { SC[k] = v; if (['metric', 'basis', 'chart', 'ch'].includes(k) && typeof scRemember === 'function') scRemember(); scRenderControls(); scRenderResults(); }
 const SC_SEL = 'padding:8px 10px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:9px;font-size:13px;max-width:100%';
 const scLab = t => `<label style="display:block;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px">${t}</label>`;
 const scSel = (k, opts, lb, rebuild) => `<div>${scLab(lb)}<select style="${SC_SEL}" onchange="${rebuild ? 'scSetAndRebuild' : 'scSet'}('${k}',this.value)">${opts.map(([v, t]) => `<option value="${v}"${v === SC[k] ? ' selected' : ''}>${escHtml(t)}</option>`).join('')}</select></div>`;
@@ -6101,7 +6149,7 @@ function scRenderControls() {
       <div class="sc-quick">${[['all', 'All'], ['none', 'None'], ['top2', 'Top 2'], ['top3', 'Top 3'], ['top5', 'Top 5'], ['company', 'Company'], ['franchise', 'Franchise']].map(([k, t]) => `<button type="button" onclick="scQuickOut('${k}')">${t}</button>`).join('')}</div>
       <div id="scOutList">${p14Data.outlets.map(o => `<label class="sc-opt" data-q="${escHtml(o.label.toLowerCase())}"><input type="checkbox" value="${o.code}" ${SC.outlets.has(o.code) ? 'checked' : ''} onchange="scTogOut(this)"> <span>${escHtml(o.label)}</span>${o.type ? `<em>${P14_TYPE[o.type]}</em>` : ''}</label>`).join('')}</div>
     </div></details></div>`;
-  let h = `<div style="font-weight:700;font-size:15px;margin-bottom:10px">📊 Compare</div><div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:flex-end">`
+  let h = (typeof scPresetBar === 'function' ? scPresetBar() : '') + `<div style="font-weight:700;font-size:15px;margin-bottom:10px">📊 Compare</div><div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:flex-end">`
     + scSel('mode', SC_MODES, 'COMPARE') + outBox + ctl + '</div>';
   if (['o', 'om', 'm'].includes(C.mode)) {
     h += `<div style="margin-bottom:12px">${scLab('MONTHS' + (C.mode === 'm' ? ' (compared)' : ''))}<div class="sc-quick" style="margin-bottom:6px">${[['all', 'All months'], ['none', 'None'], ['l2', 'Last 2'], ['l3', 'Last 3'], ['l6', 'Last 6']].map(([k, t]) => `<button type="button" onclick="scQuickMon('${k}')">${t}</button>`).join('')}</div><div id="scMonChips" style="display:flex;gap:6px;flex-wrap:wrap">${X.ms.map(m => `<button type="button" class="sc-chip${SC.months.has(m) ? ' on' : ''}" data-m="${m}" onclick="scTogMon('${m}')">${scMl(m)}</button>`).join('')}</div></div>`;
@@ -6159,6 +6207,7 @@ function scRenderResults() {
   let h = `<div style="background:var(--surface2);border-radius:10px;padding:10px 12px;font-size:12.5px;margin-bottom:12px;line-height:1.5">${ins.html}</div>`;
   h += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th class="h-date">${M.firstHead}</th>${M.cols.map((c, k) => `<th style="white-space:nowrap">${escHtml(c.label)}${k === ins.best ? ' ★' : ''}</th>`).join('')}${M.totalCol ? '<th>Total</th>' : ''}<th>Change (last vs first)</th></tr></thead><tbody>`
     + M.rows.map((r, i) => `<tr${r.total ? ' class="total-row"' : ''}><td class="date-cell" style="white-space:nowrap">${escHtml(r.label)}</td>${vals[i].v.map(v => `<td class="has-val">${V.f(v)}</td>`).join('')}${M.totalCol ? `<td class="has-val">${V.f(vals[i].tot)}</td>` : ''}${chgCell(vals[i].chg, vals[i].pct)}</tr>`).join('') + '</tbody></table></div></div>';
+  if (typeof scTargetHtml === 'function') h += scTargetHtml();
   const ch = SC.chart;
   if (ch !== 'none') {
     const C2 = scCap(M), types = scChartTypes();
@@ -6194,14 +6243,26 @@ function scSvgLine(C2) {
   const xl = P.map((c, k) => P.length > 6 ? `<text transform="translate(${xs(k)},${H - B + 14}) rotate(-35)" text-anchor="end" font-size="10" style="fill:var(--muted)">${escHtml(scTr(c.label, 20))}</text>` : `<text x="${xs(k)}" y="${H - B + 18}" text-anchor="middle" font-size="10" style="fill:var(--muted)">${escHtml(scTr(c.label, 18))}</text>`).join('');
   return `<div style="font-weight:600;font-size:12.5px;text-align:center;margin:6px 0">Line chart</div>` + scSvgFrame(C2, lines + xl, 0, W, H, L, T, B, Rr) + scLeg(ser.map(r => [r.color, r.label + (r.dash ? ' (dashed)' : '')]));
 }
+// Pie model shared by the screen, the Excel pictures and the editable Excel charts.
+// Normally: one pie per column (period / outlet) split by channel / outlet.
+// With ONE row only (e.g. “Walk-in only”) a pie per column would be a lone 100% circle, so instead ONE pie is
+// drawn in which every column (each selected outlet / period) is a slice, sized by that channel's value.
+function scPieSets(C2) {
+  const V = C2.V, R = C2.rows.filter(r => !r.total), P = C2.cols;
+  if (R.length === 1 && P.length > 1) {
+    const r = R[0], what = C2.kind === 'grid' ? 'month' : C2.mode === 'o' ? 'outlet' : C2.mode === 'ty' ? 'outlet type' : C2.mode === 'dow' ? 'day' : 'period';
+    return { single: true, what, pies: [{ title: `${r.label} — share of each ${what}`, slices: P.map((c, k) => ({ label: c.label, color: SC_PAL[k % 12], value: V.g(c, r.idx) })) }] };
+  }
+  return { single: false, what: '', pies: P.map((p, ci) => ({ title: p.label, slices: R.map(r => ({ label: r.label, color: r.color, value: V.g(r.cells[ci], r.idx) })) })) };
+}
 function scSvgPie(C2) {
-  const V = C2.V, R = C2.rows, P = C2.cols;
-  const pies = P.map((p, ci) => {
-    const t = R.reduce((s, r) => s + V.g(r.cells[ci], r.idx), 0); let a0 = -Math.PI / 2, sl = '';
-    if (t > 0) R.forEach(r => { const v = V.g(r.cells[ci], r.idx); if (v <= 0) return; const fr = v / t, a1 = a0 + fr * 2 * Math.PI; sl += fr > 0.9999 ? `<circle cx="60" cy="60" r="54" fill="#${r.color}"/>` : `<path d="M60 60 L${60 + 54 * Math.cos(a0)} ${60 + 54 * Math.sin(a0)} A54 54 0 ${fr > 0.5 ? 1 : 0} 1 ${60 + 54 * Math.cos(a1)} ${60 + 54 * Math.sin(a1)} Z" fill="#${r.color}"><title>${escHtml(r.label)}: ${V.f(v)}</title></path>`; a0 = a1; });
-    return `<div style="text-align:center;min-width:150px;max-width:200px"><div style="font-weight:600;font-size:12.5px;margin-bottom:6px">${escHtml(scTr(p.label, 30))}</div>${t > 0 ? `<svg viewBox="0 0 120 120" style="width:140px;height:140px">${sl}</svg>` : '<div style="color:var(--muted);font-size:12px;padding:50px 0">No data</div>'}<div style="font-size:11px;text-align:left;display:inline-block;margin-top:6px">${R.map(r => `<div><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#${r.color};margin-right:5px"></span>${escHtml(scTr(r.label, 22))} ${t ? (V.g(r.cells[ci], r.idx) / t * 100).toFixed(1) : '0.0'}%</div>`).join('')}</div></div>`;
+  const V = C2.V, S = scPieSets(C2);
+  const pies = S.pies.map(p => {
+    const t = p.slices.reduce((s, q) => s + q.value, 0), sz = S.single ? 230 : 140; let a0 = -Math.PI / 2, sl = '';
+    if (t > 0) p.slices.forEach(q => { const v = q.value; if (v <= 0) return; const fr = v / t, a1 = a0 + fr * 2 * Math.PI; sl += fr > 0.9999 ? `<circle cx="60" cy="60" r="54" fill="#${q.color}"/>` : `<path d="M60 60 L${60 + 54 * Math.cos(a0)} ${60 + 54 * Math.sin(a0)} A54 54 0 ${fr > 0.5 ? 1 : 0} 1 ${60 + 54 * Math.cos(a1)} ${60 + 54 * Math.sin(a1)} Z" fill="#${q.color}"><title>${escHtml(q.label)}: ${V.f(v)}</title></path>`; a0 = a1; });
+    return `<div style="text-align:center;min-width:150px;max-width:${S.single ? 340 : 200}px"><div style="font-weight:600;font-size:12.5px;margin-bottom:6px">${escHtml(scTr(p.title, S.single ? 60 : 30))}</div>${t > 0 ? `<svg viewBox="0 0 120 120" style="width:${sz}px;height:${sz}px">${sl}</svg>` : '<div style="color:var(--muted);font-size:12px;padding:50px 0">No data</div>'}<div style="font-size:11px;text-align:left;display:inline-block;margin-top:6px">${p.slices.map(q => `<div><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#${q.color};margin-right:5px"></span>${escHtml(scTr(q.label, 24))} ${t ? (q.value / t * 100).toFixed(1) : '0.0'}%${S.single ? ' · ' + escHtml(V.f(q.value)) : ''}</div>`).join('')}</div></div>`;
   }).join('');
-  return `<div style="font-weight:600;font-size:12.5px;text-align:center;margin:10px 0">Pie chart (share of each ${C2.kind === 'ch' ? 'channel' : 'outlet'})</div><div style="display:flex;gap:22px;flex-wrap:wrap;justify-content:center;margin-bottom:12px">${pies}</div>`;
+  return `<div style="font-weight:600;font-size:12.5px;text-align:center;margin:10px 0">${S.single ? `Pie chart (one pie — ${escHtml(S.what)} share)` : `Pie chart (share of each ${C2.kind === 'ch' ? 'channel' : 'outlet'})`}</div><div style="display:flex;gap:22px;flex-wrap:wrap;justify-content:center;margin-bottom:12px">${pies}</div>`;
 }
 
 // ---- charts as PNG pictures (for the Excel file) ----
@@ -6221,15 +6282,16 @@ function scPngAxes(x, C2, W, H, L, T, B, R, title) {
 function scPng(type, C2, title) {
   const V = C2.V, R = C2.rows, P = C2.cols;
   if (type === 'pie') {
-    const per = Math.min(4, P.length), nr = Math.ceil(P.length / per), cw = 250, ch = 60 + 190 + R.length * 17 + 24, W = Math.max(520, per * cw + 40), H = 44 + nr * ch;
+    const S = scPieSets(C2), pies = S.pies, rad = S.single ? 130 : 85, per = Math.min(S.single ? 1 : 4, pies.length), nr = Math.ceil(pies.length / per), cw = S.single ? 560 : 250, maxSl = Math.max(...pies.map(p => p.slices.length)), ch = 60 + rad * 2 + 20 + maxSl * 17 + 24, W = Math.max(520, per * cw + 40), H = 44 + nr * ch;
     const [c, x] = scCanvas(W, H); x.fillStyle = '#1F2A44'; x.font = 'bold 18px Arial'; x.textAlign = 'center'; x.fillText(title, W / 2, 26);
-    P.forEach((p, ci) => {
-      const gx = 20 + (ci % per) * cw, gy = 44 + Math.floor(ci / per) * ch, cx = gx + cw / 2, cy = gy + 40 + 90, t = R.reduce((s, r) => s + V.g(r.cells[ci], r.idx), 0);
-      x.fillStyle = '#222'; x.font = 'bold 13px Arial'; x.textAlign = 'center'; x.fillText(scTr(p.label, 30), cx, gy + 22);
-      if (t > 0) { let a0 = -Math.PI / 2; R.forEach(r => { const v = V.g(r.cells[ci], r.idx); if (v <= 0) return; const a1 = a0 + v / t * 2 * Math.PI; x.beginPath(); x.moveTo(cx, cy); x.arc(cx, cy, 85, a0, a1 >= a0 + 2 * Math.PI - 1e-6 ? a0 + 2 * Math.PI : a1); x.closePath(); x.fillStyle = '#' + r.color; x.fill(); x.strokeStyle = '#fff'; x.lineWidth = 1.5; x.stroke(); a0 = a1; }); }
+    pies.forEach((p, ci) => {
+      const gx = 20 + (ci % per) * cw, gy = 44 + Math.floor(ci / per) * ch, cx = gx + cw / 2, cy = gy + 40 + rad + 5, t = p.slices.reduce((s, q) => s + q.value, 0);
+      x.fillStyle = '#222'; x.font = 'bold 13px Arial'; x.textAlign = 'center'; x.fillText(scTr(p.title, S.single ? 60 : 30), cx, gy + 22);
+      if (t > 0) { let a0 = -Math.PI / 2; p.slices.forEach(q => { const v = q.value; if (v <= 0) return; const a1 = a0 + v / t * 2 * Math.PI; x.beginPath(); x.moveTo(cx, cy); x.arc(cx, cy, rad, a0, a1 >= a0 + 2 * Math.PI - 1e-6 ? a0 + 2 * Math.PI : a1); x.closePath(); x.fillStyle = '#' + q.color; x.fill(); x.strokeStyle = '#fff'; x.lineWidth = 1.5; x.stroke(); a0 = a1; }); }
       else { x.fillStyle = '#999'; x.font = '12px Arial'; x.fillText('No data', cx, cy); }
       x.font = '12px Arial'; x.textAlign = 'left';
-      R.forEach((r, k) => { const y = cy + 105 + k * 17, pc = t ? (V.g(r.cells[ci], r.idx) / t * 100).toFixed(1) : '0.0'; x.fillStyle = '#' + r.color; x.fillRect(gx + 18, y - 9, 10, 10); x.fillStyle = '#333'; x.fillText(scTr(r.label, 24) + '  ' + pc + '%', gx + 34, y); });
+      const lx = gx + (S.single ? (cw - 300) / 2 : 18);
+      p.slices.forEach((q, k) => { const y = cy + rad + 20 + k * 17, pc = t ? (q.value / t * 100).toFixed(1) : '0.0'; x.fillStyle = '#' + q.color; x.fillRect(lx, y - 9, 10, 10); x.fillStyle = '#333'; x.fillText(scTr(q.label, S.single ? 34 : 24) + '  ' + pc + '%', lx + 16, y); });
     });
     return { url: c.toDataURL('image/png'), w: W, h: H };
   }
@@ -6261,6 +6323,7 @@ function scSettingsRows(M) {
   if (['o', 'om', 'm'].includes(C.mode)) rows.push(['Months', mon]);
   rows.push(['Columns compared', M.cols.map(c => c.label).join(' | ')]);
   rows.push(['Channel', C.ch === 'all' ? 'All channels' : P14_CH[+C.ch][1] + ' only'], ['Show', M.V.name], ['Value', C.basis === 'd' ? 'Average per day' : 'Total'], ['Chart', (SC.chart === 'none' ? 'Table only' : scChartTypes().map(t => t[0].toUpperCase() + t.slice(1)).join(' + '))]);
+  rows.push(['Channel switch', 'Open the “Channel View” sheet and pick All channels / Walk-in / Swiggy… from the dropdown — its table and charts update.']);
   rows.push(['Data period', p14Data.period || p14Data.months.map(m => m.sheet).join(', ')], ['Created', new Date().toLocaleString('en-IN')]);
   return rows;
 }
@@ -6290,6 +6353,81 @@ function scWriteTable(ws, r0, M, fmts) {
   for (let c = c0; c <= cPct; c++) ws.getColumn(c).width = Math.max(ws.getColumn(c).width || 0, c >= cChg ? 20 : 17);
   return { next: r0 + M.rows.length + 2, hdr: r0, first: r0 + 1, nBody: M.rows.filter(r => !r.total).length, hasTotal: M.rows.some(r => r.total), c0, nC };
 }
+// A sheet with a CHANNEL dropdown (like the app's “Walk-in only”): the table and its charts follow the pick.
+// Every selected outlet / period is one row; the pie is one pie with a slice per row, sized by the picked channel.
+function scAddChannelView(wb, M, fmts, native) {
+  const V = M.V, SH = 'Channel View', ws = wb.addWorksheet(SH, { views: [{ showGridLines: false }] });
+  let ents = M.kind === 'grid' ? M.rows.filter(r => !r.total).map(r => scSumCols(r.cells, r.label)) : M.cols;
+  const n = ents.length, perDay = SC.basis === 'd' && V.m !== 'a', r2 = v => Math.round(v * 100) / 100;
+  const chNames = P14_CH.map(c => c[1]), pick = SC.ch === 'all' ? 'All channels' : chNames[+SC.ch];
+  const what = M.kind === 'grid' || M.mode === 'o' ? 'Outlet' : M.mode === 'ty' ? 'Outlet type' : 'Period';
+  const H0 = 8, R1 = H0 + 1, RN = H0 + n, tail = perDay ? ' (avg per day)' : '';
+  const fill = c => ({ type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + c } });
+  const thin = { style: 'thin', color: { argb: 'FFB8C0CF' } }, box = { top: thin, left: thin, bottom: thin, right: thin };
+  const put = (r, c, v, o = {}) => { const e = ws.getCell(r, c); e.value = v; e.font = { name: 'Calibri', size: o.size || 11, bold: !!o.bold, italic: !!o.italic, color: { argb: 'FF' + (o.color || '1F2A44') } }; if (o.fill) e.fill = fill(o.fill); e.alignment = { horizontal: o.h || 'right', vertical: 'middle', wrapText: !!o.wrap }; if (!o.nb) e.border = box; if (o.nf) e.numFmt = o.nf; return e; };
+  const hd = { bold: true, color: 'FFFFFF', fill: '1F2A44', h: 'center', wrap: true };
+  ws.getColumn(1).width = 34; ws.getColumn(2).width = 24; ws.getColumn(3).width = 12; ws.getColumn(8).width = 34;
+  const nC = chNames.length, cS = 9, cO2 = cS + nC, cD = cO2 + nC, CL2 = n => String.fromCharCode(64 + n), sA = CL2(cS), sB = CL2(cO2 - 1), oA = CL2(cO2), oB = CL2(cD - 1), dC = CL2(cD);   // sales cols, order cols, days col
+  for (let c = 9; c <= cD; c++) ws.getColumn(c).width = 13;
+  put(1, 1, 'Channel View — pick a channel, the table and charts update', { size: 15, bold: true, h: 'left', nb: true });
+  put(3, 1, 'CHANNEL ▶ pick in yellow cell', { bold: true, h: 'left', fill: 'F1F4FA' });
+  const dd = put(3, 2, pick, { bold: true, h: 'center', fill: 'FFE9A8', size: 12 });
+  dd.dataValidation = { type: 'list', allowBlank: false, formulae: ['"' + ['All channels', ...chNames].join(',') + '"'], showErrorMessage: true, errorTitle: 'Pick from the list', error: 'Choose All channels or one channel from the dropdown.' };
+  put(4, 1, 'Showing', { bold: true, h: 'left', fill: 'F1F4FA' }); put(4, 2, V.name + (perDay ? ' · average per day' : ''), { h: 'left', wrap: true });
+  put(5, 1, 'Channel number (0 = all channels)', { h: 'left', color: '888888', italic: true, size: 9 });
+  put(5, 2, { formula: 'IF($B$3="All channels",0,IFERROR(MATCH($B$3,$' + sA + '$' + H0 + ':$' + sB + '$' + H0 + ',0),0))', result: SC.ch === 'all' ? 0 : +SC.ch + 1 }, { color: '888888', h: 'center', size: 9 });
+  // headers
+  put(H0, 1, what, { ...hd, h: 'left' });
+  put(H0, 2, { formula: '$B$3&" — ' + V.name.replace(/"/g, '""') + '"', result: pick + ' — ' + V.name }, hd);
+  put(H0, 3, 'Share %', hd);
+  put(6, 8, 'DATA BEHIND THIS SHEET — sales (₹) and orders per channel. Edit a number and the table and charts update.', { bold: true, h: 'left', nb: true, size: 10 });
+  put(7, 9, 'Sales (₹)', { ...hd, fill: '2E7D6B' }); ws.mergeCells(7, 9, 7, cO2 - 1);
+  put(7, cO2, 'Orders', { ...hd, fill: 'E8710A' }); ws.mergeCells(7, cO2, 7, cD - 1);
+  put(7, cD, 'Days', { ...hd, fill: '6B7280' });
+  put(H0, 8, what, { ...hd, h: 'left' });
+  chNames.forEach((nm, i) => { put(H0, 9 + i, nm, { ...hd, fill: '2E7D6B' }); put(H0, cO2 + i, nm, { ...hd, fill: 'E8710A' }); });
+  put(H0, cD, 'Days', { ...hd, fill: '6B7280' });
+  const idxAll = SC.ch === 'all' ? chNames.map((_, i) => i) : [+SC.ch], sum = a => a.reduce((x, y) => x + y, 0);
+  if (n > 8 && (M.kind === 'grid' || M.mode === 'o')) ents = ents.slice().sort((a, b) => sum(idxAll.map(j => b.s[j])) - sum(idxAll.map(j => a.s[j])));   // many outlets: biggest first so the pie reads well
+  const vals = ents.map(c => { const S = sum(idxAll.map(j => c.s[j])), O = sum(idxAll.map(j => c.o[j])); let v = V.m === 'o' ? O : V.m === 'a' ? (O ? S / O : 0) : S; if (perDay) v /= Math.max(1, c.days); return v; });
+  const tot = sum(vals);
+  ents.forEach((c, k) => {
+    const r = R1 + k, o = { fill: k % 2 ? 'F6F8FC' : 'FFFFFF' };
+    const selS = `IF($B$5=0,SUM(${sA}${r}:${sB}${r}),INDEX(${sA}${r}:${sB}${r},$B$5))`, selO = `IF($B$5=0,SUM(${oA}${r}:${oB}${r}),INDEX(${oA}${r}:${oB}${r},$B$5))`;
+    let f = V.m === 'o' ? selO : V.m === 'a' ? `IFERROR(${selS}/${selO},0)` : selS; if (perDay) f = `${f}/MAX(1,${dC}${r})`;
+    put(r, 1, c.label, { ...o, bold: true, h: 'left' });
+    put(r, 2, { formula: f, result: r2(vals[k]) }, { ...o, nf: fmts.v });
+    put(r, 3, { formula: `IFERROR(B${r}/SUM($B$${R1}:$B$${RN}),0)`, result: tot ? vals[k] / tot : 0 }, { ...o, nf: '0.0%' });
+    put(r, 8, c.label, { ...o, h: 'left' });
+    c.s.forEach((v, i) => put(r, 9 + i, r2(v), { ...o, nf: '#,##0.00' }));
+    c.o.forEach((v, i) => put(r, cO2 + i, v, { ...o, nf: '#,##0' }));
+    put(r, cD, c.days, { ...o, nf: '0' });
+  });
+  if (V.m !== 'a') {
+    const t = RN + 1, o = { bold: true, fill: 'DCE3F0' };
+    put(t, 1, 'Total', { ...o, h: 'left' });
+    put(t, 2, { formula: `SUM(B${R1}:B${RN})`, result: r2(tot) }, { ...o, nf: fmts.v });
+    put(t, 3, { formula: `SUM(C${R1}:C${RN})`, result: tot ? 1 : 0 }, { ...o, nf: '0.0%' });
+  }
+  const charts = [], types = SC.chart === 'none' ? [] : scChartTypes();
+  let row = RN + (V.m !== 'a' ? 4 : 3);
+  if (types.length) {
+    put(row, 1, native ? 'CHARTS — they follow the channel picked in the yellow cell (B3)' : 'Charts are on the “Comparison” sheet (editable charts could not be added here).', { bold: true, h: 'left', nb: true, size: 12 });
+    if (native) {
+      const labels = ents.map(c => c.label), catRef = scRng(SH, 1, R1, 1, RN), valRef = scRng(SH, 2, R1, 2, RN), nameRef = scRng(SH, 2, H0, 2, H0), serName = pick + ' — ' + V.name, axFmt = V.m === 'o' && SC.basis === 'd' ? '0.0' : '#,##0';
+      const one = { name: serName, nameRef, cats: labels, catRef, vals: vals.map(r2), valRef };
+      types.forEach(t => {
+        const base = { fmt: fmts.v, axFmt, col: 0, colOff: 0, row, w: t === 'pie' ? 640 : 960, h: t === 'pie' ? 400 + Math.max(0, n - 12) * 10 : 400 };
+        if (t === 'bar') charts.push({ type: 'bar', title: `Bar chart — ${V.name}${tail}`, series: [{ ...one, color: '1F6FD1' }], ...base });
+        else if (t === 'line') charts.push({ type: 'line', title: `Line chart — ${V.name}${tail}`, series: [{ ...one, color: '2E7D6B' }], ...base });
+        else charts.push({ type: 'pie', title: `One pie — share of each ${what.toLowerCase()} (channel picked above)`, series: [{ ...one, colors: ents.map((c, k) => SC_PAL[k % 12]) }], ...base });
+        row += 22 + (t === 'pie' ? Math.ceil(Math.max(0, n - 12) * 10 / 20) : 0);
+      });
+    }
+  }
+  ws.views = [{ showGridLines: false }];
+  return charts;
+}
 async function scBuildWorkbook(M, native) {
   const V = M.V, wb = new ExcelJS.Workbook(); wb.creator = 'Bolas Stock Suite'; wb.created = new Date();
   const money = '"₹"#,##0.00', fmts = { v: V.m === 'o' ? (SC.basis === 'd' ? '#,##0.0' : '#,##0') : money };
@@ -6304,6 +6442,7 @@ async function scBuildWorkbook(M, native) {
   const L1 = scWriteTable(ws, r + 2, M, fmts); r = L1.next;
   ws.getCell(r - 1, 1).value = 'Gold column heading = highest in this comparison (★ on screen).'; ws.getCell(r - 1, 1).font = { name: 'Calibri', size: 9, italic: true, color: { argb: 'FF777777' } };
   ws.views = [{ showGridLines: false }];
+  { const lk = ws.getCell(2, 1); lk.value = { text: '▶ Switch channel (Walk-in only, Swiggy only…) in the “Channel View” sheet', hyperlink: "#'Channel View'!B3" }; lk.font = { name: 'Calibri', size: 11, underline: true, color: { argb: 'FF1F6FD1' } }; }
   let specs = [];
   // charts: native (editable) when possible, otherwise pictures
   const types = SC.chart === 'none' ? [] : scChartTypes(), tail = SC.basis === 'd' && V.m !== 'a' ? ' (avg per day)' : '';
@@ -6327,6 +6466,8 @@ async function scBuildWorkbook(M, native) {
       }
     }
   }
+  const cvSpecs = scAddChannelView(wb, M, fmts, native);
+  if (typeof scAddTargetSheet === 'function') scAddTargetSheet(wb, M);
   // Outlet × Month grid (always useful when outlets / months were picked)
   const x = M.x, monthsAll = (['o', 'om', 'm'].includes(SC.mode) ? scMonthsSel() : scCache.ms);
   if (x.sc.length && monthsAll.length) {
@@ -6352,15 +6493,15 @@ async function scBuildWorkbook(M, native) {
     if (dr > 1) { dr++; d.getCell(dr, 1).value = 'TOTAL'; d.getCell(dr, 1).font = { bold: true }; for (let c = 4; c <= 15; c++) { const L = scColL(c), e = d.getCell(dr, c); e.value = { formula: `SUM(${L}2:${L}${dr - 1})`, result: r2(DT[c] || 0) }; e.font = { bold: true }; e.numFmt = c <= 9 ? '#,##0.00' : '#,##0'; } const a = d.getCell(dr, 16); a.value = { formula: `IFERROR(I${dr}/O${dr},0)`, result: DT[15] ? r2(DT[9] / DT[15]) : 0 }; a.numFmt = '#,##0.00'; d.autoFilter = { from: { row: 1, column: 1 }, to: { row: dr - 1, column: 16 } }; }
     d.views = [{ state: 'frozen', xSplit: 1, ySplit: 1 }];
   }
-  wb._scSpecs = specs; return wb;
+  wb._scSpecs = specs; wb._scSpecs2 = cvSpecs; return wb;
 }
 async function scDownload() {
   if (!scM) return;
   const btn = $14('scDownloadBtn'), old = btn.innerHTML; btn.disabled = true; btn.innerHTML = 'Building Excel…';
   try {
     let wb = await scBuildWorkbook(scM, true), buf = await wb.xlsx.writeBuffer(), note = '';
-    if (wb._scSpecs.length) {
-      try { buf = await scInjectCharts(buf, 'Comparison', wb._scSpecs); }
+    if (wb._scSpecs.length || (wb._scSpecs2 || []).length) {
+      try { for (const [sh, sp] of [['Comparison', wb._scSpecs], ['Channel View', wb._scSpecs2 || []]]) if (sp.length) buf = await scInjectCharts(buf, sh, sp); }
       catch (e) { console.warn('Editable charts failed, using pictures instead', e); wb = await scBuildWorkbook(scM, false); buf = await wb.xlsx.writeBuffer(); note = 'Editable charts could not be added, so the charts were saved as pictures.'; }
     }
     const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
@@ -6449,6 +6590,11 @@ function scChartSpecs(types, sheet, src, D, ws, r0, fmts, titleTail) {
       const ser = body.map((r, i) => ({ name: r.label, nameRef: scRng(sheet, 1, first + i, 1, first + i), cats: colLab, catRef: hdrRng, vals: r.cells.map(c => V.g(c, r.idx)), valRef: rowRng(i), color: r.color }));
       if (src.hasTotal && D.rows.some(r => r.total) && D.kind === 'ch') { const T = D.rows.find(r => r.total); ser.push({ name: 'Total', nameRef: scRng(sheet, 1, first + nB, 1, first + nB), cats: colLab, catRef: hdrRng, vals: T.cells.map(c => V.g(c, T.idx)), valRef: rowRng(nB), color: '6B7280', dash: true }); }
       out.push({ type: 'line', title: `${nm.line} — ${V.name}${titleTail}`, fmt: fmts.v, axFmt, series: ser, ...at(0), row, w: 960, h: 380 }); row += 20;
+    } else if (nB === 1 && nC > 1) {
+      // only one channel (e.g. Walk-in only): ONE pie, every outlet / period is a slice
+      const S = scPieSets(D), rb = body[0];
+      out.push({ type: 'pie', title: S.pies[0].title, fmt: fmts.v, axFmt, series: [{ name: rb.label, nameRef: scRng(sheet, 1, first, 1, first), cats: colLab, catRef: hdrRng, vals: rb.cells.map(c => V.g(c, rb.idx)), valRef: rowRng(0), colors: D.cols.map((c, k) => SC_PAL[k % 12]) }], ...at(0), row, w: 600, h: 400 });
+      row += 22;
     } else {
       const per = 3, w = 420, h = 330;
       D.cols.forEach((c, k) => { const gx = (k % per) * (w + 12), gy = row + Math.floor(k / per) * 17; out.push({ type: 'pie', title: `${c.label}`, fmt: fmts.v, axFmt, series: [{ name: c.label, nameRef: scRng(sheet, c0 + k, src.hdr, c0 + k, src.hdr), cats, catRef: catRows, vals: body.map(r => V.g(r.cells[k], r.idx)), valRef: colRng(k), colors: body.map(r => r.color) }], ...at(gx), row: gy, w, h }); });
@@ -6498,7 +6644,7 @@ $14('p14ProcessBtn').addEventListener('click', async () => {
       catch (pe) { if (isX && /Could not find/.test(pe.message)) { rows = await p14StreamRows(p14File); parsed = p14Parse(rows); } else throw pe; }
     }
     const outlets = parsed.outlets.map(o => {
-      const months = p14Build(parsed.days[o.code], parsed.monthKeys), tot = f => months.reduce((a, m) => a.map((v, i) => v + m[f][i]), [0, 0, 0, 0, 0]);
+      const months = p14Build(parsed.days[o.code], parsed.monthKeys), tot = f => months.reduce((a, m) => a.map((v, i) => v + m[f][i]), p14Zero());
       return { ...o, label: (o.code + ' ' + o.name).trim(), months, s: tot('s'), o: tot('o'), active: months.reduce((a, m) => a + m.active, 0) };
     });
     const months = outlets[0].months;
@@ -7853,4 +7999,212 @@ function p3CmJumpUnfilled(){
   }
 }
 </script>
+<script>
+/* ═══ ADD-ONS: saved settings, saved comparisons, targets, share summaries, biggest differences ═══
+   Settings are saved to the signed-in user's own record in the cloud (the app does not use browser storage). */
+(function () {
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const inr = n => '₹' + Math.round(n).toLocaleString('en-IN');
+  const BTN = 'padding:7px 11px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;cursor:pointer';
+
+  function toast(msg, bad) {
+    let t = $('appToast');
+    if (!t) { t = document.createElement('div'); t.id = 'appToast'; t.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;z-index:99999;box-shadow:0 6px 24px rgba(0,0,0,.3);max-width:90vw;text-align:center;opacity:0;transition:opacity .2s;pointer-events:none'; document.body.appendChild(t); }
+    t.textContent = msg; t.style.background = bad ? '#B3261E' : '#1F2A44'; t.style.opacity = '1';
+    clearTimeout(t._h); t._h = setTimeout(() => { t.style.opacity = '0'; }, 2800);
+  }
+  window.appToast = toast;
+
+  async function share(text) {
+    try { if (navigator.share && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) { await navigator.share({ text }); return; } }
+    catch (e) { if (e && e.name === 'AbortError') return; }
+    try { await navigator.clipboard.writeText(text); toast('Summary copied — paste it into WhatsApp or email'); }
+    catch (e) {
+      const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); toast('Summary copied — paste it into WhatsApp or email'); } catch (_) { toast('Could not copy automatically', true); }
+      ta.remove();
+    }
+  }
+
+  // ── saved settings (cloud, per user) ─────────────────────────
+  let P = {}, loaded = false, loadedFor = null, timer = null, warned = false;
+  const FIELDS = [['p2NameInclude', 'v'], ['p2NameExclude', 'v'], ['p2PackOfOn', 'c'], ['p3AddReasonCol', 'c'], ['p3LiveSheet2', 'c']];
+  function applyAll() {
+    FIELDS.forEach(([id, t]) => { const el = $(id), k = 'f_' + id; if (!el || !(k in P)) return; if (t === 'c') el.checked = !!P[k]; else el.value = P[k]; });
+    if (typeof p2PackOfOn !== 'undefined' && $('p2PackOfOn')) p2PackOfOn = $('p2PackOfOn').checked;
+    if (P.sc && typeof SC !== 'undefined') {
+      ['metric', 'basis', 'chart', 'ch'].forEach(k => { if (P.sc[k] !== undefined) SC[k] = P.sc[k]; });
+      try { if (scCache && $('panel16') && $('panel16').classList.contains('active')) { scRenderControls(); scRenderResults(); } } catch (e) { /* not loaded yet */ }
+    }
+  }
+  function save() {
+    if (!loaded || typeof currentUser === 'undefined' || !currentUser) return;
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      try { await db.collection('users').doc(currentUser.uid).set({ prefsJson: JSON.stringify(P) }, { merge: true }); }
+      catch (e) { console.warn('settings save failed', e); if (!warned) { warned = true; toast('Could not save your settings to your account — they last until you close this page.', true); } }
+    }, 1200);
+  }
+  function setPref(k, v) { P[k] = v; save(); }
+  window.appPrefsLoad = async function (uid) {
+    if (loadedFor && loadedFor !== uid) P = {};
+    loaded = false; const early = Object.assign({}, P);
+    let stored = {};
+    try { const snap = await db.collection('users').doc(uid).get(); const j = snap.exists ? snap.data().prefsJson : ''; if (j) stored = JSON.parse(j) || {}; }
+    catch (e) { console.warn('settings load failed', e); }
+    P = Object.assign({}, stored, early); loaded = true; loadedFor = uid; applyAll();
+    if (Object.keys(early).length) save();
+  };
+  FIELDS.forEach(([id, t]) => { const el = $(id); if (el) el.addEventListener(t === 'c' ? 'change' : 'input', () => setPref('f_' + id, t === 'c' ? el.checked : el.value)); });
+  window.scRemember = function () { setPref('sc', { metric: SC.metric, basis: SC.basis, chart: SC.chart, ch: SC.ch }); };
+
+  // ── saved comparisons ────────────────────────────────────────
+  const PKEYS = ['mode', 'ch', 'metric', 'basis', 'chart', 'a', 'b', 'mon', 'n', 'within', 'd1', 'd2', 'f1', 't1', 'f2', 't2'];
+  let lastPreset = '';
+  window.scPresetBar = function () {
+    const list = P.scPresets || [];
+    return `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;padding:8px 10px;border:1px dashed var(--border);border-radius:10px"><span style="font-size:12px;font-weight:600">⭐ Saved comparisons</span>`
+      + `<select onchange="scApplyPreset(this.value)" style="${SC_SEL}"><option value="">${list.length ? '— pick one —' : '(none saved yet)'}</option>${list.map((p, i) => `<option value="${i}"${String(i) === lastPreset ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select>`
+      + `<button type="button" style="${BTN}" onclick="scSavePreset()">＋ Save current</button>${lastPreset !== '' && list[+lastPreset] ? `<button type="button" style="${BTN}" onclick="scDeletePreset()">🗑 Delete “${esc(scTr(list[+lastPreset].name, 18))}”</button>` : ''}</div>`;
+  };
+  window.scSavePreset = function () {
+    if (!scCache || !SC.outlets) return;
+    const name = (prompt('Name this comparison (e.g. Top 3 · Walk-in · last 2 months)', '') || '').trim(); if (!name) return;
+    const st = {}; PKEYS.forEach(k => { st[k] = SC[k]; }); st.outlets = [...SC.outlets]; st.months = SC.months ? [...SC.months] : null;
+    const list = (P.scPresets || []).filter(p => p.name.toLowerCase() !== name.toLowerCase()); list.push({ name: name.slice(0, 60), st });
+    P.scPresets = list.slice(-20); lastPreset = String(P.scPresets.length - 1); save(); scRenderControls(); toast('Saved “' + name + '”');
+  };
+  window.scApplyPreset = function (i) {
+    if (i === '') { lastPreset = ''; scRenderControls(); return; }
+    const p = (P.scPresets || [])[+i]; if (!p || !p14Data || !scCache) return; const st = p.st; lastPreset = String(i);
+    PKEYS.forEach(k => { if (st[k] !== undefined) SC[k] = st[k]; });
+    ['d1', 'd2', 'f1', 't1', 'f2', 't2'].forEach(k => { if (SC[k] && (SC[k] < scCache.mn || SC[k] > scCache.mx)) SC[k] = ''; });
+    const codes = new Set(p14Data.outlets.map(o => o.code)), want = st.outlets || [], outs = want.filter(c => codes.has(c));
+    SC.outlets = outs.length ? new Set(outs) : null; SC.tO = !!outs.length;
+    const ms = new Set(scCache.ms), mons = (st.months || []).filter(m => ms.has(m)); SC.months = mons.length ? new Set(mons) : null; SC.tM = !!mons.length;
+    scDefaults(); scRenderControls(); scRenderResults();
+    toast(want.length > outs.length ? `Opened “${p.name}” — ${want.length - outs.length} outlet(s) are not in this file` : `Opened “${p.name}”`);
+  };
+  window.scDeletePreset = function () {
+    const list = P.scPresets || [], p = list[+lastPreset]; if (!p || !confirm('Delete the saved comparison “' + p.name + '”?')) return;
+    list.splice(+lastPreset, 1); P.scPresets = list; lastPreset = ''; save(); scRenderControls(); toast('Deleted');
+  };
+
+  // ── targets ──────────────────────────────────────────────────
+  function targetRows(M) {
+    if (!M || !M.x || !scCache) return [];
+    const x = M.x, months = ['o', 'om', 'm'].includes(SC.mode) ? scMonthsSel() : x.ms, set = new Set(months), T = P.scTargets || {};
+    return x.sc.map(o => { const c = x.mkMo(o.label, set, scCache.maps[o.code]); const actual = M.V.CI.reduce((a, i) => a + c.s[i], 0); return { code: o.code, label: o.label, monthly: +T[o.code] || 0, months: months.length, actual }; });
+  }
+  window.scTargetHtml = function () {
+    const rows = targetRows(typeof scM !== 'undefined' ? scM : null); if (!rows.length) return '';
+    const any = rows.some(r => r.monthly > 0), chn = SC.ch === 'all' ? 'all channels' : P14_CH[+SC.ch][1];
+    let h = `<details${any ? ' open' : ''} style="margin-top:14px;border:1px solid var(--border);border-radius:12px;padding:10px 12px"><summary style="cursor:pointer;font-weight:700;font-size:13px">🎯 Target vs actual — sales, ${esc(chn)}</summary>`
+      + `<div style="font-size:11.5px;color:var(--muted);margin:8px 0">Type a monthly sales target for each outlet (saved to your account). Target for the period = monthly target × ${rows[0].months} month(s) in this comparison.</div>`
+      + `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th class="h-date">Outlet</th><th>Monthly target ₹</th><th>Target (period)</th><th>Actual</th><th>Achieved</th><th>Gap</th></tr></thead><tbody>`;
+    rows.forEach(r => {
+      const tgt = r.monthly * r.months, pct = tgt ? r.actual / tgt : null, gap = r.actual - tgt, col = pct == null ? 'var(--muted)' : pct >= 1 ? '#3FB874' : pct >= 0.8 ? '#D6923B' : '#E15C5C';
+      h += `<tr><td class="date-cell" style="white-space:nowrap">${esc(r.label)}</td><td><input type="number" min="0" step="1000" value="${r.monthly || ''}" placeholder="e.g. 200000" data-code="${esc(r.code)}" onchange="scSetTarget(this.dataset.code,this.value)" style="width:120px;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);text-align:right"></td>`
+        + `<td class="has-val">${tgt ? inr(tgt) : '—'}</td><td class="has-val">${inr(r.actual)}</td><td class="has-val" style="color:${col};font-weight:700">${pct == null ? '—' : (pct * 100).toFixed(1) + '%'}</td><td class="has-val" style="color:${gap >= 0 ? '#3FB874' : '#E15C5C'}">${tgt ? (gap >= 0 ? '▲ ' : '▼ ') + inr(Math.abs(gap)) : '—'}</td></tr>`;
+    });
+    return h + '</tbody></table></div></div></details>';
+  };
+  window.scSetTarget = function (code, val) {
+    const n = Math.max(0, parseFloat(val) || 0); P.scTargets = P.scTargets || {};
+    if (n) P.scTargets[code] = n; else delete P.scTargets[code];
+    save(); scRenderResults();
+  };
+  window.scAddTargetSheet = function (wb, M) {
+    const rows = targetRows(M).filter(r => r.monthly > 0); if (!rows.length) return;
+    const ws = wb.addWorksheet('Target vs Actual', { views: [{ showGridLines: false }] });
+    const fill = c => ({ type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + c } });
+    const thin = { style: 'thin', color: { argb: 'FFB8C0CF' } }, box = { top: thin, left: thin, bottom: thin, right: thin };
+    const put = (r, c, v, o = {}) => { const e = ws.getCell(r, c); e.value = v; e.font = { name: 'Calibri', size: o.size || 11, bold: !!o.bold, italic: !!o.italic, color: { argb: 'FF' + (o.color || '1F2A44') } }; if (o.fill) e.fill = fill(o.fill); e.alignment = { horizontal: o.h || 'right', vertical: 'middle', wrapText: !!o.wrap }; if (!o.nb) e.border = box; if (o.nf) e.numFmt = o.nf; return e; };
+    const hd = { bold: true, color: 'FFFFFF', fill: '1F2A44', h: 'center', wrap: true }, chn = SC.ch === 'all' ? 'all channels' : P14_CH[+SC.ch][1];
+    const months = rows[0].months, r2 = v => Math.round(v * 100) / 100;
+    put(1, 1, 'Target vs Actual — sales', { size: 15, bold: true, h: 'left', nb: true });
+    put(2, 1, `Actual = sales for ${chn} over ${months} month(s) in this comparison. Edit a target and the rest recalculates.`, { italic: true, color: '666666', h: 'left', nb: true, size: 10 });
+    ['Outlet', 'Monthly target (₹)', 'Months', 'Target for period (₹)', 'Actual sales (₹)', 'Achieved %', 'Gap (₹)'].forEach((t, i) => put(3, 1 + i, t, i === 0 ? { ...hd, h: 'left' } : hd));
+    ws.getRow(3).height = 32; ws.getColumn(1).width = 38; for (let c = 2; c <= 7; c++) ws.getColumn(c).width = 20;
+    let tT = 0, tA = 0; const m = '"₹"#,##0';
+    rows.forEach((r, k) => {
+      const rr = 4 + k, o = { fill: k % 2 ? 'F6F8FC' : 'FFFFFF' }, tgt = r.monthly * r.months; tT += tgt; tA += r.actual;
+      put(rr, 1, r.label, { ...o, bold: true, h: 'left' }); put(rr, 2, r.monthly, { ...o, nf: m }); put(rr, 3, r.months, { ...o, nf: '0' });
+      put(rr, 4, { formula: `B${rr}*C${rr}`, result: tgt }, { ...o, nf: m }); put(rr, 5, r2(r.actual), { ...o, nf: m });
+      put(rr, 6, { formula: `IFERROR(E${rr}/D${rr},0)`, result: tgt ? r.actual / tgt : 0 }, { ...o, nf: '0.0%', bold: true });
+      put(rr, 7, { formula: `E${rr}-D${rr}`, result: r2(r.actual - tgt) }, { ...o, nf: '[Color10]"▲ "' + m + ';[Red]"▼ "' + m + ';0' });
+    });
+    const t = 4 + rows.length, to = { bold: true, fill: 'DCE3F0' }, e1 = t - 1;
+    put(t, 1, 'Total', { ...to, h: 'left' }); put(t, 2, '', to); put(t, 3, '', to);
+    put(t, 4, { formula: `SUM(D4:D${e1})`, result: tT }, { ...to, nf: m }); put(t, 5, { formula: `SUM(E4:E${e1})`, result: r2(tA) }, { ...to, nf: m });
+    put(t, 6, { formula: `IFERROR(E${t}/D${t},0)`, result: tT ? tA / tT : 0 }, { ...to, nf: '0.0%' }); put(t, 7, { formula: `E${t}-D${t}`, result: r2(tA - tT) }, { ...to, nf: '[Color10]"▲ "' + m + ';[Red]"▼ "' + m + ';0' });
+    ws.addConditionalFormatting({ ref: `F4:F${t}`, rules: [{ type: 'cellIs', operator: 'greaterThanOrEqual', formulae: [1], style: { font: { color: { argb: 'FF1E8449' }, bold: true } } }, { type: 'cellIs', operator: 'lessThan', formulae: [0.8], style: { font: { color: { argb: 'FFC0392B' }, bold: true } } }] });
+  };
+
+  // ── share summaries ──────────────────────────────────────────
+  const bpCache = new Map();
+  function billing(r) {
+    const k = r.pkgName + '|' + r.shortCode;
+    if (!bpCache.has(k)) { let v = 0; try { const m = p3FindRateMatch(r.pkgName, r.shortCode); v = m && m.billing !== '' && m.billing != null ? Number(m.billing) || 0 : 0; } catch (e) { v = 0; } bpCache.set(k, v); }
+    return bpCache.get(k);
+  }
+  function auditStats() {
+    const rows = typeof p3AuditRows !== 'undefined' ? p3AuditRows : [], o = { sh: 0, ex: 0, ma: 0, fil: 0, sv: 0, ev: 0, S: [], E: [], n: rows.length };
+    rows.forEach(r => {
+      const c = p3RowCalc(r); if (!c.remark) return; o.fil++;
+      if (c.remark === 'MATCHED') { o.ma++; return; }
+      const q = Math.abs(Math.round(c.diff)), val = q * billing(r), it = { name: r.pkgName, q, val };
+      if (c.remark === 'SHORT') { o.sh++; o.sv += val; o.S.push(it); } else { o.ex++; o.ev += val; o.E.push(it); }
+    });
+    const by = (a, b) => b.val - a.val || b.q - a.q; o.S.sort(by); o.E.sort(by); return o;
+  }
+  const line = it => `${it.name} — ${it.q} pack${it.q === 1 ? '' : 's'}${it.val ? ' (' + inr(it.val) + ')' : ''}`;
+  window.p3ShareSummary = function () {
+    const a = auditStats(); if (!a.n) { toast('Generate the audit sheet first', true); return; }
+    if (!a.fil) { toast('Fill some Store / Rack counts first', true); return; }
+    const L = [`📦 Stock Audit — ${p3GetOutletName()} — ${p3TodayStr()}`, `Counted ${a.fil} of ${a.n} items · Accuracy ${Math.round(a.ma / a.fil * 100)}%`, `Short: ${a.sh}${a.sv ? ' (' + inr(a.sv) + ')' : ''} · Excess: ${a.ex}${a.ev ? ' (' + inr(a.ev) + ')' : ''} · Matched: ${a.ma}`];
+    if (a.S.length) { L.push('', 'Biggest short:'); a.S.slice(0, 3).forEach(i => L.push('• ' + line(i))); }
+    if (a.E.length) { L.push('', 'Biggest excess:'); a.E.slice(0, 3).forEach(i => L.push('• ' + line(i))); }
+    share(L.join('\n'));
+  };
+  window.p2ShareSummary = function () {
+    const s = window.p2LastSummary; if (!s) { toast('Process a stock report first', true); return; }
+    const L = [`🥜 Cashew Flavoured — ${s.period}`];
+    s.cats.forEach(c => { const t = s.totals[c]; L.push(`${c}: sales ${t.s} · in ${t.i} · out ${t.o}`); });
+    share(L.join('\n'));
+  };
+  window.scShareSummary = function () {
+    if (typeof scM === 'undefined' || !scM) { toast('Build a comparison first', true); return; }
+    const M = scM, V = M.V, x = M.x, T = M.rows.find(r => r.total) || M.rows[0];
+    const ins = scInsight(M).html.replace(/<[^>]+>/g, '').replace('💡 ', '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
+    const all = p14Data.outlets.length, outs = x.sc.length === all ? `All outlets (${all})` : x.sc.length <= 4 ? x.sc.map(o => o.label).join(', ') : `${x.sc.length} outlets`;
+    const L = [`📊 Sales Comparison — ${(SC_MODES.find(m => m[0] === SC.mode) || [])[1] || ''}`, `Outlets: ${outs}`, `${SC.ch === 'all' ? 'All channels' : P14_CH[+SC.ch][1] + ' only'} · ${V.name}${SC.basis === 'd' && V.m !== 'a' ? ' (avg per day)' : ''}`, '', ins, ''];
+    M.cols.slice(0, 12).forEach((c, k) => L.push(`${c.label}: ${V.f(V.g(T.cells[k], T.idx))}`));
+    if (M.cols.length > 12) L.push(`…and ${M.cols.length - 12} more in the Excel`);
+    share(L.join('\n'));
+  };
+
+  // ── biggest differences (audit) ──────────────────────────────
+  let tdTimer = null;
+  function renderTopDiff() {
+    const box = $('p3TopDiff'); if (!box) return; const a = auditStats();
+    if (!a.S.length && !a.E.length) { box.style.display = 'none'; return; }
+    const col = (title, color, arr) => `<div style="flex:1;min-width:230px"><div style="font-weight:700;font-size:12.5px;color:${color};margin-bottom:6px">${title}</div>${arr.length ? arr.slice(0, 5).map(i => `<div style="font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">${esc(scTr(i.name, 40))} <span style="color:var(--muted)">· ${i.q} pack${i.q === 1 ? '' : 's'}${i.val ? ' · ' + inr(i.val) : ''}</span></div>`).join('') : '<div style="font-size:12px;color:var(--muted)">None</div>'}</div>`;
+    box.style.display = 'block';
+    box.innerHTML = `<div style="font-weight:700;font-size:13px;margin-bottom:8px">🔎 Biggest differences <span style="font-weight:400;color:var(--muted);font-size:11.5px">(by billing value, where a rate is known)</span></div><div style="display:flex;gap:18px;flex-wrap:wrap">${col('SHORT — top 5', '#C0392B', a.S)}${col('EXCESS — top 5', '#1E8449', a.E)}</div>`;
+  }
+  window.p3RenderTopDiff = function () { clearTimeout(tdTimer); tdTimer = setTimeout(renderTopDiff, 250); };
+  const _bp = window.p3BuildPreview;
+  if (typeof _bp === 'function') window.p3BuildPreview = function () { bpCache.clear(); return _bp.apply(this, arguments); };
+
+  // ── skipped items (flavoured report) ─────────────────────────
+  window.p2RenderSkipNote = function (list) {
+    const box = $('p2SkipNote'); if (!box) return;
+    if (!list || !list.length) { box.innerHTML = ''; return; }
+    box.innerHTML = `<details style="margin-bottom:16px;border:1px solid #D6923B;background:rgba(214,146,59,.08);border-radius:12px;padding:10px 12px"><summary style="cursor:pointer;font-weight:700;font-size:13px;color:#D6923B">⚠ ${list.length} item${list.length === 1 ? '' : 's'} skipped — no pack size (g / kg / ml) found in the name</summary><div style="font-size:12px;margin-top:8px;line-height:1.6">${list.map(n => '• ' + esc(n)).join('<br>')}<div style="color:var(--muted);margin-top:8px">If any of these should be counted, add the size to the product name (e.g. “… 25g”).</div></div></details>`;
+  };
+})();
+</script>
+
 </body>
