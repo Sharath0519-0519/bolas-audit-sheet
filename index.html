@@ -4,14 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bolas Stock Suite — 3-in-1 Tool</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<!-- Fonts load in the background (swap) instead of through a blocking CSS @import -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"></noscript>
+<!-- Firebase is used the moment the page starts, so it stays a normal script. The two big Excel libraries are only needed
+     when someone processes or downloads a file, so they load with `defer` (in parallel, never blocking the first paint).
+     JSZip (only used for editable Excel charts) is loaded on demand by scLoadJSZip(). -->
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 :root {
   --bg:#0A0C10; --surface:#12151B; --surface2:#191D25; --border:#242933;
   --text:#E6E8EC; --muted:#7D8494;
@@ -451,6 +459,8 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 .google-btn:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(0,0,0,.3)}
 .google-btn:disabled{opacity:.6;cursor:wait}
 .auth-error{color:#E15C5C;font-size:11px;font-family:'DM Mono',monospace;margin-top:14px;min-height:14px}
+.auth-or{display:flex;align-items:center;gap:10px;margin:20px 0 14px;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px}
+.auth-or::before,.auth-or::after{content:'';flex:1;height:1px;background:var(--border)}
 #appShell{display:none}
 
 /* ── USER CHIP (top-right, shown to everyone once signed in) ── */
@@ -510,11 +520,17 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
   <div class="auth-card">
     <div class="suite-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4.5C5 6 3.5 9 4 12.5c.5 3.5 3 6 6.5 6.8 3.7.8 7-.8 8.5-4 1.3-2.8.7-5.8-1.5-7.8"/><path d="M15.5 4.5c1 1.5 1.2 3 .5 4.5"/></svg></div>
     <h1>Bolas <span>Stock Suite</span></h1>
-    <p class="auth-sub">Sign in with Google to continue.</p>
+    <p class="auth-sub">Sign in to continue.</p>
     <button id="googleSignInBtn" class="google-btn">
       <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.94v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.94A9 9 0 0 0 0 9c0 1.45.35 2.83.94 4.03l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .94 4.97L3.95 7.3C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
       Continue with Google
     </button>
+    <div class="auth-or"><span>or sign in with ID &amp; password</span></div>
+    <form id="pwLoginForm" autocomplete="on" style="text-align:left">
+      <input type="text" id="pwLoginId" class="pc-input" placeholder="Login ID" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <input type="password" id="pwLoginPass" class="pc-input" placeholder="Password" autocomplete="current-password" style="margin-top:10px">
+      <button type="submit" id="pwLoginBtn" class="google-btn" style="margin-top:12px;background:var(--t1);color:#fff">Sign in</button>
+    </form>
     <div class="auth-error" id="authError"></div>
   </div>
 </div>
@@ -927,8 +943,29 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     </div>
   </div>
   <button class="download-btn" id="ownerRefreshBtn" style="margin-bottom:20px;max-width:220px;border:2px solid var(--accent3);color:var(--accent3)">↻ Refresh Data</button>
+  <div class="setup-card" id="ownerCreateLoginCard" style="margin-bottom:28px;max-width:620px">
+    <div class="setup-card-hdr"><div class="setup-num" style="background:#8B5CF6">🔑</div><h3>Create a Login (ID &amp; Password)</h3></div>
+    <p style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:12px;line-height:1.7">Make an ID and password for a team member. They type it on the login screen — no Google account needed — and are approved straight away. The password can't be shown again later, so copy it when it is created.</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:180px"><label class="pc-label" for="ownerLoginName">Name</label><input type="text" id="ownerLoginName" class="pc-input" placeholder="e.g. Harish" autocomplete="off"></div>
+      <div style="flex:1;min-width:180px"><label class="pc-label" for="ownerLoginId">Login ID</label><input type="text" id="ownerLoginId" class="pc-input" placeholder="e.g. harish053" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;align-items:flex-end">
+      <div style="flex:1;min-width:180px"><label class="pc-label" for="ownerLoginPass">Password (min 6)</label><input type="text" id="ownerLoginPass" class="pc-input" placeholder="type one, or press Generate" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+      <button type="button" id="ownerLoginGenBtn" class="mini-btn" style="border:1px solid var(--border);color:var(--text);padding:10px 14px">🎲 Generate</button>
+    </div>
+    <label class="pc-label" for="ownerLoginRole" style="margin-top:12px">Role</label>
+    <select id="ownerLoginRole" class="pc-input"><option value="staff">Staff — chooses their own outlet when they first sign in</option><option value="cm">Cluster Manager — you choose their outlets afterwards (Outlets button below)</option></select>
+    <button type="button" id="ownerLoginCreateBtn" style="margin-top:14px;background:#8B5CF6;border:none;color:#fff;border-radius:8px;padding:10px 18px;font-family:'Manrope',sans-serif;font-weight:700;font-size:12px;cursor:pointer">+ Create Login</button>
+    <div id="ownerLoginMsg" style="margin-top:10px;font-family:'DM Mono',monospace;font-size:11.5px;line-height:1.7"></div>
+  </div>
   <div id="ownerPendingWrap" style="margin-bottom:28px"></div>
   <div id="ownerOutletReqWrap" style="margin-bottom:28px"></div>
+  <div id="ownerProdSearchBar" style="margin-bottom:16px;max-width:560px">
+    <label class="pc-label" for="ownerProdSearch">🔍 Search products (Stock Audit &amp; Kernel Report pack sizes below)</label>
+    <input type="search" id="ownerProdSearch" class="pc-input" placeholder="e.g. cashew nut" autocomplete="off" spellcheck="false">
+    <div id="ownerProdSearchCount" style="margin-top:6px;font-family:'DM Mono',monospace;font-size:11.5px;color:var(--muted)"></div>
+  </div>
   <div id="ownerPackWrap" style="margin-bottom:28px"></div>
   <div id="ownerP1PackWrap" style="margin-bottom:28px"></div>
   <div id="ownerDashWrap"></div>
@@ -1337,10 +1374,12 @@ const ICON_CHECK = '<svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></s
 // TAB SWITCHING
 // ══════════════════════════════════════════════════════════════
 function switchTab(n) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.querySelector(`.tab[data-tab="${n}"]`).classList.add('active');
-  document.getElementById(`panel${n}`).classList.add('active');
+  const tab = document.querySelector(`.tab[data-tab="${n}"]`), panel = document.getElementById(`panel${n}`);
+  if (!tab || !panel) return;   // e.g. a tab that is not shown to this user — never throw halfway through
+  document.querySelectorAll('.tab.active').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel.active').forEach(p => p.classList.remove('active'));
+  tab.classList.add('active');
+  panel.classList.add('active');
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1440,7 +1479,9 @@ async function p1LoadPackOverrides(){
 let p1NewPackProducts = [];
 async function p1RegisterNewPackProducts(){
   const queue = p1NewPackProducts; p1NewPackProducts = [];
-  if (!queue.length || !currentUser) return;
+  // If the saved overrides never loaded (offline / blocked), every product looks "new" — writing them would overwrite
+  // values the owner already confirmed. So only register new products once we have really seen the saved list.
+  if (!queue.length || !currentUser || !p1PackOverridesLoaded) return;
   const CHUNK = 450;
   for (let i=0; i<queue.length; i+=CHUNK) {
     const batch = db.batch();
@@ -1663,12 +1704,9 @@ function p1AggregateData(rows, dates, products, bucketMap) {
   });
 
   const xc = xtCols(rows, p1Log);
+  const blockIdx = groupBlockIndex(rows);   // one pass over the sheet instead of one full scan per product
   for (const prod of products) {
-    let blockStart = -1;
-    for (let i = 0; i < rows.length; i++) {
-      const c0=String(rows[i]&&rows[i][0]||'').trim(), c1=String(rows[i]&&rows[i][1]||'').trim();
-      if (c0==='Group Name' && c1.toLowerCase()===prod.name.toLowerCase()) { blockStart=i+1; break; }
-    }
+    const blockStart = blockIdx.has(prod.name.toLowerCase()) ? blockIdx.get(prod.name.toLowerCase()) : -1;
     if (blockStart===-1) { p1Log('warn',`⚠ No data block: ${prod.name.slice(0,55)}`); continue; }
     const bkt = bucketMap[prod.key];
     p1Log('ok', `✓ [${bkt.label}] ${prod.name.slice(0,50)}`);
@@ -1684,8 +1722,22 @@ function p1AggregateData(rows, dates, products, bucketMap) {
       xc.forEach(x=>{ result[col0][`${x.k}_${prod.key}`]+=p1Pn(row[x.col]); });
     }
   }
+  // 0.1 + 0.2 style float noise → clean 3-decimal numbers (the sheet written to Excel gets these values too)
+  for (const d of dates) for (const k in result[d]) result[d][k] = r3(result[d][k]);
   return { result, buckets: sortedBuckets };
 }
+
+// First row (index of the line AFTER the "Group Name" line) of every product block, keyed by lower-cased product name
+function groupBlockIndex(rows){
+  const m = new Map();
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i]; if (!r || String(r[0]||'').trim() !== 'Group Name') continue;
+    const k = String(r[1]||'').trim().toLowerCase();
+    if (!m.has(k)) m.set(k, i + 1);
+  }
+  return m;
+}
+const r3 = v => Math.round(v * 1000) / 1000;
 
 function p1Pn(v){if(v===null||v===undefined||v==='')return 0;const n=parseFloat(String(v));return isNaN(n)?0:n;}
 function p1Fmt(n){return Number.isInteger(n)?n:parseFloat(n.toFixed(3));}
@@ -1866,7 +1918,7 @@ function p1BuildOutputExcel(result, dates, period, buckets) {
   buckets.filter(b=>b.type==='carton').forEach(b=>{
     const label = `${b.label}: 1 carton = ${b.cartonKg} kg = ${Math.round(b.cartonKg/b.packKg)} packs of ${Math.round(b.packKg*1000)} gm`;
     setCell(extraRow,0,null,S({bg:'FFF3CD'}));
-    setCell(extraRow,1,label,S({bg:'FFF3CD',hz:'left',wrap:true}));
+    setCell(extraRow,1,label,S({bg:'FFF3CD',hz:'left'}));   // no wrap: the note runs across the empty cells to its right instead of being squeezed into the narrow Date column
     for(let c=2;c<TOTAL_COLS;c++) setCell(extraRow,c,null,S({bg:'FFF3CD'}));
     extraRow++;
   });
@@ -1886,7 +1938,7 @@ function p1BuildOutputExcel(result, dates, period, buckets) {
   });
   ws['!merges']=merges;
   ws['!cols']=[{wch:1.5},{wch:9.5},...buckets.flatMap(()=>[{wch:6},{wch:6},{wch:6},{wch:7},{wch:7},{wch:7}]),...Array(3).fill({wch:8})];
-  ws['!rows']=[{hpx:20},{hpx:20},{hpx:20},{hpx:20},{hpx:28},{hpx:20},...dates.map(()=>({hpx:18})),{hpx:22}];
+  ws['!rows']=[{hpx:20},{hpx:20},{hpx:20},{hpx:20},{hpx:28},{hpx:28},...dates.map(()=>({hpx:18})),{hpx:22}];
   ws['!ref']=XLSX.utils.encode_range({r:0,c:0},{r:extraRow-1,c:TOTAL_COLS-1});
   const MONTHS={'01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'May','06':'Jun','07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec'};
   let sheetName='Sheet1'; if(dates.length){const mm=dates[0].split('-')[1];sheetName=MONTHS[mm]||'Sheet1';}
@@ -1894,10 +1946,60 @@ function p1BuildOutputExcel(result, dates, period, buckets) {
   return wb;
 }
 
+// ── Styled .xlsx writer for the Kernel / Flavoured reports ───────────────
+// The free SheetJS build silently DROPS all cell styles when it writes a file, so the colours, borders,
+// fonts and merged headers built above never reached the downloaded Excel. This converts the SheetJS
+// sheet into an ExcelJS workbook (which does write styles) and returns the .xlsx bytes.
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+async function p12ToXlsxBuffer(swb){
+  const name=swb.SheetNames[0], ws=swb.Sheets[name];
+  const wb=new ExcelJS.Workbook(); wb.creator='Bolas Stock Suite'; wb.created=new Date();
+  const sh=wb.addWorksheet(name,{views:[{showGridLines:true}]});
+  const argb=c=>c&&c.rgb?'FF'+String(c.rgb).slice(-6).toUpperCase():undefined;
+  const side=b=>(b&&b.style&&b.style!=='none')?{style:b.style,color:{argb:argb(b.color)||'FF000000'}}:undefined;
+  const styleOf=s=>{
+    const o={};
+    if(s.font)o.font={name:s.font.name,size:s.font.sz,bold:!!s.font.bold,color:argb(s.font.color)?{argb:argb(s.font.color)}:undefined};
+    if(s.alignment)o.alignment={horizontal:s.alignment.horizontal,vertical:s.alignment.vertical,wrapText:!!s.alignment.wrapText};
+    if(s.fill&&s.fill.fgColor)o.fill={type:'pattern',pattern:'solid',fgColor:{argb:argb(s.fill.fgColor)}};
+    if(s.border){const b={};['left','right','top','bottom'].forEach(k=>{const x=side(s.border[k]);if(x)b[k]=x;});o.border=b;}
+    return o;
+  };
+  const range=XLSX.utils.decode_range(ws['!ref']);
+  const slaves=[];
+  for(let R=range.s.r;R<=range.e.r;R++)for(let C=range.s.c;C<=range.e.c;C++){
+    const cell=ws[XLSX.utils.encode_cell({r:R,c:C})]; if(!cell)continue;
+    const x=sh.getCell(R+1,C+1);
+    if(cell.t==='n'||cell.t==='s')x.value=cell.v;
+    if(cell.s)x.style=styleOf(cell.s);
+  }
+  (ws['!cols']||[]).forEach((c,i)=>{if(c&&c.wch)sh.getColumn(i+1).width=c.wch;});
+  (ws['!rows']||[]).forEach((r,i)=>{if(r&&r.hpx)sh.getRow(i+1).height=r.hpx*0.75;});
+  // merge LAST, then give every merged-away cell its own border back. ExcelJS makes them share the top-left cell's style OBJECT,
+  // so each one gets a brand-new style object (setting .border/.alignment on the shared one would overwrite the top-left cell too).
+  (ws['!merges']||[]).forEach(m=>{
+    sh.mergeCells(m.s.r+1,m.s.c+1,m.e.r+1,m.e.c+1);
+    for(let R=m.s.r;R<=m.e.r;R++)for(let C=m.s.c;C<=m.e.c;C++)if(R!==m.s.r||C!==m.s.c)slaves.push([R,C]);
+  });
+  slaves.forEach(([R,C])=>{const cell=ws[XLSX.utils.encode_cell({r:R,c:C})]; if(cell&&cell.s)sh.getCell(R+1,C+1).style=styleOf(cell.s);});
+  return wb.xlsx.writeBuffer();
+}
+function p12SaveBlob(buf,fname){
+  const url=URL.createObjectURL(new Blob([buf],{type:XLSX_MIME})), a=document.createElement('a');
+  a.href=url; a.download=fname; document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},1000);
+}
+async function p12Download(swb,fname){
+  // If the ExcelJS script could not load (offline / blocked), still hand over the numbers rather than nothing
+  if(typeof ExcelJS==='undefined'){XLSX.writeFile(swb,fname);return;}
+  try{ p12SaveBlob(await p12ToXlsxBuffer(swb),fname); }
+  catch(e){ console.error('Styled export failed, saving plain file',e); XLSX.writeFile(swb,fname); }
+}
+
 $1('p1DownloadBtn').addEventListener('click', () => {
   if(!p1Workbook) return;
   const period = p1Period.replace(/[^a-z0-9]/gi,'_');
-  XLSX.writeFile(p1Workbook, `Cashew_Kernels_${period}.xlsx`, {cellStyles:true});
+  p12Download(p1Workbook, `Cashew_Kernels_${period}.xlsx`);
 });
 
 // ══════════════════════════════════════════════════════════════
@@ -2074,10 +2176,10 @@ $2('p2ProcessBtn').addEventListener('click', async () => {
     }
     // Fallback: build period from first/last date in the data
     const dateRe = /^\d{2}-\d{2}-\d{4}$/;
-    const allDates = [];
+    const allDates = [], seenDates = new Set();
     for (let i = 0; i < rows.length; i++) {
       const v = String(rows[i] && rows[i][0] || '').trim();
-      if (dateRe.test(v) && !allDates.includes(v)) allDates.push(v);
+      if (dateRe.test(v) && !seenDates.has(v)) { seenDates.add(v); allDates.push(v); }
     }
     allDates.sort((a, b) => {
       const [da, ma, ya] = a.split('-').map(Number);
@@ -2131,16 +2233,10 @@ function p2AggregateData(rows, dates, products, cats) {
   });
 
   const xc = xtCols(rows, p2Log);
+  const blockIdx = groupBlockIndex(rows);   // one pass over the sheet instead of one full scan per product
   for (const prod of products) {
     // Find the data block for this product (same as P1)
-    let blockStart = -1;
-    for (let i = 0; i < rows.length; i++) {
-      const c0 = String(rows[i] && rows[i][0] || '').trim();
-      const c1 = String(rows[i] && rows[i][1] || '').trim();
-      if (c0 === 'Group Name' && c1.toLowerCase() === prod.name.toLowerCase()) {
-        blockStart = i + 1; break;
-      }
-    }
+    const blockStart = blockIdx.has(prod.name.toLowerCase()) ? blockIdx.get(prod.name.toLowerCase()) : -1;
     if (blockStart === -1) {
       p2Log('warn', `⚠ Block not found: ${prod.name.slice(0, 50)}`);
       continue;
@@ -2158,6 +2254,8 @@ function p2AggregateData(rows, dates, products, cats) {
       xc.forEach(x => { result[col0][prod.cat][x.k] += p2Pn(row[x.col]) * prod.mult; });
     }
   }
+  // pack multipliers (e.g. 0.1 × 3) leave float noise like 0.30000000000000004 — tidy it before it is shown / written to Excel
+  for (const d of dates) for (const c of cats) { const o = result[d][c]; for (const k in o) o[k] = r3(o[k]); }
   return result;
 }
 
@@ -2181,6 +2279,7 @@ function p2RenderSummary(result, dates, period, cats) {
       ['c','v','d'].forEach(k => { totals[c][k] += result[date][c][k]; });
     });
   });
+  cats.forEach(c => { for (const k in totals[c]) totals[c][k] = r3(totals[c][k]); });
 
   window.p2LastSummary = { period, cats, totals };
   // Cards: rebuild the cards-3 area dynamically
@@ -2188,7 +2287,7 @@ function p2RenderSummary(result, dates, period, cats) {
   if (cardsEl) {
     cardsEl.innerHTML = '';
     // Use the 3 colour variables cycling for however many cats exist
-    const catColors = ['var(--r25)', 'var(--r50)', 'var(--rr200)', 'var(--c50)', 'var(--c100)', 'var(--c200)'];
+    const catColors = ['var(--r25)', 'var(--r50)', 'var(--r200)', 'var(--c50)', 'var(--c100)', 'var(--c200)'];
     cats.forEach((c, i) => {
       const col = catColors[i % catColors.length];
       const div = document.createElement('div');
@@ -2217,7 +2316,7 @@ function p2RenderSummary(result, dates, period, cats) {
   // Rebuild thead dynamically too
   const thead = $2('p2TableHead');
   if (thead) {
-    const catColors = ['var(--r25)', 'var(--r50)', 'var(--rr200)', 'var(--c50)', 'var(--c100)', 'var(--c200)'];
+    const catColors = ['var(--r25)', 'var(--r50)', 'var(--r200)', 'var(--c50)', 'var(--c100)', 'var(--c200)'];
     let row1 = `<tr><th class="h-date" rowspan="2">Date</th>`;
     let row2 = `<tr class="subhead">`;
     cats.forEach((c, i) => {
@@ -2302,7 +2401,6 @@ function p2BuildOutputExcel(result, dates, period, cats) {
   infoRow(3, 'Product Name: Cashew Flavoured Packed (Auto-Detected)');
 
   // Row 4: section header per cat
-  setCell(4, 0, null, S({ bg: 'FFFF00', L: 2, R: 0, T: 2, B: 1 }));
   setCell(4, 0, 'Date', S({ bg: 'FFFF00', L: 2, R: 2, T: 2, B: 1 }));
   cats.forEach((c, ci) => {
     const col = 1 + ci * 6;
@@ -2329,6 +2427,7 @@ function p2BuildOutputExcel(result, dates, period, cats) {
       ['c','v','d'].forEach(k => { tot[c][k] += result[date][c][k]; });
     });
   });
+  cats.forEach(c => { for (const k in tot[c]) tot[c][k] = r3(tot[c][k]); });
 
   // Data rows
   const nv = val => (val !== 0 && !isNaN(val)) ? val : null;
@@ -2370,7 +2469,7 @@ function p2BuildOutputExcel(result, dates, period, cats) {
   });
   ws['!merges'] = merges;
   ws['!cols'] = [{ wch: 10 }, ...cats.flatMap(() => [{ wch: 7 }, { wch: 8 }, { wch: 8 }, { wch: 7 }, { wch: 8 }, { wch: 8 }])];
-  ws['!rows'] = [{ hpx: 20 }, { hpx: 20 }, { hpx: 20 }, { hpx: 20 }, { hpx: 28 }, { hpx: 20 }, ...dates.map(() => ({ hpx: 18 })), { hpx: 22 }];
+  ws['!rows'] = [{ hpx: 20 }, { hpx: 20 }, { hpx: 20 }, { hpx: 20 }, { hpx: 28 }, { hpx: 28 }, ...dates.map(() => ({ hpx: 18 })), { hpx: 22 }];
   ws['!ref'] = XLSX.utils.encode_range({ r: 0, c: 0 }, { r: TR, c: TOTAL_COLS - 1 });
 
   const MONTHS = { '01': 'Jan', '02': 'Feb', '03': 'Mar', '04': 'Apr', '05': 'May', '06': 'Jun', '07': 'Jul', '08': 'Aug', '09': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec' };
@@ -2383,7 +2482,7 @@ function p2BuildOutputExcel(result, dates, period, cats) {
 $2('p2DownloadBtn').addEventListener('click', () => {
   if (!p2Workbook) return;
   const safePeriod = (p2Period || 'Report').replace(/[^a-z0-9]/gi, '_');
-  XLSX.writeFile(p2Workbook, `Cashew_Flavoured_${safePeriod}.xlsx`, { cellStyles: true });
+  p12Download(p2Workbook, `Cashew_Flavoured_${safePeriod}.xlsx`);
 });
 
 // ══════════════════════════════════════════════════════════════
@@ -2407,7 +2506,9 @@ const p3Done = ()  => p3Off($3('p3Loader'));
 const p3FmtSz = b => b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(1) + ' KB' : (b / 1048576).toFixed(2) + ' MB';
 
 // HTML-escape helper for safe innerHTML injection
-const p3Esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const p3Esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+// Links that come back from the cloud / photo host are only ever opened if they are plain http(s) addresses
+const p3SafeUrl = u => /^https?:\/\//i.test(String(u || '')) ? String(u).replace(/"/g, '%22').replace(/'/g, '%27').replace(/</g, '%3C').replace(/>/g, '%3E') : '#';
 
 // Returns today as DD-MM-YYYY
 const p3TodayStr = () => {
@@ -2486,7 +2587,9 @@ async function p3LoadPackOverrides(){
 let p3NewPackProducts = [];
 async function p3RegisterNewPackProducts(){
   const queue = p3NewPackProducts; p3NewPackProducts = [];
-  if (!queue.length || !currentUser) return;
+  // Same guard as the Kernel Report: never register "new" products unless the saved list was actually loaded,
+  // otherwise owner-confirmed pack sizes would be overwritten with auto-detected ones.
+  if (!queue.length || !currentUser || !p3PackOverridesLoaded) return;
   const CHUNK = 450;
   for (let i=0; i<queue.length; i+=CHUNK) {
     const batch = db.batch();
@@ -2508,7 +2611,8 @@ function p3ParsePkg(raw){
   const s=(raw||'').trim(),sl=s.toLowerCase();
   if(/\bin\s+numbers?\b/i.test(s)||/\bnos\b/i.test(s)||/sandook/i.test(s)||/yatra/i.test(s)||/dhamaka/i.test(s)||/stuffed\s*dates/i.test(s)||/gift\s*(box|pack|set|hamper)/i.test(s)||/combo\s*\d+\s*g/i.test(s)||/festival\s*of\s*joy/i.test(s)||/best\s*wishes/i.test(s))return{type:'numbers'};
   // Saffron 1g — physical = closing / 1 (count as individual units)
-  if(/saffron/i.test(s)&&/(?<!\d)1\s*g(?:ram)?s?(?!\d)/i.test(s))return{type:'numbers'};
+  // (no regex look-behind here: iPhones on iOS < 16.4 cannot even parse it, which stopped the WHOLE app from loading)
+  if(/saffron/i.test(s)&&/(?:^|\D)1\s*g(?:ram)?s?(?!\d)/i.test(s))return{type:'numbers'};
   // Oil density: edible oils ~0.910 kg/litre (not 1.0 like water)
   // Matches: coconut oil, sunflower oil, rice bran oil, mustard oil, olive oil, etc.
   const isOil=/\boil\b/i.test(s);
@@ -2544,8 +2648,10 @@ function p3ProcessFile(){
     p3On($3('p3ErrBox')); $3('p3OutletName').focus(); return;
   }
   p3Off($3('p3ErrBox'));p3Msg('Reading Excel file…');$3('p3BtnGo').disabled=true;
-  setTimeout(()=>{
+  setTimeout(async ()=>{
     try{
+      // make sure the saved pack sizes are loaded before any product is judged "new" (they used to load in the background only)
+      if(typeof p3LoadPackOverrides==='function') await p3LoadPackOverrides();
       const srcWb=XLSX.read(new Uint8Array(p3FileData),{type:'array',raw:false,cellDates:false});
       const ws=srcWb.Sheets[srcWb.SheetNames[0]];
       const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
@@ -2606,11 +2712,11 @@ function p3ProcessFile(){
 // Called after the initial "Generate Audit Sheet" click AND again, silently,
 // whenever a Rate PDF finishes loading — so prices apply immediately even if
 // the PDF is uploaded after the sheet was already generated once.
-function p3RebuildExcel(){
+function p3RebuildExcel(light){
   if(!p3AuditRows.length) return Promise.resolve();
   return p3BuildExcelJS(p3AuditRows).then(blob=>{
     p3XlBlob=blob;
-    p3BuildPreview(p3AuditRows);
+    p3BuildPreview(p3FilterRows(p3AuditRows), light);   // keep the "choose items" selection when only the rates changed
     $3('p3BtnDl').disabled=false;
   });
 }
@@ -3385,10 +3491,7 @@ function p3SelectAll(state) {
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('p3ItemModal').addEventListener('change', function(e) {
     if (e.target.type === 'checkbox' && p3AuditRows.length) {
-      const filtered = p3FilterRows(p3AuditRows);
-      p3BuildPreview(filtered);
-      const tot = document.getElementById('p3STot');
-      if (tot) tot.textContent = filtered.length;
+      p3BuildPreview(p3FilterRows(p3AuditRows), true);   // total shown is set by p3RecalcSummary
     }
   });
 
@@ -3451,23 +3554,30 @@ function p3SwitchPreviewTab(n) {
   }
 }
 
-function p3BuildPreview(rows){
+// `rows` may be a FILTERED subset of p3AuditRows (items unticked in the "choose items" box). Every input, id and handler
+// below uses the row's real position in p3AuditRows — using the position inside the subset made typed counts land on the wrong product.
+// `light` = same data, just re-drawn (filter changed): skip the cloud look-ups that a brand-new sheet needs.
+let p3ShownIdx = [];
+function p3BuildPreview(rows, light){
   if (typeof p3ExitCountModeIfActive === 'function') p3ExitCountModeIfActive(); // a fresh dataset must never inherit a stale Count Mode position
+  const idxOf = new Map(p3AuditRows.map((r,i)=>[r,i]));
+  p3ShownIdx = rows.map(r=>idxOf.get(r)).filter(i=>i!==undefined);
   const tbl=$3('p3PrevTbl'),dateStr=p3TodayStr();
-  let h=`<tr class="title-row"><td colspan="11">${p3GetSheetTitle()}</td></tr>`;
+  let h=`<tr class="title-row"><td colspan="11">${p3Esc(p3GetSheetTitle())}</td></tr>`;
   h+=`<tr class="date-row"><td colspan="11">Audit Date: ${dateStr} &nbsp;|&nbsp; Generated by SHARATH'S SYSTEM${p3GetVerifiedBy()?' &nbsp;|&nbsp; Verified by: '+p3Esc(p3GetVerifiedBy()):''} &nbsp;|&nbsp; CONFIDENTIAL</td></tr>`;
   h+=`<thead><tr><th style="width:34px">Sr</th><th style="text-align:left">Item Name</th><th style="text-align:left">Package Name</th><th>Closing</th><th>Physical (Packs)</th><th>Store Count</th><th>Rack Count</th><th>Total</th><th>Difference</th><th>Remark</th><th style="width:30px">📷</th></tr></thead><tbody>`;
-  rows.forEach((r,ri)=>{
+  rows.forEach((r,n)=>{
+    const ri=idxOf.has(r)?idxOf.get(r):n;   // real index in p3AuditRows
     let ps,psStyle='';
     if(r.packType==='unknown'){ps='?';psStyle='color:#888;font-style:italic';}else if(r.physical!==null){ps=Math.round(r.physical*1000)/1000;}else{ps='—';psStyle='color:#888';}
     const nm=p3Esc(r.pkgName.length>46?r.pkgName.slice(0,46)+'…':r.pkgName);
     const rowBg=r.hasNegative?'background:#FFF3CD':'',clsStyle=r.hasNegative?'color:#856404;font-weight:700':'';
     const searchKey=p3Esc((r.shortCode+' '+r.pkgName).toLowerCase());
     h+=`<tr style="${rowBg}" data-idx="${ri}" data-status="pending" data-search="${searchKey}">`
-      +`<td style="color:#888;text-align:center;font-size:10px">${ri+1}</td><td>${p3Esc(r.shortCode)}</td><td title="${p3Esc(r.pkgName)}">${nm}</td>`
+      +`<td style="color:#888;text-align:center;font-size:10px">${n+1}</td><td>${p3Esc(r.shortCode)}</td><td title="${p3Esc(r.pkgName)}">${nm}</td>`
       +`<td style="${clsStyle}">${Number(r.closing).toFixed(3)}</td><td style="${psStyle}">${ps}</td>`
-      +`<td class="manual"><input type="number" inputmode="numeric" min="0" class="cnt-input" data-idx="${ri}" data-field="store" value=""></td>`
-      +`<td class="manual"><input type="number" inputmode="numeric" min="0" class="cnt-input" data-idx="${ri}" data-field="rack" value=""></td>`
+      +`<td class="manual"><input type="number" inputmode="numeric" min="0" class="cnt-input" data-idx="${ri}" data-field="store" value="${r.storeCount??''}"></td>`
+      +`<td class="manual"><input type="number" inputmode="numeric" min="0" class="cnt-input" data-idx="${ri}" data-field="rack" value="${r.rackCount??''}"></td>`
       +`<td id="p3Tot${ri}"></td><td id="p3Dif${ri}"></td><td id="p3Rem${ri}" style="color:#aaa;font-style:italic;font-size:10px">auto</td>`
       +`<td id="p3Photo${ri}" class="photo-cell"></td></tr>`;
   });
@@ -3483,18 +3593,18 @@ function p3BuildPreview(rows){
     inp.addEventListener('input', p3OnCountInput);
   });
 
-  // Initial calc pass (all blank → zeros) so stats/ring start accurate, then apply current filter/search
-  p3RecalcSummary();
+  // Initial calc pass (fills Total / Difference / Remark from any counts already typed), then apply current filter/search
+  p3RecalcSummary(true);
 
   // Also build Sheet 2 preview
   p3BuildPreviewSheet2(rows);
 
   // Load prior audit for this outlet (repeat-short/excess flagging) and check for a saved draft
-  if (typeof p3LoadPriorAuditForOutlet === 'function') {
+  if (!light && typeof p3LoadPriorAuditForOutlet === 'function') {
     const outletName = ($3('p3OutletName') ? $3('p3OutletName').value.trim() : '');
-    p3LoadPriorAuditForOutlet(outletName).then(() => p3RecalcSummary());
+    p3LoadPriorAuditForOutlet(outletName).then(() => p3RecalcSummary(true));
   }
-  if (typeof p3OfferDraftResume === 'function') p3OfferDraftResume();
+  if (!light && typeof p3OfferDraftResume === 'function') p3OfferDraftResume();
 }
 
 // ── Live recompute engine for the editable Store/Rack Count columns ──────
@@ -3546,7 +3656,7 @@ function p3RecalcRow(idx){
   if(photoEl){
     if(remark==='SHORT'||remark==='EXCESS'){
       if(r.photoUrl){
-        photoEl.innerHTML=`<a href="${r.photoUrl}" target="_blank" rel="noopener"><img src="${r.photoThumb||r.photoUrl}" alt="photo"></a>`;
+        photoEl.innerHTML=`<a href="${p3SafeUrl(r.photoUrl)}" target="_blank" rel="noopener"><img src="${p3SafeUrl(r.photoThumb||r.photoUrl)}" alt="photo"></a>`;
       } else {
         photoEl.innerHTML=`<label title="Attach a photo">📷<input type="file" accept="image/*" capture="environment" onchange="p3UploadPhoto(${idx},this.files[0])"></label>`;
       }
@@ -3555,15 +3665,19 @@ function p3RecalcRow(idx){
     }
   }
 }
-function p3RecalcSummary(){
+// full=true  → redraw every shown row (new table / draft resumed / prior audit loaded).
+// full=false → a single count was typed: that row was already redrawn by the caller, so only the totals are recounted
+//              (this used to redraw ALL rows on every keystroke, which made big sheets lag while typing).
+function p3RecalcSummary(full){
   let short=0,excess=0,matched=0,filled=0;
-  p3AuditRows.forEach((r,idx)=>{
+  p3ShownIdx.forEach(idx=>{
+    const r=p3AuditRows[idx]; if(!r) return;
     const {remark}=p3RowCalc(r);
     if(remark==='SHORT')short++; else if(remark==='EXCESS')excess++; else if(remark==='MATCHED')matched++;
     if(remark)filled++;
-    p3RecalcRow(idx);
+    if(full) p3RecalcRow(idx);
   });
-  const total=p3AuditRows.length;
+  const total=p3ShownIdx.length;
   const setTxt=(id,v)=>{const el=document.getElementById(id); if(el) el.textContent=v;};
   setTxt('p3STot',total); setTxt('p3SShort',short); setTxt('p3SExcess',excess); setTxt('p3SMatch',matched);
   setTxt('p3SumShort',short); setTxt('p3SumExcess',excess); setTxt('p3SumMatch',matched);
@@ -3607,7 +3721,7 @@ function p3BuildPreviewSheet2(rows) {
   const tbl = $3('p3PrevTbl2');
   if (!tbl) return;
   const dateStr = p3TodayStr();
-  const outletName = p3GetOutletName().toUpperCase();
+  const outletName = p3Esc(p3GetOutletName().toUpperCase());
 
   // Gather SHORT and EXCESS candidates (at preview time we show all rows — auditor fills store/rack)
   // We display all rows in both groups with Qty = "fill →" placeholder
@@ -3703,7 +3817,7 @@ async function p3HandleRatePdf(file) {
       await new Promise((res, rej) => {
         const s = document.createElement('script');
         s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-        s.onload = res; s.onerror = rej;
+        s.onload = res; s.onerror = () => { s.remove(); rej(new Error('Could not load the PDF reader — check your internet connection and try again.')); };
         document.head.appendChild(s);
       });
       window.pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -3831,7 +3945,7 @@ async function p3HandleRatePdf(file) {
     // no need to click "Generate Audit Sheet" again.
     let rebuildNote = '';
     if (p3AuditRows.length) {
-      await p3RebuildExcel();
+      await p3RebuildExcel(true);
       rebuildNote = '<br><span style="color:#3FB874;font-size:11px;">✓ Your already-generated Excel was refreshed with these rates — just re-download it.</span>';
     }
 
@@ -3841,7 +3955,7 @@ async function p3HandleRatePdf(file) {
       <span style="color:var(--muted);font-size:11px;">These will auto-fill Billing &amp; Selling Price columns in the Excel when you download.</span>${rebuildNote}<br><br>
       <details style="margin-top:6px;"><summary style="cursor:pointer;color:var(--t3);font-size:11px;">\u25b6 Preview loaded rates</summary>
       <div style="margin-top:6px;max-height:200px;overflow-y:auto;">
-        ${entries.slice(0,40).map(e=>`<div style="padding:3px 0;border-bottom:1px solid var(--border);font-size:11px;display:flex;justify-content:space-between;gap:8px;"><span style="color:var(--text);flex:1">${e.name}</span><span style="color:#E15C5C;white-space:nowrap">\u20b9${e.billing}</span><span style="color:#3FB874;white-space:nowrap">\u20b9${e.selling}</span></div>`).join('')}
+        ${entries.slice(0,40).map(e=>`<div style="padding:3px 0;border-bottom:1px solid var(--border);font-size:11px;display:flex;justify-content:space-between;gap:8px;"><span style="color:var(--text);flex:1">${p3Esc(e.name)}</span><span style="color:#E15C5C;white-space:nowrap">\u20b9${e.billing}</span><span style="color:#3FB874;white-space:nowrap">\u20b9${e.selling}</span></div>`).join('')}
         ${entries.length>40?`<div style="color:var(--muted);font-size:10px;padding-top:4px;">...and ${entries.length-40} more</div>`:''}
         <div style="font-size:10px;color:var(--muted);margin-top:6px;">Red = Billing Price &nbsp; Green = Selling Price (Retail As Per Outlet)</div>
       </div></details>`;
@@ -3853,7 +3967,7 @@ async function p3HandleRatePdf(file) {
   } catch(err) {
     loadEl.style.display = 'none';
     statusEl.style.display = 'block';
-    statusEl.innerHTML = `<span style="color:#E15C5C;">\u2717 Error: ${err.message}</span><br><span style="color:var(--muted);font-size:11px;">Prices will remain blank (ivory cells) in the Excel \u2014 fill manually.</span>`;
+    statusEl.innerHTML = `<span style="color:#E15C5C;">\u2717 Error: ${p3Esc(err.message)}</span><br><span style="color:var(--muted);font-size:11px;">Prices will remain blank (ivory cells) in the Excel \u2014 fill manually.</span>`;
     console.error('PDF parse error:', err);
   }
 }
@@ -3884,7 +3998,7 @@ let isOwner = false;
 let isClusterManager = false;
 // Outlet-access rules: owner = everything. Cluster manager = ONLY the outlets the owner ticked for him,
 // unless the owner has approved "all outlets" (allOutletsAccess). Nobody else sees outlet data.
-let myAllAccess = false, myAllReq = '', lastScopeSig = null;
+let myAllAccess = false, myAllReq = '', lastScopeSig = null, lastDashSig = null;
 function hasAllOutlets() { return isOwner || (isClusterManager && myAllAccess); }
 function canUseOutletTools() { return isOwner || isClusterManager; }
 // Regular staff ("outlet users"): everyone who is neither the owner nor a cluster manager. They pick ONE outlet at first sign-in
@@ -3909,6 +4023,35 @@ document.getElementById('googleSignInBtn').addEventListener('click', () => {
       ? 'This site\'s domain isn\'t authorized yet in Firebase — add it under Authentication → Settings → Authorized domains.'
       : 'Sign-in failed: ' + err.message;
   }).finally(() => { btn.disabled = false; });
+});
+
+// ---- ID & password sign-in ----
+// Firebase signs people in with an e-mail, so a plain ID such as "harish053" is turned into harish053@<LOGIN_ID_DOMAIN>.
+// example.com is reserved for exactly this kind of use: nothing can ever be delivered to it, so no outsider can receive a reset mail for an ID.
+// If someone types a real e-mail address instead, it is used as it is.
+const LOGIN_ID_DOMAIN = 'bolas-staff.example.com';
+const loginIdToEmail = id => { id = String(id || '').trim().toLowerCase(); return id.includes('@') ? id : id + '@' + LOGIN_ID_DOMAIN; };
+const emailToLoginId = e => { e = String(e || ''); return e.toLowerCase().endsWith('@' + LOGIN_ID_DOMAIN) ? e.slice(0, -(LOGIN_ID_DOMAIN.length + 1)) : ''; };
+const emailLabel = e => { const id = emailToLoginId(e); return id ? 'ID: ' + id : (e || '—'); };   // what to show instead of the made-up address
+function authErrorText(err) {
+  const c = (err && err.code) || '';
+  if (/invalid-credential|wrong-password|user-not-found|invalid-login-credentials|invalid-email/.test(c)) return 'Wrong ID or password. Check it and try again.';
+  if (c === 'auth/user-disabled') return 'This login has been turned off. Please contact the owner.';
+  if (c === 'auth/too-many-requests') return 'Too many tries. Please wait a few minutes and try again.';
+  if (c === 'auth/network-request-failed') return 'No internet connection. Please check it and try again.';
+  if (c === 'auth/operation-not-allowed') return 'ID & password sign-in is not switched on yet. The owner has to turn on "Email/Password" in Firebase → Authentication → Sign-in method.';
+  return 'Sign-in failed: ' + ((err && err.message) || c || 'unknown error');
+}
+document.getElementById('pwLoginForm').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const idEl = document.getElementById('pwLoginId'), pwEl = document.getElementById('pwLoginPass');
+  const btn = document.getElementById('pwLoginBtn'), errEl = document.getElementById('authError');
+  errEl.textContent = '';
+  if (!idEl.value.trim() || !pwEl.value) { errEl.textContent = 'Please enter your ID and password.'; return; }
+  btn.disabled = true;
+  try { await fbAuth.signInWithEmailAndPassword(loginIdToEmail(idEl.value), pwEl.value); pwEl.value = ''; }
+  catch (err) { console.warn('Password sign-in failed:', err && err.code); errEl.textContent = authErrorText(err); }
+  finally { btn.disabled = false; }
 });
 
 // ---- Auth state: show/hide the app, gate non-approved users, tag the owner ----
@@ -3960,7 +4103,7 @@ fbAuth.onAuthStateChanged(async (user) => {
   if (!user) {
     currentUser = null; isOwner = false;
     // Wipe cluster-manager state so the next person to sign in on this page never inherits the tab or its data
-    isClusterManager = false; myAllAccess = false; myAllReq = ''; lastScopeSig = null; p14MyOutlets = []; odOutlets = []; odDocs = []; odExpanded = null;
+    isClusterManager = false; myAllAccess = false; myAllReq = ''; lastScopeSig = null; lastDashSig = null; p14MyOutlets = []; odOutlets = []; odDocs = []; odExpanded = null;
     { const t = document.querySelector('.tab[data-tab="15"]'); if (t) t.remove();
       const w = document.getElementById('odOutletsWrap'); if (w) w.innerHTML = '';
       const b = document.getElementById('odBanner'); if (b) b.innerHTML = '';
@@ -3984,9 +4127,9 @@ fbAuth.onAuthStateChanged(async (user) => {
   const chip = document.getElementById('userChip');
   const firstName = (user.displayName || user.email || '').split(' ')[0];
   const avatarHtml = user.photoURL
-    ? `<img src="${user.photoURL}" referrerpolicy="no-referrer" style="width:30px;height:30px;border-radius:50%">`
+    ? `<img src="${p3SafeUrl(user.photoURL)}" referrerpolicy="no-referrer" style="width:30px;height:30px;border-radius:50%">`
     : `<div class="avatar-circle">${initials(user.displayName, user.email)}</div>`;
-  chip.innerHTML = avatarHtml + `<span class="uc-name">${firstName}</span><button id="signOutBtn">Sign out</button>`;
+  chip.innerHTML = avatarHtml + `<span class="uc-name">${escHtml(firstName)}</span><button id="signOutBtn">Sign out</button>`;
   document.getElementById('signOutBtn').addEventListener('click', () => fbAuth.signOut());
 
   await touchUserDoc(user, isOwner);
@@ -4048,7 +4191,11 @@ fbAuth.onAuthStateChanged(async (user) => {
     if (status === 'approved' && !isClusterManager && !myOutletCode && !myOutletName) { showOutletGate('first'); return; }
     if (ogMode === 'first') hideOutletGate();
     if (status === 'approved') {
-      showScreen('app');
+      showScreen('app');   // loads the dashboard only the first time the app appears
+      // …but if the owner changed this person's outlet / access while the app is open, refresh the dashboard to match
+      const dashSig = lastScopeSig + '|' + myOutletName;
+      if (lastDashSig !== null && dashSig !== lastDashSig) loadDashboardPanel();
+      lastDashSig = dashSig;
       applyAccessTabs();
       renderAccessBar('p14AccessBar'); renderAccessBar('odScopeNote');
       if (isClusterManager) maybeShowDailyGreeting();   // once, on the cluster manager's first login of the day
@@ -4123,8 +4270,9 @@ function showScreen(which) {
   document.getElementById('authGate').style.display = which === 'authGate' ? 'flex' : 'none';
   document.getElementById('pendingGate').style.display = 'none';
   if (ogMode !== 'change') document.getElementById('outletGate').style.display = 'none';   // a "request change" pop-up stays open while the app refreshes behind it
-  document.getElementById('appShell').style.display = which === 'app' ? 'block' : 'none';
-  if (which === 'app') loadDashboardPanel();
+  const shell = document.getElementById('appShell'), wasHidden = shell.style.display !== 'block';
+  shell.style.display = which === 'app' ? 'block' : 'none';
+  if (which === 'app' && wasHidden) loadDashboardPanel();   // the status listener calls this on every snapshot — don't re-query the dashboard each time
 }
 function showPendingGate(status) {
   document.getElementById('authGate').style.display = 'none';
@@ -4437,6 +4585,76 @@ function renderOwnerOutletRequests(list) {
 }
 
 // ---- Approve / deny / revoke / restore — only the owner's UI ever calls this ----
+// ---- Owner creates an ID & password for a team member ----
+// Creating an account normally signs the creator in as the new person — which would log the owner out. So the account is created through a
+// separate, temporary Firebase connection ("bolasCreate"); the owner's own session is never touched.
+// The new person's profile is saved as "pending" exactly as a first sign-in would do, then the owner's session approves it.
+function ownerGeneratePassword() {
+  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';   // no 0/O/1/l/I — easy to read out over the phone
+  const r = new Uint32Array(8); crypto.getRandomValues(r);
+  return Array.from(r, n => A[n % A.length]).join('');
+}
+let ownerCreateBusy = false;
+async function ownerCreateLogin() {
+  if (!isOwner || ownerCreateBusy) return;
+  const nameEl = document.getElementById('ownerLoginName'), idEl = document.getElementById('ownerLoginId'), pwEl = document.getElementById('ownerLoginPass');
+  const roleEl = document.getElementById('ownerLoginRole'), msg = document.getElementById('ownerLoginMsg'), btn = document.getElementById('ownerLoginCreateBtn');
+  const say = (html, color) => { msg.style.color = color || 'var(--muted)'; msg.innerHTML = html; };
+  const name = nameEl.value.trim(), id = idEl.value.trim().toLowerCase(), pw = pwEl.value, isCM = roleEl.value === 'cm';
+  if (!name) { say('Enter the person\'s name first.', '#E15C5C'); return; }
+  if (!/^[a-z0-9][a-z0-9._-]{2,29}$/.test(id)) { say('The ID must be 3–30 letters or numbers (a dot, dash or underscore is fine) — no spaces and no @.', '#E15C5C'); return; }
+  if (pw.length < 6) { say('The password needs at least 6 characters.', '#E15C5C'); return; }
+  ownerCreateBusy = true; btn.disabled = true; say('Creating…');
+  const email = loginIdToEmail(id);
+  let uid = '', profileSaved = false, profileErr = '';
+  const why = e => (e && (e.code === 'permission-denied' || /permission/i.test(e.message || ''))) ? 'your Firestore rules do not allow this step' : ((e && e.message) || 'unknown error');
+  try {
+    const app2 = firebase.apps.find(a => a.name === 'bolasCreate') || firebase.initializeApp(firebaseConfig, 'bolasCreate');
+    const auth2 = app2.auth();
+    const cred = await auth2.createUserWithEmailAndPassword(email, pw);
+    uid = cred.user.uid;
+    try {
+      await cred.user.updateProfile({ displayName: name });
+      const now = firebase.firestore.FieldValue.serverTimestamp();
+      await app2.firestore().collection('users').doc(uid).set({ email, name, photoURL: '', firstLogin: now, lastLogin: now, loginCount: 1, status: 'pending' });
+      profileSaved = true;
+    } catch (e) { profileErr = why(e); console.warn('new login: profile not saved', e); }
+    await auth2.signOut().catch(() => {});
+  } catch (e) {
+    console.warn('create login failed:', e);
+    ownerCreateBusy = false; btn.disabled = false;
+    say(escHtml(e.code === 'auth/email-already-in-use' ? 'That ID is already taken — choose a different one.'
+      : e.code === 'auth/weak-password' ? 'That password is too weak — use at least 6 characters.'
+      : e.code === 'auth/operation-not-allowed' ? 'ID & password sign-in is not switched on yet. In the Firebase console open Authentication → Sign-in method and turn on "Email/Password", then try again.'
+      : e.code === 'auth/network-request-failed' ? 'No internet connection — please try again.'
+      : "Couldn't create the login: " + e.message), '#E15C5C');
+    return;
+  }
+  let approved = false, approveErr = '';
+  if (profileSaved) {
+    try {
+      await db.collection('users').doc(uid).update({ status: 'approved', isClusterManager: isCM, statusUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(), statusUpdatedBy: currentUser.email });
+      approved = true;
+    } catch (e) { approveErr = why(e); console.warn('new login: approve failed', e); }
+  }
+  logActivity('create_login', 4, id + (isCM ? ' (cluster manager)' : ' (staff)'));
+  ownerCreateBusy = false; btn.disabled = false;
+  const site = /^https?:/.test(location.protocol) ? '\n' + location.origin + location.pathname : '';
+  const copyText = 'Bolas Stock Suite login\nID: ' + id + '\nPassword: ' + pw + site;
+  let h = approved
+    ? `<span style="color:#3FB874">✓ Login created and approved.</span>`
+    : `<span style="color:#D6923B">⚠ The login was created, but ${profileSaved ? "approving it failed (" + escHtml(approveErr) + ")" : "their profile could not be saved (" + escHtml(profileErr) + ")"}. They can sign in, and then you can approve them under Pending Requests below.</span>`;
+  h += `<div style="margin-top:8px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text)">ID: <strong>${escHtml(id)}</strong> &nbsp;·&nbsp; Password: <strong>${escHtml(pw)}</strong><br><span style="color:var(--muted)">${isCM ? 'Cluster Manager — use the Outlets button in All Users to choose their outlets.' : 'Staff — they pick their outlet the first time they sign in.'} Copy it now: the password can't be shown again.</span><br><button type="button" id="ownerLoginCopyBtn" class="mini-btn" style="margin-top:8px;border:1px solid var(--border);color:var(--text)">📋 Copy login details</button></div>`;
+  say(h);
+  document.getElementById('ownerLoginCopyBtn').addEventListener('click', async ev => {
+    try { await navigator.clipboard.writeText(copyText); ev.target.textContent = '✓ Copied'; }
+    catch (_) { window.prompt('Copy the login details:', copyText); }
+  });
+  nameEl.value = ''; idEl.value = ''; pwEl.value = ''; roleEl.value = 'staff';
+}
+document.getElementById('ownerLoginGenBtn')?.addEventListener('click', () => { document.getElementById('ownerLoginPass').value = ownerGeneratePassword(); });
+document.getElementById('ownerLoginCreateBtn')?.addEventListener('click', ownerCreateLogin);
+
 async function setUserStatus(uid, newStatus) {
   try {
     await db.collection('users').doc(uid).update({
@@ -4505,6 +4723,35 @@ async function setClusterManagerFlag(uid, val) {
   }
 }
 
+// ---- Search box above the product lists: every word you type must appear in the product (any order, any letter case) ----
+// "cashew nut" → every product whose name has both "cashew" and "nut" ("Cashew Nuts 250g", "Plain Nut Cashew" …).
+// A trailing "s" is optional ("nuts" finds "nut"), spaces/dashes don't matter ("cashewnut" works) and typing a number
+// such as 250 also finds products whose weight box holds 250.
+function ownerProdFilter() {
+  const inp = document.getElementById('ownerProdSearch'), out = document.getElementById('ownerProdSearchCount');
+  if (!inp) return;
+  const words = inp.value.toLowerCase().split(/\s+/).filter(Boolean);
+  const squash = t => t.replace(/[^a-z0-9]/g, '');
+  let total = 0, shown = 0;
+  document.querySelectorAll('#ownerPackWrap tbody tr, #ownerP1PackWrap tbody tr').forEach(tr => {
+    total++;
+    let ok = true;
+    if (words.length) {
+      const hay = (tr.cells[0] ? tr.cells[0].textContent : '').toLowerCase() + ' ' + (tr.cells[1] ? tr.cells[1].textContent : '').toLowerCase()
+        + ' ' + [...tr.querySelectorAll('input')].map(i => i.value).join(' ');
+      const flat = squash(hay);
+      ok = words.every(w => {
+        const alt = w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w;
+        return hay.includes(w) || hay.includes(alt) || flat.includes(squash(w)) || flat.includes(squash(alt));
+      });
+    }
+    tr.style.display = ok ? '' : 'none';
+    if (ok) shown++;
+  });
+  if (out) out.textContent = !total ? '' : words.length ? (shown ? `Showing ${shown} of ${total} products` : `No product matches "${inp.value.trim()}" — try fewer words (e.g. just "cashew")`) : `${total} products`;
+}
+document.getElementById('ownerProdSearch')?.addEventListener('input', ownerProdFilter);
+
 function renderOwnerPackSizes(items) {
   const wrap = document.getElementById('ownerPackWrap');
   if (!wrap) return;
@@ -4524,6 +4771,7 @@ function renderOwnerPackSizes(items) {
   if (!items.length) {
     wrap.innerHTML = `<div class="results-title">Product Pack Sizes</div>${addForm}<div class="table-wrap" style="padding:16px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No products processed yet — they'll appear here the first time anyone runs a Stock Audit, or add one directly above.</div>`;
     document.getElementById('packAddBtn').addEventListener('click', addManualPackOverride);
+    ownerProdFilter();
     return;
   }
   // Unconfirmed products first, since those are the ones that actually need a look
@@ -4548,6 +4796,7 @@ function renderOwnerPackSizes(items) {
     btn.addEventListener('click', () => savePackOverride(btn.dataset.key));
   });
   document.getElementById('packAddBtn').addEventListener('click', addManualPackOverride);
+  ownerProdFilter();
 }
 
 async function addManualPackOverride() {
@@ -4615,6 +4864,7 @@ function renderOwnerP1PackSizes(items) {
   if (!items.length) {
     wrap.innerHTML = `<div class="results-title">Kernel Report Pack Sizes</div>${addForm}<div class="table-wrap" style="padding:16px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No products processed yet — they'll appear here the first time anyone runs the Kernel Report, or add one directly above.</div>`;
     document.getElementById('p1PackAddBtn').addEventListener('click', addManualP1PackOverride);
+    ownerProdFilter();
     return;
   }
   items.sort((a,b) => (a.assigned===b.assigned) ? String(a.packageName||'').localeCompare(String(b.packageName||'')) : (a.assigned?1:-1));
@@ -4639,6 +4889,7 @@ function renderOwnerP1PackSizes(items) {
     btn.addEventListener('click', () => saveP1PackOverride(btn.dataset.key));
   });
   document.getElementById('p1PackAddBtn').addEventListener('click', addManualP1PackOverride);
+  ownerProdFilter();
 }
 
 async function addManualP1PackOverride() {
@@ -4702,7 +4953,7 @@ function renderOwnerDashboard() {
   if (pending.length) {
     pHtml += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Name</th><th style="text-align:left">Email</th><th>Requested</th><th>Action</th></tr></thead><tbody>`;
     pending.forEach(u => {
-      pHtml += `<tr><td style="text-align:left">${escHtml(u.name || '—')}</td><td style="text-align:left">${escHtml(u.email || '—')}</td><td>${fmtTs(u.firstLogin)}</td><td>
+      pHtml += `<tr><td style="text-align:left">${escHtml(u.name || '—')}</td><td style="text-align:left">${escHtml(emailLabel(u.email))}</td><td>${fmtTs(u.firstLogin)}</td><td>
         <button class="mini-btn mini-btn-ok" data-act="approved" data-uid="${u.uid}" title="Staff — will be asked to pick their outlet on their first login">✓ Approve (staff)</button>
         <button class="mini-btn" style="border:1px solid #8B5CF6;color:#8B5CF6" data-cmapprove="1" data-uid="${u.uid}" title="Cluster manager — no outlet question; you then tick the outlets they can see">✓ Approve as Cluster Mgr</button>
         <button class="mini-btn mini-btn-no" data-act="blocked" data-uid="${u.uid}">✕ Deny</button>
@@ -4718,7 +4969,7 @@ function renderOwnerDashboard() {
     pHtml += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Cluster Manager</th><th style="text-align:left">Email</th><th>Currently sees</th><th>Requested</th><th>Action</th></tr></thead><tbody>`;
     reqs.forEach(u => {
       const cur = Array.isArray(u.assignedOutlets) && u.assignedOutlets.length ? (u.assignedOutlets.length > 4 ? u.assignedOutlets.length + ' outlets' : u.assignedOutlets.join(', ')) : 'none';
-      pHtml += `<tr><td style="text-align:left">${escHtml(u.name || '—')}</td><td style="text-align:left">${escHtml(u.email || '—')}</td><td>${escHtml(cur)}</td><td>${fmtTs(u.allOutletsRequestedAt)}</td><td>
+      pHtml += `<tr><td style="text-align:left">${escHtml(u.name || '—')}</td><td style="text-align:left">${escHtml(emailLabel(u.email))}</td><td>${escHtml(cur)}</td><td>${fmtTs(u.allOutletsRequestedAt)}</td><td>
         <button class="mini-btn mini-btn-ok" data-allact="1" data-uid="${u.uid}">✓ Allow all outlets</button>
         <button class="mini-btn mini-btn-no" data-allact="0" data-uid="${u.uid}">✕ Decline</button>
       </td></tr>`;
@@ -4733,7 +4984,7 @@ function renderOwnerDashboard() {
   if (chg.length) {
     pHtml += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Name</th><th style="text-align:left">Email</th><th style="text-align:left">Current outlet</th><th style="text-align:left">Wants to move to</th><th>Requested</th><th>Action</th></tr></thead><tbody>`;
     chg.forEach(u => {
-      pHtml += `<tr><td style="text-align:left">${escHtml(u.name || '—')}</td><td style="text-align:left">${escHtml(u.email || '—')}</td><td style="text-align:left">${escHtml(u.myOutletName || '—')}</td><td style="text-align:left"><strong>${escHtml(u.outletChangeName || '—')}</strong></td><td>${fmtTs(u.outletChangeRequestedAt)}</td><td>
+      pHtml += `<tr><td style="text-align:left">${escHtml(u.name || '—')}</td><td style="text-align:left">${escHtml(emailLabel(u.email))}</td><td style="text-align:left">${escHtml(u.myOutletName || '—')}</td><td style="text-align:left"><strong>${escHtml(u.outletChangeName || '—')}</strong></td><td>${fmtTs(u.outletChangeRequestedAt)}</td><td>
         <button class="mini-btn mini-btn-ok" data-ocact="1" data-uid="${u.uid}">✓ Approve</button>
         <button class="mini-btn mini-btn-no" data-ocact="0" data-uid="${u.uid}">✕ Decline</button>
       </td></tr>`;
@@ -4779,7 +5030,7 @@ function renderOwnerDashboard() {
       : `<button class="mini-btn mini-btn-ok" data-act="approved" data-uid="${u.uid}">Restore</button>`;
     const outletCell = u.isClusterManager ? '<span style="color:var(--muted)">— (cluster manager)</span>' : (u.myOutletName ? escHtml(u.myOutletName) : '<span style="color:#D6923B">not chosen yet</span>');
     const resetBtn = (!u.isClusterManager && u.myOutletName) ? `<button class="mini-btn oc-reset" style="border:1px solid var(--border);color:var(--muted)" data-uid="${u.uid}" title="Clears this person's outlet — they must pick one again">Reset outlet</button>` : '';
-    html += `<tr><td style="text-align:left">${escHtml(u.name || '—')}</td><td style="text-align:left">${escHtml(u.email || '—')}</td><td style="text-align:left">${outletCell}</td><td>${pill}</td><td style="text-align:center">${u.loginCount || 1}</td><td>${fmtTs(u.lastLogin)}</td><td>${actionBtn} ${cmBtn} ${resetBtn} ${u.isClusterManager && u.status === 'approved' ? `<button class="mini-btn cm-outlets" style="border:1px solid #8B5CF6;color:#8B5CF6" data-uid="${u.uid}" data-codes="${(u.assignedOutlets || []).join(',')}">Outlets</button> <button class="mini-btn cm-all" style="border:1px solid ${u.allOutletsAccess ? '#E15C5C;color:#E15C5C' : '#3FB874;color:#3FB874'}" data-uid="${u.uid}" data-grant="${u.allOutletsAccess ? '0' : '1'}">${u.allOutletsAccess ? 'Revoke all-outlets' : 'Allow all outlets'}</button>` : ''}</td></tr>`;
+    html += `<tr><td style="text-align:left">${escHtml(u.name || '—')}</td><td style="text-align:left">${escHtml(emailLabel(u.email))}</td><td style="text-align:left">${outletCell}</td><td>${pill}</td><td style="text-align:center">${u.loginCount || 1}</td><td>${fmtTs(u.lastLogin)}</td><td>${actionBtn} ${cmBtn} ${resetBtn} ${u.isClusterManager && u.status === 'approved' ? `<button class="mini-btn cm-outlets" style="border:1px solid #8B5CF6;color:#8B5CF6" data-uid="${u.uid}" data-codes="${(u.assignedOutlets || []).join(',')}">Outlets</button> <button class="mini-btn cm-all" style="border:1px solid ${u.allOutletsAccess ? '#E15C5C;color:#E15C5C' : '#3FB874;color:#3FB874'}" data-uid="${u.uid}" data-grant="${u.allOutletsAccess ? '0' : '1'}">${u.allOutletsAccess ? 'Revoke all-outlets' : 'Allow all outlets'}</button>` : ''}</td></tr>`;
   });
   if (!others.length) html += `<tr><td colspan="7" style="text-align:center;color:var(--muted)">No approved or blocked users yet</td></tr>`;
   html += `</tbody></table></div></div>`;
@@ -4820,7 +5071,7 @@ function fmtTs(ts) {
   const d = ts.toDate ? ts.toDate() : new Date(ts);
   return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
-function actionLabel(a) { return {login: 'Signed in', switch_tab: 'Opened tab', process_file: 'Processed file', download_file: 'Downloaded file', save_ready_file: 'Saved ready file', add_outlet: 'Added outlet', request_outlet: 'Requested new outlet',request_all_outlets: 'Requested all-outlet access', add_outlet_doc: 'Added outlet document', set_outlet: 'Chose outlet', request_outlet_change: 'Requested outlet change', approve_outlet_change: 'Approved outlet change', deny_outlet_change: 'Declined outlet change', petty_cash_audit: 'Saved petty cash audit', cleanliness_audit: 'Saved cleanliness audit'}[a] || a; }
+function actionLabel(a) { return {login: 'Signed in', switch_tab: 'Opened tab', process_file: 'Processed file', download_file: 'Downloaded file', save_ready_file: 'Saved ready file', add_outlet: 'Added outlet', request_outlet: 'Requested new outlet',request_all_outlets: 'Requested all-outlet access', add_outlet_doc: 'Added outlet document', set_outlet: 'Chose outlet', request_outlet_change: 'Requested outlet change', approve_outlet_change: 'Approved outlet change', deny_outlet_change: 'Declined outlet change', petty_cash_audit: 'Saved petty cash audit', cleanliness_audit: 'Saved cleanliness audit', create_login: 'Created a login (ID & password)', change_password: 'Changed own password'}[a] || a; }
 
 // ══════════════════════════════════════════════════════════════
 // DASHBOARD / HISTORY / SETTINGS / RATE MANAGER / OUTLET MANAGER / AUDIT HISTORY
@@ -4841,11 +5092,21 @@ async function scopedDocs(coll, limitN) {
 }
 async function myRecentActivity(limitN) {
   if (!currentUser) return [];
+  const ms = r => (r.ts && r.ts.toMillis ? r.ts.toMillis() : 0);
   try {
-    const snap = await db.collection('activity').where('uid', '==', currentUser.uid).limit(200).get();
-    const rows = snap.docs.map(d => d.data());
-    rows.sort((a, b) => (b.ts && b.ts.toMillis ? b.ts.toMillis() : 0) - (a.ts && a.ts.toMillis ? a.ts.toMillis() : 0));
-    return rows.slice(0, limitN);
+    // Newest first straight from the server. (The old query took 200 arbitrary records and sorted those, so a
+    // busy user's "recent activity" could miss their latest actions.)
+    try {
+      const snap = await db.collection('activity').where('uid', '==', currentUser.uid).orderBy('ts', 'desc').limit(limitN).get();
+      return snap.docs.map(d => d.data());
+    } catch (e) {
+      // needs a composite index (uid + ts); until it exists fall back to a wider read sorted here
+      console.warn('myRecentActivity: indexed query unavailable, using fallback —', e && e.message);
+      const snap = await db.collection('activity').where('uid', '==', currentUser.uid).limit(500).get();
+      const rows = snap.docs.map(d => d.data());
+      rows.sort((a, b) => ms(b) - ms(a));
+      return rows.slice(0, limitN);
+    }
   } catch (e) {
     console.warn('myRecentActivity failed:', e);
     return null; // signals a load error, vs. a genuinely empty list
@@ -4897,14 +5158,14 @@ async function loadSettingsPanel() {
     if (snap.exists) memberSince = fmtTs(snap.data().firstLogin);
   } catch (e) { console.warn('settings load failed:', e); }
   const avatarHtml = currentUser.photoURL
-    ? `<img src="${currentUser.photoURL}" referrerpolicy="no-referrer" style="width:56px;height:56px;border-radius:50%">`
+    ? `<img src="${p3SafeUrl(currentUser.photoURL)}" referrerpolicy="no-referrer" style="width:56px;height:56px;border-radius:50%">`
     : `<div class="avatar-circle" style="width:56px;height:56px;font-size:19px">${initials(currentUser.displayName, currentUser.email)}</div>`;
   wrap.innerHTML = `
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
       ${avatarHtml}
       <div>
         <div style="font-weight:800;font-size:16px">${escHtml(currentUser.displayName || 'No name set')}</div>
-        <div style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px">${escHtml(currentUser.email || '')}</div>
+        <div style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px">${escHtml(emailLabel(currentUser.email))}</div>
       </div>
     </div>
     <div style="border-top:1px solid var(--border);padding-top:14px;display:flex;flex-direction:column;gap:10px">
@@ -4916,8 +5177,31 @@ async function loadSettingsPanel() {
         : (myOutletChange.status === 'denied' ? `<span style="color:#E15C5C">The owner declined your last change request.</span><br>` : '')
           + `<button class="mini-btn" style="border:1px solid #8B5CF6;color:#8B5CF6;margin:6px 0 0" onclick="openOutletChange()">Request outlet change</button>`}</div>` : ''}
     </div>
+    ${(currentUser.providerData || []).some(p => p.providerId === 'password') ? `<div style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px;max-width:360px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:10px">Change my password</div>
+      <input type="password" id="myNewPass" class="pc-input" placeholder="New password (min 6)" autocomplete="new-password">
+      <input type="password" id="myNewPass2" class="pc-input" placeholder="Type it again" autocomplete="new-password" style="margin-top:8px">
+      <button class="mini-btn" id="myPassBtn" style="margin-top:10px;border:1px solid var(--t1);color:var(--t1)" onclick="changeMyPassword()">Save new password</button>
+      <div id="myPassMsg" style="margin-top:8px;font-family:'DM Mono',monospace;font-size:11.5px;line-height:1.6"></div>
+    </div>` : ''}
     <button class="download-btn" style="margin-top:20px;border:2px solid var(--accent3);color:var(--accent3)" onclick="fbAuth.signOut()">Sign out</button>
   `;
+}
+async function changeMyPassword() {
+  const a = document.getElementById('myNewPass'), b = document.getElementById('myNewPass2'), msg = document.getElementById('myPassMsg'), btn = document.getElementById('myPassBtn');
+  const say = (t, c) => { msg.style.color = c; msg.textContent = t; };
+  if (!currentUser || !a || !b) return;
+  if (a.value.length < 6) { say('The new password needs at least 6 characters.', '#E15C5C'); return; }
+  if (a.value !== b.value) { say("The two passwords don't match.", '#E15C5C'); return; }
+  btn.disabled = true; say('Saving…', 'var(--muted)');
+  try {
+    await currentUser.updatePassword(a.value);
+    a.value = ''; b.value = ''; say('✓ Password changed. Use the new one next time you sign in.', '#3FB874');
+    logActivity('change_password', 7, '');
+  } catch (e) {
+    say(e.code === 'auth/requires-recent-login' ? 'For safety, please sign out, sign in again, and then change your password.' : "Couldn't change it: " + e.message, '#E15C5C');
+  }
+  btn.disabled = false;
 }
 
 // ---- Rate Manager: reflects window.p3RateMap, the map Stock Audit fills from an uploaded PDF this session ----
@@ -5110,31 +5394,32 @@ let p3RatesLoadedFromCloud = false;
 async function p3SavePersistedRates(){
   if(!currentUser || !window.p3RateMap || !window.p3RateMap.size) return;
   try{
-    // Fully replace the saved set on every upload — otherwise an item that's
-    // been discontinued (no longer in the newest PDF) would keep its old price
-    // sitting in Firestore forever and could get silently reused on a future
-    // audit. The rates collection should only ever reflect the latest PDF.
-    const existing = await db.collection('rates').get();
-    const deleteIds = existing.docs.map(d=>d.id);
-
-    // Firestore caps a single batch at 500 operations — chunk both the
-    // deletes and the writes so this keeps working as the price list grows
-    // past that, instead of silently failing once it crosses ~500 items.
-    const CHUNK = 450;
-    for(let i=0;i<deleteIds.length;i+=CHUNK){
-      const batch = db.batch();
-      deleteIds.slice(i,i+CHUNK).forEach(id=>batch.delete(db.collection('rates').doc(id)));
-      await batch.commit();
-    }
+    // The saved set must mirror the newest PDF: discontinued items must not keep an old price forever.
+    // Order matters — write the NEW prices first, then remove only the stale ones. (It used to delete everything
+    // first, so a dropped connection half-way left the whole team with an empty price list.)
+    // A "/" can't be used inside a Firestore document id (e.g. "1/2kg"), so it is swapped for a look-alike character;
+    // the real lookup key is stored inside the document and used again when loading.
+    const idOf = key => key.replace(/\//g,'\u2215');
     const entries = [...window.p3RateMap.entries()];
+    const keepIds = new Set(entries.map(([k])=>idOf(k))); keepIds.add('_meta');
+    const existing = await db.collection('rates').get();
+    const staleIds = existing.docs.map(d=>d.id).filter(id=>!keepIds.has(id));
+
+    // Firestore caps a single batch at 500 operations — chunk so this keeps working as the price list grows.
+    const CHUNK = 450;
     for(let i=0;i<entries.length;i+=CHUNK){
       const batch = db.batch();
       entries.slice(i,i+CHUNK).forEach(([key,v])=>{
-        batch.set(db.collection('rates').doc(key), {
-          name: v.name, billing: v.billing, selling: v.selling, effDate: v.effDate, effDateSort: v.effDateSort||0,
+        batch.set(db.collection('rates').doc(idOf(key)), {
+          key, name: v.name, billing: v.billing, selling: v.selling, effDate: v.effDate, effDateSort: v.effDateSort||0,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: currentUser.displayName||currentUser.email
         });
       });
+      await batch.commit();
+    }
+    for(let i=0;i<staleIds.length;i+=CHUNK){
+      const batch = db.batch();
+      staleIds.slice(i,i+CHUNK).forEach(id=>batch.delete(db.collection('rates').doc(id)));
       await batch.commit();
     }
     await db.collection('rates').doc('_meta').set({
@@ -5149,7 +5434,7 @@ async function p3LoadPersistedRates(){
     const map = new Map(); let meta = null;
     snap.docs.forEach(d=>{
       if(d.id==='_meta'){ meta=d.data(); return; }
-      map.set(d.id, d.data());
+      const v = d.data(); map.set(v.key || d.id, v);
     });
     if(map.size){
       window.p3RateMap = map;
@@ -5170,7 +5455,12 @@ async function saveReadyFile(n) {
   if (!wb || !currentUser) { say('Process a file first.', false); return; }
   btn.disabled = true; say('Saving…', true);
   try {
-    const b64 = XLSX.write(wb, { bookType: 'xlsx', type: 'base64', cellStyles: true });
+    let b64;
+    if (typeof ExcelJS !== 'undefined') {
+      const bytes = new Uint8Array(await p12ToXlsxBuffer(wb)); let bin = '';
+      for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+      b64 = btoa(bin);
+    } else b64 = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
     if (b64.length > 900000) throw new Error('This report is too large to save (over about 650 KB).');
     const name = (n === 1 ? 'Cashew_Kernels_' : 'Cashew_Flavoured_') + (period || 'Stock').replace(/[^a-z0-9]/gi, '_') + '.xlsx';
     await db.collection('ready_files').add({
@@ -6917,7 +7207,7 @@ function odOutletDetail(o, docs) {
     const st = odStatus(d.expiryDate);
     const canDel = edit && (isOwner || d.addedByUid === (currentUser && currentUser.uid));
     return `<tr><td style="text-align:left">${escHtml(d.docName)}</td><td>${d.expiryDate || '—'}</td><td><span class="pill ${st.cls}">${st.label}</span></td>
-      <td><a href="${d.fileUrl}" target="_blank" rel="noopener" class="mini-btn mini-btn-ok" style="text-decoration:none">${d.isPdf ? '📄' : '🖼️'} View</a></td>
+      <td><a href="${p3SafeUrl(d.fileUrl)}" target="_blank" rel="noopener" class="mini-btn mini-btn-ok" style="text-decoration:none">${d.isPdf ? '📄' : '🖼️'} View</a></td>
       ${edit ? `<td>${canDel ? `<button class="mini-btn mini-btn-no" onclick="odDeleteDoc('${d.id}')">Delete</button>` : ''}</td>` : ''}</tr>`;
   }).join('') : `<tr><td colspan="${edit ? 5 : 4}" style="text-align:center;color:var(--muted)">No documents yet</td></tr>`;
   return `<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px" onclick="event.stopPropagation()">
@@ -7067,7 +7357,7 @@ async function odLoadPdfJs() {
   await new Promise((res, rej) => {
     const s = document.createElement('script');
     s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-    s.onload = res; s.onerror = rej;
+    s.onload = res; s.onerror = () => { s.remove(); rej(new Error('Could not load the PDF reader — check your internet connection and try again.')); };
     document.head.appendChild(s);
   });
   window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -7189,7 +7479,7 @@ async function loadAuditHistoryPanel() {
     const staff = isStaffUser();
     // Staff see ONLY their own outlet's audits (queried by outlet, so other outlets' audits are never loaded)
     const [outletsSnap, auditDocs] = await Promise.all([
-      staff ? Promise.resolve(null) : db.collection('outlets').limit(200).get(),
+      staff ? Promise.resolve(null) : db.collection('outlets').limit(1000).get(),
       scopedDocs('audits', 300)
     ]);
     const outletNames = staff ? [myOutletName].filter(Boolean) : outletsSnap.docs.map(d => d.data().name).filter(Boolean);
@@ -7842,7 +8132,7 @@ async function clLoadHistory(){
     if(!rows.length){ wrap.innerHTML = `<div class="table-wrap" style="padding:18px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No cleanliness audits saved yet.</div>`; return; }
     let h = `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th>Score</th><th style="text-align:left">Photo</th><th style="text-align:left">Verified By</th><th>When</th></tr></thead><tbody>`;
     rows.forEach(a=>{
-      h += `<tr><td style="text-align:left">${escHtml(a.outletName||'—')}</td><td>${escHtml(a.score||'—')}</td><td style="text-align:left">${a.photoUrl?`<a href="${a.photoUrl}" target="_blank" rel="noopener">📷 View</a>`:'—'}</td><td style="text-align:left">${escHtml(a.verifiedBy||'—')}</td><td>${fmtTs(a.ts)}</td></tr>`;
+      h += `<tr><td style="text-align:left">${escHtml(a.outletName||'—')}</td><td>${escHtml(a.score||'—')}</td><td style="text-align:left">${a.photoUrl?`<a href="${p3SafeUrl(a.photoUrl)}" target="_blank" rel="noopener">📷 View</a>`:'—'}</td><td style="text-align:left">${escHtml(a.verifiedBy||'—')}</td><td>${fmtTs(a.ts)}</td></tr>`;
     });
     h += `</tbody></table></div></div>`;
     wrap.innerHTML = h;
@@ -7894,7 +8184,7 @@ function p3ResumeDraft(){
     if(storeInp) storeInp.value = p3AuditRows[idx].storeCount ?? '';
     if(rackInp) rackInp.value = p3AuditRows[idx].rackCount ?? '';
   });
-  p3RecalcSummary();
+  p3RecalcSummary(true);
   document.getElementById('p3DraftBanner').classList.remove('on');
 }
 function p3DiscardDraftPrompt(){
