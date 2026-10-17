@@ -511,6 +511,53 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 .sc-opt em{margin-left:auto;font-style:normal;color:var(--muted);font-size:10px}
 .sc-chip{padding:6px 11px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:16px;font-size:12px;cursor:pointer}
 .sc-chip.on{background:rgba(91,127,224,.18);color:var(--text);border-color:var(--t1);font-weight:600}
+/* ── EMAIL REPORT (send a generated report to any e-mail ID from inside the app) ── */
+#mailModal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px}
+#mailModal.open{display:flex}
+#mailModal .modal-box{max-width:600px}
+.ml-lbl{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:14px 0 6px}
+.ml-lbl:first-child{margin-top:0}
+.ml-lbl small{font-weight:400;opacity:.8}
+.ml-in{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font:400 13px/1.4 'Inter',sans-serif;outline:none;transition:border-color .15s}
+.ml-in:focus{border-color:var(--t1)}
+textarea.ml-in{min-height:170px;resize:vertical;font-family:'DM Mono',monospace;font-size:12px;line-height:1.6}
+.ml-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ml-row .ml-lbl:first-child{margin-top:14px}
+@media(max-width:520px){.ml-row{grid-template-columns:1fr;gap:0}}
+.ml-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ml-chips:empty{display:none}
+.ml-chip{background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:16px;padding:4px 10px;font:500 11px 'DM Mono',monospace;cursor:pointer;transition:all .15s}
+.ml-chip:hover{color:var(--text);border-color:var(--t1)}
+.ml-attach{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px dashed var(--border);border-radius:10px;padding:10px 12px}
+.ml-attach.has{border-style:solid;border-color:rgba(63,184,116,.45)}
+.ml-attach-name{flex:1;min-width:0;font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ml-attach-name small{display:block;font:400 10px 'DM Mono',monospace;color:var(--muted);margin-top:2px;white-space:normal}
+.ml-link{background:none;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 11px;font:700 11px 'Manrope',sans-serif;cursor:pointer;flex-shrink:0}
+.ml-link:hover{border-color:var(--t1);color:var(--t1)}
+.ml-route{font:400 11px 'DM Mono',monospace;color:var(--muted);margin-top:14px}
+.ml-status{display:none;margin-top:14px;padding:10px 12px;border-radius:10px;font-size:12.5px;line-height:1.45}
+.ml-status.show{display:block}
+.ml-status.ok{background:rgba(63,184,116,.12);color:#3FB874;border:1px solid rgba(63,184,116,.35)}
+.ml-status.err{background:rgba(225,92,92,.12);color:#E15C5C;border:1px solid rgba(225,92,92,.35)}
+.ml-status.wait{background:rgba(91,127,224,.12);color:var(--t1);border:1px solid rgba(91,127,224,.35)}
+#mailCfgBox{display:none;margin-top:16px;border:1px solid var(--border);border-radius:10px;padding:0 12px 12px;background:var(--surface2)}
+#mailCfgBox summary{cursor:pointer;font-size:12.5px;font-weight:700;padding:12px 0 4px;color:var(--text)}
+#mailCfgBox .ml-in{background:var(--surface)}
+#mailCfgBox p{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:8px}
+.ml-send{background:var(--t1);color:#fff}
+.ml-send:hover:not(:disabled){filter:brightness(1.1)}
+.ml-send:disabled{opacity:.55;cursor:default}
+#mailSnack{display:none;position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:9990;max-width:calc(100vw - 28px);align-items:center;gap:12px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 12px 10px 14px;box-shadow:0 12px 36px rgba(0,0,0,.45);font-size:12.5px;color:var(--text)}
+#mailSnack.show{display:flex}
+#mailSnack .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#mailSnack button.go{background:var(--t1);color:#fff;border:none;border-radius:8px;padding:7px 12px;font:700 12px 'Manrope',sans-serif;cursor:pointer;flex-shrink:0}
+#mailSnack button.x{background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;padding:2px 4px;flex-shrink:0}
+
+/* ── new-product save warning ── */
+#packWarn{display:none;position:fixed;left:50%;top:68px;transform:translateX(-50%);z-index:9995;width:min(520px,calc(100vw - 24px));gap:10px;align-items:flex-start;background:var(--surface2);border:1px solid rgba(225,92,92,.55);border-radius:12px;padding:12px 12px 12px 14px;box-shadow:0 12px 36px rgba(0,0,0,.5);font-size:12.5px;line-height:1.5;color:var(--text)}
+#packWarn.show{display:flex}
+#packWarn b{color:#E15C5C}
+#packWarn button{background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;padding:0 2px;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -606,6 +653,9 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     <button class="tab" data-tab="12" onclick="switchTab(12)">
       <span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><path d="M12 3l1.4 4.9L18 9l-4.6 1.4L12 15l-1.4-4.6L6 9l4.6-1.1L12 3z"/><path d="M19 16l.7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7L19 16z"/></svg></span><span class="tab-label">Cleanliness</span>
     </button>
+    <button class="tab" data-tab="17" onclick="switchTab(17)">
+      <span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/><path d="M8 15l2.5 2.5L16 13"/></svg></span><span class="tab-label">Event Details</span>
+    </button>
     <button class="tab" data-tab="13" onclick="switchTab(13)">
       <span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></span><span class="tab-label">Ready Files</span>
     </button>
@@ -641,7 +691,8 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     <span class="hello-chip" id="topbarHello"></span>
   </div>
   <div style="display:flex;align-items:center;gap:10px">
-    <button class="icon-btn" id="bellBtn" style="display:none" onclick="switchTab(4)" aria-label="Pending requests" title="Pending sign-in, all-outlet access, new-outlet and outlet-change requests">🔔<span class="badge" id="bellBadge" style="display:none">0</span></button>
+    <button class="icon-btn" id="mailBtn" onclick="mailOpen()" aria-label="Email a report" title="Email a report to another e-mail ID"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></button>
+    <button class="icon-btn" id="bellBtn" style="display:none" onclick="bellGo()" aria-label="Pending requests and new products" title="Pending sign-in, all-outlet access, new-outlet, outlet-change requests and new products to confirm">🔔<span class="badge" id="bellBadge" style="display:none">0</span></button>
     <div id="userChip" class="user-chip"></div>
   </div>
 </div>
@@ -1253,6 +1304,75 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
     <div class="note-strip note-c1" style="margin-top:14px"><strong>In the Excel file:</strong> a “Comparison” sheet (your settings, the table with live formulas, and <strong>real Excel charts you can edit</strong> — they are linked to the table cells), an “Outlet x Month” sheet, and a “Details” sheet with every outlet × month × channel that you can filter or pivot.</div>
   </div>
 </div>
+<!-- ══ PANEL 17 — EVENT DETAILS (stock taken to an event vs invoiced vs returned) ══ -->
+<style>
+.ev-in{width:72px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 7px;font:12px 'DM Mono',monospace;color:var(--text);outline:none}
+.ev-in:focus{border-color:#5B7FE0}.ev-in.auto{border-color:#3FB874}
+#evTable th{white-space:nowrap;padding:8px 9px;font-size:10.5px}
+#evTable td{padding:5px 6px}
+.ev-btn{width:auto!important;padding:9px 14px!important;font-size:12.5px!important;margin:0 8px 8px 0}
+</style>
+<div class="panel" id="panel17">
+  <div class="section-head">
+    <span class="dot" style="background:#E8710A"></span>
+    <div><h2>Event Details</h2><p>Items taken to an event → invoiced → returned to outlet, with the difference (missing items) worked out for you</p></div>
+  </div>
+
+  <div class="setup-cards" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
+    <div class="setup-card">
+      <div class="setup-card-hdr"><div class="setup-num" style="background:#5B7FE0">1</div><h3>Event</h3></div>
+      <label class="pc-label">Taken from outlet</label>
+      <input type="text" id="evOutlet" class="pc-input" list="p3OutletDatalist" autocomplete="off" placeholder="e.g. 053 Bangalore Vijayanagar">
+      <label class="pc-label" style="margin-top:12px">Event name</label>
+      <input type="text" id="evName" class="pc-input" placeholder="e.g. Dasara Exhibition">
+      <label class="pc-label" style="margin-top:12px">Date</label>
+      <input type="date" id="evDate" class="pc-input">
+      <label class="pc-label" style="margin-top:12px">Location</label>
+      <input type="text" id="evLoc" class="pc-input">
+      <label class="pc-label" style="margin-top:12px">Staff at event</label>
+      <input type="text" id="evStaff" class="pc-input">
+    </div>
+    <div class="setup-card">
+      <div class="setup-card-hdr"><div class="setup-num" style="background:#3FB874">2</div><h3>Selling prices</h3></div>
+      <p style="font-size:12px;color:var(--muted);margin:0 0 10px;line-height:1.6">Upload your rate <strong>PDF or Excel</strong> — the selling price of every item is picked automatically by item name. Without a file, the saved Rate Manager prices are used.</p>
+      <input type="file" id="evRateFile" accept=".pdf,.xlsx,.xls,.csv" style="display:none">
+      <button class="download-btn ev-btn" onclick="document.getElementById('evRateFile').click()" style="border:2px solid #3FB874;color:#3FB874">⬆ Upload price PDF / Excel</button>
+      <div id="evRateStatus" style="font-family:'DM Mono',monospace;font-size:11.5px;line-height:1.6"></div>
+    </div>
+  </div>
+
+  <div style="margin:18px 0 6px">
+    <input type="file" id="evImpFile" accept=".xlsx,.xls,.csv" style="display:none">
+    <button class="download-btn ev-btn" onclick="evAddRow()" style="border:2px solid #5B7FE0;color:#5B7FE0">+ Add item</button>
+    <button class="download-btn ev-btn" onclick="evImportPick('taken')" style="border:2px solid var(--border);color:var(--text)">⬆ Import items taken (Excel)</button>
+    <button class="download-btn ev-btn" onclick="evImportPick('inv')" style="border:2px solid var(--border);color:var(--text)">⬆ Import invoice (Excel)</button>
+  </div>
+
+  <div id="evCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:11px;margin:14px 0"></div>
+
+  <div class="table-wrap"><div class="table-scroll"><table id="evTable">
+    <thead><tr>
+      <th>#</th><th style="text-align:left">Item</th><th>Taken from Outlet</th><th>From Other Outlet</th><th>Other Outlet Name</th><th>Total Taken</th>
+      <th>Invoiced</th><th>Selling Price ₹</th><th>Invoiced Amt ₹</th><th>Returned to Outlet</th><th>Diff (Missing)</th><th>Diff Value ₹</th><th></th>
+    </tr></thead>
+    <tbody id="evBody"></tbody>
+    <tfoot id="evFoot"></tfoot>
+  </table></div></div>
+  <datalist id="evItemList"></datalist>
+
+  <div class="setup-card" style="margin-bottom:16px;max-width:520px">
+    <label class="pc-label">Remarks</label>
+    <textarea id="evRemarks" rows="2" class="pc-input" style="resize:vertical"></textarea>
+  </div>
+  <button class="download-btn ev-btn" onclick="evSave()" style="border:2px solid #5B7FE0;color:#5B7FE0">💾 Save event</button>
+  <button class="download-btn ev-btn" onclick="evDownload()" style="border:2px solid #3FB874;color:#3FB874">⬇ Download Excel</button>
+  <button class="download-btn ev-btn" onclick="evNew()" style="border:2px solid var(--border);color:var(--muted)">New event</button>
+  <div id="evMsg" style="margin-top:6px;font-family:'DM Mono',monospace;font-size:11.5px;min-height:16px"></div>
+
+  <div class="results-title" style="margin-top:26px">Saved Events</div>
+  <div id="evHistory"><p style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px">Loading…</p></div>
+  <div class="note-strip" style="background:var(--surface);border:1px solid var(--border)"><strong>Diff</strong> = Total Taken − Invoiced − Returned. A red number is stock that went to the event but was neither invoiced nor returned; amber means more was invoiced / returned than taken.</div>
+</div>
 <!-- ══ PANEL 15 — OUTLET DOCUMENTS (Cluster Manager + Owner only) ══ -->
 <div class="panel" id="panel15">
   <div class="section-head">
@@ -1349,8 +1469,8 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
         <div><div class="modal-item-label">Add a "Reason" column</div><div class="modal-item-sub">Blank column right after Remark, for noting why an item is Short or Excess</div></div>
       </label>
       <label class="modal-item">
-        <input type="checkbox" id="p3LiveSheet2">
-        <div><div class="modal-item-label">Keep Sheet 2 linked to Sheet 1 (advanced)</div><div class="modal-item-sub">Off (recommended): both sheets are standalone and can be copied to any new Excel. On: Sheet 2 re-fills when you edit counts in Excel, but it can't be copied on its own.</div></div>
+        <input type="checkbox" id="p3LinkSheet2" checked>
+        <div><div class="modal-item-label">Auto-fill Short &amp; Excess sheet from the counts (recommended)</div><div class="modal-item-sub">On: type Store &amp; Rack Count in the Excel and the SHORT / EXCESS lists with prices fill in by themselves. Off: Sheet 2 is a fixed copy that can be moved to another workbook, but it will not update after you download.</div></div>
       </label>
     </div>
     <div class="modal-ftr">
@@ -1481,7 +1601,8 @@ async function p1RegisterNewPackProducts(){
   const queue = p1NewPackProducts; p1NewPackProducts = [];
   // If the saved overrides never loaded (offline / blocked), every product looks "new" — writing them would overwrite
   // values the owner already confirmed. So only register new products once we have really seen the saved list.
-  if (!queue.length || !currentUser || !p1PackOverridesLoaded) return;
+  if (!queue.length || !currentUser) return;
+  if (!p1PackOverridesLoaded) { packSaveWarn('Kernel Report', queue.length, 'the saved product list could not be loaded — check your internet and run the file again'); return; }
   const CHUNK = 450;
   for (let i=0; i<queue.length; i+=CHUNK) {
     const batch = db.batch();
@@ -1495,7 +1616,7 @@ async function p1RegisterNewPackProducts(){
       }, { merge: true });
       window.p1PackOverrideMap.set(item.key, { packageName: item.packageName, cartonGrams: item.autoCartonGrams, packQty: item.autoPackQty, assigned: false });
     });
-    try { await batch.commit(); } catch(e) { console.warn('p1RegisterNewPackProducts batch failed:', e); }
+    try { await batch.commit(); } catch(e) { console.warn('p1RegisterNewPackProducts batch failed:', e); const failed = queue.slice(i,i+CHUNK); failed.forEach(it => window.p1PackOverrideMap.delete(it.key)); packSaveWarn('Kernel Report', failed.length, e); }
   }
 }
 // Converts a saved override into the exact same {type,kg,cartonKg,packKg} shape
@@ -2589,7 +2710,8 @@ async function p3RegisterNewPackProducts(){
   const queue = p3NewPackProducts; p3NewPackProducts = [];
   // Same guard as the Kernel Report: never register "new" products unless the saved list was actually loaded,
   // otherwise owner-confirmed pack sizes would be overwritten with auto-detected ones.
-  if (!queue.length || !currentUser || !p3PackOverridesLoaded) return;
+  if (!queue.length || !currentUser) return;
+  if (!p3PackOverridesLoaded) { packSaveWarn('Stock Audit', queue.length, 'the saved product list could not be loaded — check your internet and run the file again'); return; }
   const CHUNK = 450;
   for (let i=0; i<queue.length; i+=CHUNK) {
     const batch = db.batch();
@@ -2603,7 +2725,7 @@ async function p3RegisterNewPackProducts(){
       }, { merge: true }); // merge so re-registering an existing (possibly already-assigned) product never clobbers the owner's value
       window.p3PackOverrideMap.set(item.key, { packageName: item.packageName, divideByGrams: item.autoDetectedGrams, autoDetectedGrams: item.autoDetectedGrams, assigned: false });
     });
-    try { await batch.commit(); } catch(e) { console.warn('p3RegisterNewPackProducts batch failed:', e); }
+    try { await batch.commit(); } catch(e) { console.warn('p3RegisterNewPackProducts batch failed:', e); const failed = queue.slice(i,i+CHUNK); failed.forEach(it => window.p3PackOverrideMap.delete(it.key)); packSaveWarn('Stock Audit', failed.length, e); }
   }
 }
 
@@ -3112,7 +3234,7 @@ async function p3BuildExcelJS(rows, includeReason, opts){
   ws2.mergeCells('A3:I3'); ws2.getRow(3).height=20;
   const ib=ws2.getCell('A3');
   ib.value = copySafe
-    ? '\u2713 SHORT / EXCESS items from the audit count ('+nShort+' short, '+nExcess+' excess). Plain values \u2014 this sheet can be copied to any workbook.'
+    ? '\u2713 SHORT / EXCESS items from the audit count ('+nShort+' short, '+nExcess+' excess). Fixed copy \u2014 counts typed later in Excel will NOT update this sheet.'
     : '\u2713 Auto-updating \u2014 fill Store & Rack Count in the Stock Audit sheet and the SHORT / EXCESS lists below refresh automatically.';
   ib.font=FN(C.WHITE,true,9,true); ib.fill=FL('2E3F9F'); ib.alignment=AL('center','middle',true); ib.border=BD();
   'BCDEFGHI'.split('').forEach(col=>{const c=ws2.getCell(col+'3');c.fill=FL('2E3F9F');c.border=BD();});
@@ -3503,7 +3625,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function p3ConfirmDownload() {
   const addReason = document.getElementById('p3AddReasonCol')?.checked || false;
-  const liveSheet2 = document.getElementById('p3LiveSheet2')?.checked || false;
+  const liveSheet2 = document.getElementById('p3LinkSheet2')?.checked ?? true;
   p3CloseModal();
   if (!p3AuditRows.length) return;
   // Re-build excel with filtered rows
@@ -4103,7 +4225,7 @@ fbAuth.onAuthStateChanged(async (user) => {
   if (!user) {
     currentUser = null; isOwner = false;
     // Wipe cluster-manager state so the next person to sign in on this page never inherits the tab or its data
-    isClusterManager = false; myAllAccess = false; myAllReq = ''; lastScopeSig = null; lastDashSig = null; p14MyOutlets = []; odOutlets = []; odDocs = []; odExpanded = null;
+    isClusterManager = false; myAllAccess = false; myAllReq = ''; lastScopeSig = null; lastDashSig = null; p14MyOutlets = []; p14Assigned = []; odOutlets = []; odDocs = []; odExpanded = null;
     { const t = document.querySelector('.tab[data-tab="15"]'); if (t) t.remove();
       const w = document.getElementById('odOutletsWrap'); if (w) w.innerHTML = '';
       const b = document.getElementById('odBanner'); if (b) b.innerHTML = '';
@@ -4137,14 +4259,17 @@ fbAuth.onAuthStateChanged(async (user) => {
 
   if (isOwner) {
     addOwnerTab();
-    isClusterManager = true; myAllAccess = true; p14MyOutlets = null; addClusterDocsTab(); applyAccessTabs();
+    isClusterManager = true; myAllAccess = true; p14MyOutlets = null; p14Assigned = []; addClusterDocsTab(); applyAccessTabs();
     showScreen('app');
     // Live badge of pending sign-in requests, visible from any tab
     if (bellBtn) {
       bellBtn.style.display = 'flex';
-      let nSign = 0, nReq = 0, nOut = 0, nChg = 0;
+      let nSign = 0, nReq = 0, nOut = 0, nChg = 0, nPack = 0, nPack1 = 0;
       const paintBell = () => {
-        const n = nSign + nReq + nOut + nChg;
+        const n = nSign + nReq + nOut + nChg + nPack + nPack1;
+        window.__bellCounts = { requests: nSign + nReq + nOut + nChg, products: nPack + nPack1 };
+        const parts = []; if (nSign + nReq + nOut + nChg) parts.push((nSign + nReq + nOut + nChg) + ' pending request(s)'); if (nPack) parts.push(nPack + ' new Stock Audit product(s)'); if (nPack1) parts.push(nPack1 + ' new Kernel Report product(s)');
+        bellBtn.title = parts.length ? parts.join(' · ') + ' — tap to review' : 'No pending requests or new products';
         const badge = document.getElementById('bellBadge');
         if (badge) { badge.textContent = n; badge.style.display = n > 0 ? 'flex' : 'none'; }
       };
@@ -4152,7 +4277,9 @@ fbAuth.onAuthStateChanged(async (user) => {
       const u2 = db.collection('users').where('allOutletsRequest', '==', 'pending').onSnapshot(snap => { nReq = snap.size; paintBell(); }, err => console.warn('bell (access requests) listener failed:', err));
       const u3 = db.collection('outlets').where('status', '==', 'pending').onSnapshot(snap => { nOut = snap.size; paintBell(); }, err => console.warn('bell (new outlet requests) listener failed:', err));
       const u4 = db.collection('users').where('outletChangeStatus', '==', 'pending').onSnapshot(snap => { nChg = snap.size; paintBell(); }, err => console.warn('bell (outlet change requests) listener failed:', err));
-      bellUnsub = () => { u1(); u2(); u3(); u4(); };
+      const u5 = db.collection('pack_overrides').where('assigned', '==', false).onSnapshot(snap => { nPack = snap.docs.filter(d => d.id !== '_meta').length; paintBell(); }, err => console.warn('bell (new Stock Audit products) listener failed:', err));
+      const u6 = db.collection('p1_pack_overrides').where('assigned', '==', false).onSnapshot(snap => { nPack1 = snap.docs.filter(d => d.id !== '_meta').length; paintBell(); }, err => console.warn('bell (new Kernel Report products) listener failed:', err));
+      bellUnsub = () => { u1(); u2(); u3(); u4(); u5(); u6(); };
     }
     return;
   }
@@ -4172,6 +4299,7 @@ fbAuth.onAuthStateChanged(async (user) => {
       const staffCode = isClusterManager ? '' : odCode(d.myOutletCode || outletLeadCode(d.myOutletName));
       p14MyOutlets = isClusterManager ? (myAllAccess ? null : (Array.isArray(ao) ? ao.map(c => String(c).replace(/\D/g, '').padStart(3, '0')) : []))
         : (staffCode ? [staffCode] : []);
+      p14Assigned = isClusterManager ? (Array.isArray(ao) ? [...new Set(ao.map(c => String(c).replace(/\D/g, '').padStart(3, '0')))] : []) : [];
       const sig = JSON.stringify(p14MyOutlets);
       if (lastScopeSig !== null && sig !== lastScopeSig && p14Data) {
         // his access changed after he processed a file → wipe the old view so nothing out-of-scope stays on screen
@@ -5071,7 +5199,7 @@ function fmtTs(ts) {
   const d = ts.toDate ? ts.toDate() : new Date(ts);
   return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
-function actionLabel(a) { return {login: 'Signed in', switch_tab: 'Opened tab', process_file: 'Processed file', download_file: 'Downloaded file', save_ready_file: 'Saved ready file', add_outlet: 'Added outlet', request_outlet: 'Requested new outlet',request_all_outlets: 'Requested all-outlet access', add_outlet_doc: 'Added outlet document', set_outlet: 'Chose outlet', request_outlet_change: 'Requested outlet change', approve_outlet_change: 'Approved outlet change', deny_outlet_change: 'Declined outlet change', petty_cash_audit: 'Saved petty cash audit', cleanliness_audit: 'Saved cleanliness audit', create_login: 'Created a login (ID & password)', change_password: 'Changed own password'}[a] || a; }
+function actionLabel(a) { return {login: 'Signed in', switch_tab: 'Opened tab', process_file: 'Processed file', download_file: 'Downloaded file', save_ready_file: 'Saved ready file', add_outlet: 'Added outlet', request_outlet: 'Requested new outlet',request_all_outlets: 'Requested all-outlet access', add_outlet_doc: 'Added outlet document', set_outlet: 'Chose outlet', request_outlet_change: 'Requested outlet change', approve_outlet_change: 'Approved outlet change', deny_outlet_change: 'Declined outlet change', petty_cash_audit: 'Saved petty cash audit', cleanliness_audit: 'Saved cleanliness audit', create_login: 'Created a login (ID & password)', change_password: 'Changed own password', email_report: 'Emailed report'}[a] || a; }
 
 // ══════════════════════════════════════════════════════════════
 // DASHBOARD / HISTORY / SETTINGS / RATE MANAGER / OUTLET MANAGER / AUDIT HISTORY
@@ -5494,6 +5622,7 @@ async function loadReadyFilesPanel() {
       const canDelete = isOwner || r.createdByUid === (currentUser && currentUser.uid);
       h += `<tr><td style="text-align:left">${escHtml(r.name || '—')}</td><td>${escHtml(r.kindLabel || '—')}</td><td style="text-align:left">${escHtml(r.createdByName || '—')}</td><td>${fmtTs(r.createdAt)}</td><td>`
         + `<button class="mini-btn mini-btn-ok" onclick="downloadReadyFile('${r.id}')">⬇ Download</button>`
+        + `<button class="mini-btn mini-btn-ok" onclick="mailOpenReady('${r.id}')">✉ Email</button>`
         + (canDelete ? `<button class="mini-btn mini-btn-no" onclick="deleteReadyFile('${r.id}')">Delete</button>` : '') + `</td></tr>`;
     });
     wrap.innerHTML = h + `</tbody></table></div></div>`;
@@ -5528,6 +5657,8 @@ const p14Zero = () => P14_CH.map(() => 0);   // one zero per channel — every t
 let p14File = null, p14Data = null, p14Pick = 'ALL';
 // null = see every outlet (owner / normal user). For a cluster manager this becomes the list of outlet codes assigned to him.
 let p14MyOutlets = null;
+// The outlets the owner ticked for this cluster manager (his "own" outlets). Kept even if he also has all-outlets access, so the download picker can offer "My outlets".
+let p14Assigned = [];
 // Optional name overrides by outlet code — if an outlet is listed here this name is used instead of the one in the Invoice List.
 let p14Dir = {}, p14DirLoaded = false, p14TypePick = 'ALL';
 const P14_TYPE = { franchise: 'Franchise', company: 'Company-owned' };
@@ -6001,9 +6132,10 @@ function p14ParseSel(txt, list) {
   });
   return hit;
 }
-function p14Picker({ title, note, list, selected, okLabel, allowEmpty }) {
+function p14Picker({ title, note, list, selected, okLabel, allowEmpty, mine }) {
   return new Promise(resolve => {
     const sel = new Set(selected || []);
+    const mineSet = new Set(mine || []), mineN = list.filter(o => mineSet.has(o.code)).length;
     const IN = 'padding:9px 11px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:9px;font-size:13px';
     const ov = document.createElement('div');
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:14px';
@@ -6011,13 +6143,13 @@ function p14Picker({ title, note, list, selected, okLabel, allowEmpty }) {
       <div style="font-weight:800;font-size:15px">${escHtml(title)}</div>
       <div style="font-size:11.5px;color:var(--muted)">${escHtml(note || '')}</div>
       <div style="display:flex;gap:6px"><input id="pkTxt" placeholder="e.g. 001-020, 053, Hubli, 001 to All" style="flex:1;${IN}"><button class="mini-btn mini-btn-ok" id="pkApply">Select</button></div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="mini-btn" data-q="all">All</button><button class="mini-btn" data-q="none">None</button><button class="mini-btn" data-q="company">Company-owned</button><button class="mini-btn" data-q="franchise">Franchise</button></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${mineN ? `<button class="mini-btn mini-btn-ok" data-q="mine">★ My outlets (${mineN})</button>` : ''}<button class="mini-btn" data-q="all">All</button><button class="mini-btn" data-q="none">None</button><button class="mini-btn" data-q="company">Company-owned</button><button class="mini-btn" data-q="franchise">Franchise</button></div>
       <div id="pkList" style="overflow:auto;border:1px solid var(--border);border-radius:10px;flex:1;min-height:120px"></div>
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span id="pkCount" style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace"></span><span><button class="mini-btn" id="pkCancel">Cancel</button> <button class="mini-btn mini-btn-ok" id="pkOk">${escHtml(okLabel || 'OK')}</button></span></div></div>`;
     document.body.appendChild(ov);
     const q = id => ov.querySelector(id), typeOf = o => o.type || p14TypeOf(o.code);
     const paint = () => {
-      q('#pkList').innerHTML = list.map(o => `<label style="display:flex;gap:8px;align-items:center;padding:7px 10px;border-bottom:1px solid var(--border);font-size:12.5px;cursor:pointer"><input type="checkbox" data-c="${o.code}" ${sel.has(o.code) ? 'checked' : ''}><span>${escHtml(o.label)}</span><span style="margin-left:auto;color:var(--muted);font-size:10.5px">${P14_TYPE[typeOf(o)] || ''}</span></label>`).join('');
+      q('#pkList').innerHTML = list.map(o => `<label style="display:flex;gap:8px;align-items:center;padding:7px 10px;border-bottom:1px solid var(--border);font-size:12.5px;cursor:pointer"><input type="checkbox" data-c="${o.code}" ${sel.has(o.code) ? 'checked' : ''}><span>${escHtml(o.label)}</span>${mineSet.has(o.code) ? '<span style="color:#8B5CF6;font-size:10px;font-weight:700;font-family:DM Mono,monospace">★ MINE</span>' : ''}<span style="margin-left:auto;color:var(--muted);font-size:10.5px">${P14_TYPE[typeOf(o)] || ''}</span></label>`).join('');
       q('#pkCount').textContent = `${sel.size} of ${list.length} selected`;
       q('#pkOk').disabled = !allowEmpty && sel.size === 0;
     };
@@ -6028,7 +6160,7 @@ function p14Picker({ title, note, list, selected, okLabel, allowEmpty }) {
     q('#pkTxt').addEventListener('keydown', e => { if (e.key === 'Enter') apply(); });
     ov.querySelectorAll('[data-q]').forEach(b => b.addEventListener('click', () => {
       const k = b.dataset.q; sel.clear();
-      list.forEach(o => { if (k === 'all' || (k !== 'none' && typeOf(o) === k)) sel.add(o.code); });
+      list.forEach(o => { if (k === 'all' || (k === 'mine' ? mineSet.has(o.code) : (k !== 'none' && typeOf(o) === k))) sel.add(o.code); });
       paint();
     }));
     q('#pkCancel').addEventListener('click', () => done(null));
@@ -6955,8 +7087,12 @@ $14('p14DownloadBtn').addEventListener('click', async () => {
     const everyone = p14Data.outlets.map(o => o.code);
     let codes = everyone;
     if (everyone.length > 1) {
-      codes = await p14Picker({ title: 'Download Sales Report — which outlets?', note: `${everyone.length} outlets in this file. Type numbers or names (001-020, 053, Hubli, 001 to All) and tap Select, or tick them below.`,
-        list: p14Data.outlets, selected: everyone, okLabel: 'Download' });
+      // Cluster manager (not the owner): his own outlets that are in this file come ticked; he can switch to All or tick any others.
+      const mine = (isClusterManager && !isOwner) ? p14Assigned.filter(c => everyone.includes(c)) : [];
+      codes = await p14Picker({ title: 'Download Sales Report — which outlets?',
+        note: mine.length ? `${everyone.length} outlets in this file. Your ${mine.length} assigned outlet${mine.length > 1 ? 's are' : ' is'} ticked (★ MINE). Tap “★ My outlets” or “All”, or tick any others you want.`
+          : `${everyone.length} outlets in this file. Type numbers or names (001-020, 053, Hubli, 001 to All) and tap Select, or tick them below.`,
+        list: p14Data.outlets, selected: mine.length ? mine : everyone, mine, okLabel: 'Download' });
       if (!codes) return;
     }
     const fmt = await p14FormatPicker(p14Data, codes);   // Format 1 (month-wise sheets) or Format 2 (all months in one sheet)
@@ -8319,7 +8455,7 @@ function p3CmJumpUnfilled(){
 
   // ── saved settings (cloud, per user) ─────────────────────────
   let P = {}, loaded = false, loadedFor = null, timer = null, warned = false;
-  const FIELDS = [['p2NameInclude', 'v'], ['p2NameExclude', 'v'], ['p2PackOfOn', 'c'], ['p3AddReasonCol', 'c'], ['p3LiveSheet2', 'c']];
+  const FIELDS = [['p2NameInclude', 'v'], ['p2NameExclude', 'v'], ['p2PackOfOn', 'c'], ['p3AddReasonCol', 'c'], ['p3LinkSheet2', 'c']];
   function applyAll() {
     FIELDS.forEach(([id, t]) => { const el = $(id), k = 'f_' + id; if (!el || !(k in P)) return; if (t === 'c') el.checked = !!P[k]; else el.value = P[k]; });
     if (typeof p2PackOfOn !== 'undefined' && $('p2PackOfOn')) p2PackOfOn = $('p2PackOfOn').checked;
@@ -8495,6 +8631,588 @@ function p3CmJumpUnfilled(){
     box.innerHTML = `<details style="margin-bottom:16px;border:1px solid #D6923B;background:rgba(214,146,59,.08);border-radius:12px;padding:10px 12px"><summary style="cursor:pointer;font-weight:700;font-size:13px;color:#D6923B">⚠ ${list.length} item${list.length === 1 ? '' : 's'} skipped — no pack size (g / kg / ml) found in the name</summary><div style="font-size:12px;margin-top:8px;line-height:1.6">${list.map(n => '• ' + esc(n)).join('<br>')}<div style="color:var(--muted);margin-top:8px">If any of these should be counted, add the size to the product name (e.g. “… 25g”).</div></div></details>`;
   };
 })();
+</script>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// EVENT DETAILS (new section) — items taken to an event vs invoiced vs returned, with auto selling price + Diff.
+// Self-contained: only reads existing helpers (db, currentUser, escHtml, scopedDocs, logActivity, p3RateMap…).
+// ══════════════════════════════════════════════════════════════
+(function(){
+const $=id=>document.getElementById(id), esc=s=>escHtml(s==null?'':s);
+const num=v=>{const n=parseFloat(String(v==null?'':v).replace(/[₹,\s]/g,''));return isFinite(n)?n:0;};
+const fmt=n=>(Math.round(n*100)/100).toLocaleString('en-IN');
+PANEL_NAMES[17]='Event Details';
+let rows=[], evRates=null, evId=null, impKind='taken', cands=null, hist={};
+
+// ── item-name matching (same idea as the Stock Audit rate matcher) ──
+const UN={gm:'g',gms:'g',gram:'g',grams:'g',kgs:'kg',kilogram:'kg',millilitre:'ml',ltr:'l',ltrs:'l',litre:'l',liter:'l',pcs:'pc',piece:'pc',packet:'pack',pkt:'pack',packs:'pack'};
+const STOP=new Set(['','of','the','and','a','x']);
+const tok=s=>String(s||'').toLowerCase().replace(/'/g,'').replace(/[^\w\s.]/g,' ').replace(/(\d)([a-z])/g,'$1 $2').replace(/([a-z])(\d)/g,'$1 $2').split(/\s+/).map(t=>UN[t]||t).filter(t=>!STOP.has(t)).map(t=>t.length>=4&&/s$/.test(t)&&!/ss$/.test(t)?t.slice(0,-1):t);
+const isN=t=>/^\d+(\.\d+)?$/.test(t), key=s=>tok(s).sort().join(' ');
+const pool=()=>{const m=evRates||window.p3RateMap;return m&&m.size?[...m.values()]:[];};
+function build(){
+  const list=pool(), src=evRates||window.p3RateMap;
+  if(cands&&cands.n===list.length&&cands.src===src)return;
+  const df=new Map();
+  const c=list.map(v=>{const t=tok(v.name),n=new Set(t.filter(isN)),w=new Set(t.filter(x=>!n.has(x)));w.forEach(x=>df.set(x,(df.get(x)||0)+1));return{v,n,w};});
+  cands={n:list.length,src,c,df,cache:new Map()};
+}
+function findRate(name){
+  build(); if(!cands.c.length||!String(name||'').trim())return null;
+  const k=key(name); if(cands.cache.has(k))return cands.cache.get(k);
+  const t=tok(name),an=new Set(t.filter(isN)),aw=new Set(t.filter(x=>!an.has(x))),N=cands.c.length;
+  const W=x=>Math.log((N+1)/(cands.df.get(x)||1))+.3; let best=null,bs=0;
+  for(const c of cands.c){
+    if(an.size&&c.n.size&&(an.size!==c.n.size||[...an].some(x=>!c.n.has(x))))continue;
+    if(!aw.size||!c.w.size)continue;
+    let I=0,U=0; new Set([...aw,...c.w]).forEach(x=>{const w=W(x);U+=w;if(aw.has(x)&&c.w.has(x))I+=w;});
+    const s=U?I/U:0; if(s>bs){bs=s;best=c.v;}
+  }
+  const r=bs>=.58?best:null; cands.cache.set(k,r); return r;   // high bar on purpose: a blank price is safer than a wrong one
+}
+function autoPrice(r){
+  if(r.pm)return;
+  const m=findRate(r.name);
+  if(m&&m.selling){r.price=m.selling;r.pa=true;r.mn=m.name;}
+  else if(r.pa){r.price='';r.pa=false;r.mn='';}
+}
+
+// ── reading the price file (PDF or Excel) ──
+function findCols(g,vRe,bad){
+  for(let i=0;i<Math.min(g.length,25);i++){
+    const r=g[i].map(c=>String(c).trim()), a=r.findIndex(c=>/item|product|sku|desc|particular|name/i.test(c)); if(a<0)continue;
+    for(const re of vRe){const b=r.findIndex((c,j)=>j!==a&&re.test(c)&&!(bad&&bad.test(c))); if(b>=0)return{h:i,nc:a,vc:b};}
+  }
+  // no header found: name = column with most words, value = right-most mostly-numeric column
+  const body=g.slice(0,300),cols=Math.max(0,...body.map(r=>r.length)); let nc=0,nb=-1,vc=-1;
+  for(let c=0;c<cols;c++){const n=body.filter(r=>/[a-z]{3}/i.test(String(r[c]))).length;if(n>nb){nb=n;nc=c;}}
+  for(let c=cols-1;c>=0;c--){if(c!==nc&&body.filter(r=>num(r[c])>0).length>=Math.max(2,body.length*.3)){vc=c;break;}}
+  return vc<0?null:{h:-1,nc,vc};
+}
+function sheetsGrid(wb){return wb.SheetNames.map(sn=>XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''}));}
+async function readPdfRates(file){
+  if(!window.pdfjsLib){
+    await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=res;s.onerror=()=>{s.remove();rej(new Error('Could not load the PDF reader — check your internet connection.'));};document.head.appendChild(s);});
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+  const pdf=await window.pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise, lines=[];
+  for(let p=1;p<=pdf.numPages;p++){
+    const tc=await (await pdf.getPage(p)).getTextContent(), rs=[];
+    tc.items.map(i=>({s:i.str.trim(),x:Math.round(i.transform[4]),y:Math.round(i.transform[5])})).filter(i=>i.s).forEach(i=>{const r=rs.find(r=>Math.abs(r.y-i.y)<=4);r?r.i.push(i):rs.push({y:i.y,i:[i]});});
+    rs.sort((a,b)=>b.y-a.y).forEach(r=>lines.push(r.i.sort((a,b)=>a.x-b.x).map(i=>i.s)));
+  }
+  const dateRe=/^\d{2}-\d{2}-\d{4}$/, priceRe=/^\d+\.\d{3}$/, out=[];
+  for(const tk of lines){   // Bolas retail-rate PDF: Sl No | SKU | date | Billing | Sug WS | WS | Retail As Per Outlet | Sug Retail
+    if(tk.some(t=>/^(Sl No|SKU|Billing Price|Retail Rate List|To be continued\.\.\.|Wholesale Price|As Per Outlet|Retail Price)$/.test(t)||t.startsWith('Effective')||/^\d{3}\s+Bolas/.test(t)))continue;
+    const di=tk.findIndex(t=>dateRe.test(t));
+    if(di>=0){
+      const name=tk.slice(/^\d+$/.test(tk[0])?1:0,di).join(' ').trim(), pr=tk.slice(di+1).filter(t=>priceRe.test(t)).map(parseFloat);
+      if(name&&pr.length>=3)out.push({name,billing:pr[0],selling:pr.length>=4?pr[3]:pr[2]});
+    }else if(out.length&&tk.some(t=>/[a-z]/i.test(t))){const l=out[out.length-1];l.name=(l.name+' '+tk.join(' ')).replace(/\s+/g,' ').trim();}   // wrapped name (pack-size) line
+  }
+  if(out.length)return out;
+  // any other PDF: name text + last price on the same line
+  for(const tk of lines){
+    const nums=tk.filter((t,i)=>/^₹?\d[\d,]*(\.\d+)?$/.test(t)&&!(i===0&&/^\d+$/.test(t))), name=tk.filter(t=>!/^₹?[\d,.]+$/.test(t)).join(' ').trim();
+    if(name.length>=3&&/[a-z]{3}/i.test(name)&&nums.length)out.push({name,selling:num(nums[nums.length-1])});
+  }
+  return out;
+}
+function readXlRates(wb){
+  const out=[];
+  sheetsGrid(wb).forEach(g=>{
+    const c=findCols(g,[/selling/i,/retail/i,/mrp/i,/rate/i,/price/i],/billing|purchase|cost|wholesale|\bws\b/i); if(!c)return;
+    g.slice(c.h+1).forEach(r=>{const name=String(r[c.nc]).trim(),p=num(r[c.vc]);if(name&&p>0&&!/^total/i.test(name))out.push({name,selling:p});});
+  });
+  return out;
+}
+async function loadRateFile(file){
+  const st=$('evRateStatus'); st.style.color='var(--muted)'; st.textContent='⏳ Reading '+file.name+' …';
+  try{
+    const list=/\.pdf$/i.test(file.name)?await readPdfRates(file):readXlRates(XLSX.read(await file.arrayBuffer(),{type:'array'}));
+    if(!list.length)throw new Error('No item + price pairs found in this file.');
+    evRates=new Map(); list.forEach(e=>evRates.set(key(e.name)+'|'+evRates.size,e)); cands=null;
+    rows.forEach(r=>{r.pm=false;autoPrice(r);});
+    fillList(); render(); rateStatus(file.name);
+  }catch(e){st.style.color='#E15C5C';st.textContent='✗ '+e.message+' — prices stay as they are; you can type them in.';console.error(e);}
+}
+function rateStatus(fn){
+  const st=$('evRateStatus'),n=window.p3RateMap&&window.p3RateMap.size; st.style.color='#3FB874';
+  if(evRates)st.innerHTML='✓ '+evRates.size+' prices read from <strong>'+esc(fn||'your file')+'</strong>. Green price boxes were picked automatically.';
+  else if(n)st.innerHTML='✓ Using the '+n+' saved Rate Manager prices (upload a file here to override).';
+  else{st.style.color='var(--muted)';st.textContent='No price list yet — upload a PDF / Excel, or type the prices.';}
+}
+function fillList(){$('evItemList').innerHTML=pool().slice(0,3000).map(v=>'<option value="'+esc(v.name)+'">').join('');}
+
+// ── table ──
+const blank=()=>({name:'',own:'',other:'',from:'',inv:'',price:'',ret:'',pm:false,pa:false,mn:''});
+const calc=r=>{const t=num(r.own)+num(r.other),d=t-num(r.inv)-num(r.ret),p=num(r.price);return{t,d,a:num(r.inv)*p,v:d*p};};
+const dCell=d=>d===0?'<span style="color:#3FB874">✓</span>':'<strong style="color:'+(d>0?'#E15C5C':'#D6923B')+'">'+fmt(d)+'</strong>';
+function render(){
+  const inp=(i,f,v,w,ex)=>'<input class="ev-in'+(ex||'')+'" data-f="'+f+'" '+(f==='from'||f==='name'?'':'type="number" min="0" step="any" inputmode="decimal" ')+'value="'+esc(v)+'" style="width:'+w+'px">';
+  $('evBody').innerHTML=rows.map((r,i)=>'<tr data-i="'+i+'"><td>'+(i+1)+'</td>'
+    +'<td style="text-align:left"><input class="ev-in" list="evItemList" data-f="name" value="'+esc(r.name)+'" style="width:230px" placeholder="Item name"></td>'
+    +'<td>'+inp(i,'own',r.own,76)+'</td><td>'+inp(i,'other',r.other,76)+'</td><td>'+inp(i,'from',r.from,120)+'</td>'
+    +'<td id="evT'+i+'" style="color:var(--text);font-weight:700"></td><td>'+inp(i,'inv',r.inv,76)+'</td>'
+    +'<td title="'+esc(r.pa?'Auto: '+r.mn:'')+'">'+inp(i,'price',r.price,84,r.pa?' auto':'')+'</td><td id="evA'+i+'"></td>'
+    +'<td>'+inp(i,'ret',r.ret,76)+'</td><td id="evD'+i+'"></td><td id="evV'+i+'"></td>'
+    +'<td><button onclick="evDelRow('+i+')" aria-label="Remove" style="background:none;border:none;color:#E15C5C;cursor:pointer;font-size:14px">✕</button></td></tr>').join('');
+  paint();
+}
+function paint(){
+  let T=0,I=0,R=0,D=0,A=0,V=0;
+  rows.forEach((r,i)=>{const c=calc(r);T+=c.t;I+=num(r.inv);R+=num(r.ret);D+=c.d;A+=c.a;V+=c.v;
+    const s=(id,h)=>{const e=$(id+i);if(e)e.innerHTML=h;}; s('evT',fmt(c.t)); s('evA',c.a?fmt(c.a):'—'); s('evD',dCell(c.d)); s('evV',c.v?fmt(c.v):'—');});
+  const cd=(v,l,c)=>'<div class="sc"><div class="sv" style="'+(c?'color:'+c+';':'')+'font-size:19px">'+v+'</div><div class="sl">'+l+'</div></div>';
+  $('evCards').innerHTML=cd(fmt(T),'Total Taken','#5B7FE0')+cd(fmt(I),'Invoiced','#3FB874')+cd(fmt(R),'Returned to Outlet','#74b9ff')+cd(fmt(D),'Diff (Missing)',D===0?'#3FB874':'#E15C5C')+cd('₹'+fmt(A),'Invoiced Amount','#3FB874')+cd('₹'+fmt(V),'Diff Value',V===0?'#3FB874':'#E15C5C');
+  $('evFoot').innerHTML='<tr style="background:var(--surface2);font-weight:700"><td colspan="5" style="text-align:right;color:var(--text)">TOTAL</td><td style="color:var(--text)">'+fmt(T)+'</td><td style="color:var(--text)">'+fmt(I)+'</td><td></td><td style="color:var(--text)">'+fmt(A)+'</td><td style="color:var(--text)">'+fmt(R)+'</td><td>'+dCell(D)+'</td><td style="color:var(--text)">'+fmt(V)+'</td><td></td></tr>';
+}
+$('evBody').addEventListener('input',e=>{
+  const f=e.target.dataset.f,tr=e.target.closest('tr'); if(!f||!tr)return; const r=rows[+tr.dataset.i];
+  r[f]=e.target.value; if(f==='price'){r.pm=true;r.pa=false;e.target.classList.remove('auto');} paint();
+});
+$('evBody').addEventListener('change',e=>{
+  if(e.target.dataset.f!=='name')return; const r=rows[+e.target.closest('tr').dataset.i]; r.pm=false; autoPrice(r); render();
+});
+window.evAddRow=()=>{rows.push(blank());render();const n=document.querySelectorAll('#evBody tr:last-child .ev-in');if(n[0])n[0].focus();};
+window.evDelRow=i=>{rows.splice(i,1);if(!rows.length)rows.push(blank());render();};
+
+// ── import (Excel with Item + Qty) ──
+window.evImportPick=k=>{impKind=k;const f=$('evImpFile');f.value='';f.click();};
+$('evImpFile').addEventListener('change',async e=>{
+  const file=e.target.files[0]; if(!file)return;
+  try{
+    const agg=new Map(), re=impKind==='inv'?[/invoice/i,/sold/i,/qty|quant/i,/nos|pcs|pack/i]:[/taken|issued/i,/qty|quant/i,/nos|pcs|pack/i];
+    sheetsGrid(XLSX.read(await file.arrayBuffer(),{type:'array'})).forEach(g=>{
+      const c=findCols(g,re); if(!c)return;
+      g.slice(c.h+1).forEach(r=>{const name=String(r[c.nc]).trim(),q=num(r[c.vc]);if(!name||q<=0||/^total/i.test(name))return;const k=key(name),o=agg.get(k);o?o.q+=q:agg.set(k,{name,q});});
+    });
+    if(!agg.size)throw new Error('No item + quantity columns found in that file.');
+    rows=rows.filter(r=>r.name||num(r.own)||num(r.inv)); let add=0,upd=0;
+    agg.forEach((o,k)=>{
+      let r=rows.find(x=>key(x.name)===k);
+      if(r)upd++; else{r=blank();r.name=o.name;rows.push(r);add++;}
+      if(impKind==='inv')r.inv=o.q; else r.own=o.q; r.pm=r.pm&&!!num(r.price); autoPrice(r);
+    });
+    if(!rows.length)rows.push(blank()); render(); msg('✓ Imported '+agg.size+' items ('+add+' new, '+upd+' updated) from '+file.name+'.',true);
+  }catch(err){msg(err.message,false);}
+});
+$('evRateFile').addEventListener('change',e=>{if(e.target.files[0])loadRateFile(e.target.files[0]);});
+
+// ── save / history / excel ──
+function msg(t,ok){const m=$('evMsg');m.style.color=ok?'#3FB874':'#E15C5C';m.textContent=t;}
+function snapshot(){
+  const rs=rows.filter(r=>String(r.name).trim()).map(r=>({name:r.name.trim(),own:num(r.own),other:num(r.other),from:r.from||'',inv:num(r.inv),price:num(r.price),ret:num(r.ret)}));
+  let t=0,d=0,v=0; rs.forEach(r=>{const c=calc(r);t+=c.t;d+=c.d;v+=c.v;});
+  return{rows:rs,totals:{taken:t,diff:d,diffValue:v}};
+}
+window.evSave=async()=>{
+  const outlet=$('evOutlet').value.trim(),name=$('evName').value.trim(),s=snapshot();
+  if(!currentUser)return msg('Please sign in first.',false);
+  if(!outlet||!name)return msg('Enter the outlet and the event name first.',false);
+  if(!s.rows.length)return msg('Add at least one item first.',false);
+  const data={outletName:outlet,eventName:name,eventDate:$('evDate').value,location:$('evLoc').value.trim(),staff:$('evStaff').value.trim(),remarks:$('evRemarks').value.trim(),
+    rows:s.rows,totals:s.totals,ts:firebase.firestore.FieldValue.serverTimestamp(),updatedByName:currentUser.displayName||currentUser.email};
+  try{
+    if(evId)await db.collection('event_details').doc(evId).set(data,{merge:true});
+    else{const ref=await db.collection('event_details').add(Object.assign({createdByUid:currentUser.uid,createdByName:currentUser.displayName||currentUser.email},data));evId=ref.id;}
+    logActivity('save_event',17,name+' · '+outlet); msg('✓ Event saved.',true); loadHist();
+  }catch(e){msg(e.code==='permission-denied'?'Firestore rules don’t allow the collection “event_details” yet — add the rule (see the note I gave you), then save again.':e.message,false);}
+};
+async function loadHist(){
+  const w=$('evHistory'); if(!currentUser){w.innerHTML='';return;}
+  try{
+    const docs=await scopedDocs('event_details',30); hist={}; docs.forEach(d=>hist[d.id]=d.data());
+    w.innerHTML=docs.length?docs.map(d=>{const x=d.data(),t=x.totals||{},ok=!t.diff;
+      return '<div class="sc" style="text-align:left;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><div style="flex:1;min-width:180px"><div style="font-weight:700;font-size:13px">'+esc(x.eventName)+'</div><div style="color:var(--muted);font-size:11px;font-family:\'DM Mono\',monospace">'+esc(x.outletName)+' · '+esc(x.eventDate||'—')+' · '+(x.rows||[]).length+' items</div></div>'
+        +'<div style="font-size:12px;font-weight:700;color:'+(ok?'#3FB874':'#E15C5C')+'">'+(ok?'No difference':'Diff '+fmt(t.diff||0)+' · ₹'+fmt(t.diffValue||0))+'</div>'
+        +'<button class="mini-btn" data-open="'+d.id+'" style="border:1px solid var(--border);color:var(--text)">Open</button>'
+        +((isOwner||x.createdByUid===currentUser.uid)?'<button class="mini-btn" data-del="'+d.id+'" style="border:1px solid #E15C5C;color:#E15C5C">Delete</button>':'')+'</div>';}).join('')
+      :'<p style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:12px">No saved events yet.</p>';
+  }catch(e){w.innerHTML='<p style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:12px">'+(e.code==='permission-denied'?'Saved events can’t be read yet — the Firestore rule for “event_details” is missing.':esc(e.message))+'</p>';}
+}
+$('evHistory').addEventListener('click',async e=>{
+  const o=e.target.dataset.open,d=e.target.dataset.del;
+  if(o&&hist[o]){const x=hist[o];evId=o;$('evOutlet').value=x.outletName||'';$('evName').value=x.eventName||'';$('evDate').value=x.eventDate||'';$('evLoc').value=x.location||'';$('evStaff').value=x.staff||'';$('evRemarks').value=x.remarks||'';
+    rows=(x.rows||[]).map(r=>Object.assign(blank(),{name:r.name,own:r.own||'',other:r.other||'',from:r.from||'',inv:r.inv||'',price:r.price||'',ret:r.ret||''}));if(!rows.length)rows.push(blank());lockOutlet();render();msg('Opened “'+x.eventName+'”.',true);window.scrollTo({top:0,behavior:'smooth'});}
+  if(d&&confirm('Delete this saved event?')){try{await db.collection('event_details').doc(d).delete();if(evId===d)evId=null;loadHist();}catch(err){msg(err.message,false);}}
+});
+window.evNew=()=>{evId=null;['evName','evLoc','evStaff','evRemarks'].forEach(i=>$(i).value='');rows=[blank()];$('evDate').value=today();if(!isStaffUser())$('evOutlet').value='';lockOutlet();render();msg('',true);};
+window.evDownload=async()=>{
+  const s=snapshot(); if(!s.rows.length)return msg('Add at least one item first.',false);
+  if(typeof ExcelJS==='undefined')return msg('The Excel library has not loaded — check your internet connection and try again.',false);
+  const wb=new ExcelJS.Workbook(); wb.creator='Bolas Stock Suite'; const ws=wb.addWorksheet('Event Details');
+  const thin={style:'thin',color:{argb:'FFBBBBBB'}},bd={top:thin,left:thin,bottom:thin,right:thin};
+  ws.addRow([($('evOutlet').value||'').toUpperCase()+' — EVENT STOCK RECONCILIATION']); ws.mergeCells('A1:L1'); ws.getCell('A1').font={bold:true,size:14};
+  ws.addRow(['Event',$('evName').value,'','Date',$('evDate').value,'','Location',$('evLoc').value]); ws.addRow(['Staff',$('evStaff').value,'','Remarks',$('evRemarks').value]);
+  ws.addRow([]);
+  const H=ws.addRow(['#','Item','Taken from Outlet','From Other Outlet','Other Outlet Name','Total Taken','Invoiced','Selling Price (₹)','Invoiced Amount (₹)','Returned to Outlet','Diff (Missing)','Diff Value (₹)']);
+  H.eachCell(c=>{c.font={bold:true,color:{argb:'FFFFFFFF'}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF2E3F9F'}};c.alignment={horizontal:'center',vertical:'middle',wrapText:true};c.border=bd;});
+  s.rows.forEach((r,i)=>{const n=6+i,row=ws.addRow([i+1,r.name,r.own||0,r.other||0,r.from,{formula:`C${n}+D${n}`},r.inv||0,r.price||null,{formula:`G${n}*N(H${n})`},r.ret||0,{formula:`F${n}-G${n}-J${n}`},{formula:`K${n}*N(H${n})`}]);
+    row.eachCell(c=>c.border=bd); row.getCell(11).numFmt='[Red]0.##;[Red]-0.##;"✓"'; [8,9,12].forEach(k=>row.getCell(k).numFmt='#,##0.00');});
+  const L=5+s.rows.length,T=ws.addRow(['','TOTAL','','','',{formula:`SUM(F6:F${L})`},{formula:`SUM(G6:G${L})`},'',{formula:`SUM(I6:I${L})`},{formula:`SUM(J6:J${L})`},{formula:`SUM(K6:K${L})`},{formula:`SUM(L6:L${L})`}]);
+  T.eachCell({includeEmpty:true},c=>{c.font={bold:true};c.border=bd;c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFEDEDED'}};}); T.getCell(11).numFmt='[Red]0.##;[Red]-0.##;"✓"';
+  [5,38,12,12,18,11,11,13,15,13,12,14].forEach((w,i)=>ws.getColumn(i+1).width=w); ws.getRow(5).height=32; ws.views=[{state:'frozen',ySplit:5}];
+  const buf=await wb.xlsx.writeBuffer(),a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+  a.download='Event_'+(($('evName').value||'Details').replace(/[^\w\-]+/g,'_'))+'_'+($('evDate').value||'')+'.xlsx'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  logActivity('download_file',17,'Event Details · '+$('evName').value);
+};
+
+// ── opening the tab ──
+const today=()=>typeof localDateKey==='function'?localDateKey(new Date()):new Date().toISOString().slice(0,10);
+function lockOutlet(){const o=$('evOutlet');if(isStaffUser()&&myOutletName){o.value=myOutletName;o.readOnly=true;}else o.readOnly=false;}
+async function open(){
+  if(!rows.length)rows=[blank()]; if(!$('evDate').value)$('evDate').value=today(); lockOutlet();
+  if(typeof p3LoadOutletDatalist==='function')try{p3LoadOutletDatalist();}catch(e){}
+  if(typeof p3LoadPersistedRates==='function')await p3LoadPersistedRates();
+  cands=null; rows.forEach(r=>{if(!r.price)autoPrice(r);}); fillList(); rateStatus(); render(); loadHist();
+}
+const prev=switchTab; switchTab=function(n){prev(n); if(n===17)open();};
+})();
+</script>
+
+<!-- ══════════════════════════════════════════════════════
+     EMAIL REPORT — dialog + "report ready" prompt (opened from the ✉ button in the top bar, the prompt after any download, or Ready Files)
+══════════════════════════════════════════════════════ -->
+<div id="mailSnack" role="status"><span class="nm" id="mailSnackTxt"></span><button class="go" onclick="mailOpen()">✉ Email it</button><button class="x" onclick="mailSnackHide()" aria-label="Dismiss">✕</button></div>
+
+<div id="mailModal" role="dialog" aria-modal="true" aria-labelledby="mailTitle">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <div class="modal-hdr-text"><h3 id="mailTitle">Email report</h3><p>Goes straight from this app, with the Excel file attached</p></div>
+      <button class="modal-close" onclick="mailClose()" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <label class="ml-lbl" for="mailTo">To <small>(one or more e-mail IDs, separated by commas)</small></label>
+      <input class="ml-in" id="mailTo" type="text" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="name@example.com, another@example.com">
+      <div class="ml-chips" id="mailRecent"></div>
+
+      <label class="ml-lbl" for="mailCc">Cc <small>(optional)</small></label>
+      <input class="ml-in" id="mailCc" type="text" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="manager@example.com">
+
+      <div class="ml-row">
+        <div>
+          <label class="ml-lbl" for="mailReport">Which report</label>
+          <input class="ml-in" id="mailReport" type="text" autocomplete="off" placeholder="e.g. Stock Audit">
+        </div>
+        <div>
+          <label class="ml-lbl" for="mailOutlet">Which outlet</label>
+          <input class="ml-in" id="mailOutlet" type="text" autocomplete="off" list="mailOutletList" placeholder="e.g. 053 Bangalore Vijayanagar">
+          <datalist id="mailOutletList"></datalist>
+        </div>
+      </div>
+
+      <label class="ml-lbl" for="mailSubject">Subject <small>(filled in from the report and outlet — you can still edit it)</small></label>
+      <input class="ml-in" id="mailSubject" type="text" autocomplete="off">
+
+      <label class="ml-lbl" for="mailBody">Message</label>
+      <textarea class="ml-in" id="mailBody"></textarea>
+
+      <label class="ml-lbl">Attachment</label>
+      <div class="ml-attach" id="mailAttach"></div>
+      <input type="file" id="mailFile" accept=".xlsx,.xls,.csv,.pdf" style="display:none">
+
+      <div class="ml-route" id="mailRoute"></div>
+      <div class="ml-status" id="mailStatus" role="alert"></div>
+
+      <details id="mailCfgBox">
+        <summary>⚙ Mail setup (owner only)</summary>
+        <label class="ml-lbl" for="mailCfgUrl">Mail API link</label>
+        <input class="ml-in" id="mailCfgUrl" type="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
+        <label class="ml-lbl" for="mailCfgToken">Secret key <small>(same word you put inside the mail API)</small></label>
+        <input class="ml-in" id="mailCfgToken" type="text" autocomplete="off" placeholder="e.g. bolas-mail-2026">
+        <label class="ml-lbl" for="mailCfgFrom">Sender name shown to the receiver</label>
+        <input class="ml-in" id="mailCfgFrom" type="text" autocomplete="off" placeholder="Bolas Stock Suite">
+        <p>Leave the link empty to use the Firebase “Trigger Email” extension instead (files up to about 700 KB only).</p>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:12px"><button class="ml-link" onclick="mailSaveCfg()">Save setup</button><span id="mailCfgMsg" style="font-size:12px"></span></div>
+      </details>
+    </div>
+    <div class="modal-ftr">
+      <button class="modal-btn modal-btn-cancel" onclick="mailClose()">Cancel</button>
+      <button class="modal-btn ml-send" id="mailSendBtn" onclick="mailSend()">✉ Send email</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// EMAIL REPORT — send any generated report to another e-mail ID, straight from the app.
+//   • Every Excel the app downloads is remembered, and a "✉ Email it" prompt appears (the ✉ button in the top bar reopens it any time).
+//   • Subject is built as  "<Report> - <Outlet> - <date>"  so the receiver sees which report and which outlet it is for.
+//   • Sending goes through the owner's Mail API link (Settings inside this dialog), or — if none is set — the Firebase "Trigger Email" extension.
+// ══════════════════════════════════════════════════════════════
+(function () {
+  'use strict';
+  const $m = id => document.getElementById(id);
+  const LS_CFG = 'bolasMailCfg', LS_RECENT = 'bolasMailRecent';
+  const ALL_OUT = 'All Outlets';
+  const MAX_API = 18 * 1024 * 1024;      // Gmail allows 25 MB; base64 adds a third
+  const MAX_FS = 700 * 1024;             // a Firestore document is limited to 1 MiB once the file is base64-encoded
+  const MIME = { xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', xls: 'application/vnd.ms-excel', csv: 'text/csv', pdf: 'application/pdf' };
+  const MAIL = { last: null, cur: null, cfg: { apiUrl: '', token: '', fromName: 'Bolas Stock Suite' }, cfgLoaded: false, sending: false, t: {} };
+
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+  const activeTab = () => { const t = document.querySelector('.tab.active'); return t ? +t.dataset.tab : 0; };
+  const tabName = n => (typeof PANEL_NAMES !== 'undefined' && PANEL_NAMES[n]) || (n === 17 ? 'Event Details' : '');
+  const todayLabel = () => new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const fmtSize = b => b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+  const extOf = n => ((String(n).match(/\.([a-z0-9]+)$/i) || [])[1] || '').toLowerCase();
+  const parseList = v => String(v || '').split(/[,;\s]+/).map(s => s.trim()).filter(Boolean);
+  const validEmail = e => /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]{2,}$/.test(e);
+  const whoAmI = () => { if (typeof currentUser === 'undefined' || !currentUser) return ''; return currentUser.displayName || (typeof emailToLoginId === 'function' && emailToLoginId(currentUser.email)) || currentUser.email || ''; };
+
+  // What kind of report is this file?  (file name first, then the tab it was made in)
+  function reportFromName(name, tab) {
+    const n = String(name || '');
+    const map = [[/kernel/i, 'Kernel Report'], [/flavou?red/i, 'Flavoured Report'], [/sales[_\s-]*comparison/i, 'Sales Comparison'], [/stock[_\s-]*audit/i, 'Stock Audit'],
+      [/petty[_\s-]*cash/i, 'Petty Cash'], [/rate[_\s-]*list/i, 'Rate List'], [/all[_\s-]*reports/i, 'All Reports'], [/^event/i, 'Event Details'], [/clean/i, 'Cleanliness Audit']];
+    for (const [re, label] of map) if (re.test(n)) return label;
+    const t = tabName(tab);
+    if (t && t !== 'Ready Files' && t !== 'Dashboard' && t !== 'History' && t !== 'Settings') return t;
+    return n.replace(/\.[a-z0-9]+$/i, '').replace(/[_]+/g, ' ').trim() || 'Report';
+  }
+  // Which outlet is it for?  (the outlet typed in that tool → an outlet code in the file name → the user's own outlet)
+  function guessOutlet(cur) {
+    const tab = cur && cur.tab, name = (cur && cur.name) || '';
+    const inputId = { 3: 'p3OutletName', 11: 'pcOutletName', 12: 'clOutletName' }[tab];
+    if (inputId && $m(inputId) && $m(inputId).value.trim()) return $m(inputId).value.trim();
+    let list = []; try { list = obAll(); } catch (e) { }
+    const m = name.match(/(?:^|[_\-\s])(\d{3})(?=[_\-\s.]|$)/);
+    if (m) { const o = list.find(x => x.code === m[1]); if (o) return o.name; }
+    if (tab === 14 || tab === 16 || /all[_\s-]*reports|sales[_\s-]*comparison/i.test(name)) return ALL_OUT;
+    return (typeof myOutletName !== 'undefined' && myOutletName) || '';
+  }
+
+  // ── capture every report the app downloads ──
+  const origClick = HTMLAnchorElement.prototype.click;
+  HTMLAnchorElement.prototype.click = function () {
+    try {
+      const nm = this.download || '', href = this.href || '';
+      if (nm && /\.(xlsx|xls|csv|pdf)$/i.test(nm) && href.indexOf('blob:') === 0) capture(nm, href);
+    } catch (e) { console.warn('mail capture failed:', e); }
+    return origClick.apply(this, arguments);
+  };
+  function capture(name, href) {
+    const tab = activeTab();
+    fetch(href).then(r => r.blob()).then(blob => {
+      MAIL.last = { name, blob, tab };
+      if (!$m('mailModal').classList.contains('open')) snack(name);
+    }).catch(e => console.warn('could not keep a copy of the download for e-mail:', e));
+  }
+  let snackTimer = 0;
+  function snack(name) {
+    $m('mailSnackTxt').textContent = 'Report ready: ' + name;
+    $m('mailSnack').classList.add('show');
+    clearTimeout(snackTimer); snackTimer = setTimeout(mailSnackHide, 15000);
+  }
+  function mailSnackHide() { $m('mailSnack').classList.remove('show'); clearTimeout(snackTimer); }
+
+  // ── subject + message ──
+  function buildSubject() {
+    const rep = $m('mailReport').value.trim() || 'Report', out = $m('mailOutlet').value.trim() || '[choose outlet]';
+    return rep + ' - ' + out + ' - ' + todayLabel();
+  }
+  function buildBody() {
+    const rep = $m('mailReport').value.trim() || 'report', out = $m('mailOutlet').value.trim() || '[choose outlet]';
+    const f = MAIL.cur && MAIL.cur.name ? MAIL.cur.name : '';
+    return 'Hello,\n\nPlease find attached the ' + rep + ' for ' + out + '.\n\n'
+      + 'Report : ' + rep + '\nOutlet : ' + out + '\nDate   : ' + todayLabel() + (f ? '\nFile   : ' + f : '') + '\n\n'
+      + 'Regards,\n' + (whoAmI() || 'Bolas Stock Suite') + '\nBolas Stock Suite';
+  }
+  function refreshAuto() {
+    if (!MAIL.t.subject) $m('mailSubject').value = buildSubject();
+    if (!MAIL.t.body) $m('mailBody').value = buildBody();
+  }
+
+  // ── dialog ──
+  function renderAttach() {
+    const c = MAIL.cur, box = $m('mailAttach');
+    if (c && c.blob) {
+      box.className = 'ml-attach has';
+      box.innerHTML = '<span style="font-size:18px">📎</span><div class="ml-attach-name">' + esc(c.name) + '<small>' + fmtSize(c.blob.size) + '</small></div><button class="ml-link" type="button" id="mailPickBtn">Change</button>';
+    } else {
+      box.className = 'ml-attach';
+      box.innerHTML = '<div class="ml-attach-name" style="white-space:normal;color:var(--muted)">No report yet. Generate one in any tool and it shows up here, or attach a file.<small>Excel, CSV or PDF</small></div><button class="ml-link" type="button" id="mailPickBtn">Attach file</button>';
+    }
+    $m('mailPickBtn').onclick = () => $m('mailFile').click();
+  }
+  function renderRecent() {
+    let r = []; try { r = JSON.parse(localStorage.getItem(LS_RECENT) || '[]'); } catch (e) { }
+    $m('mailRecent').innerHTML = r.slice(0, 6).map(a => '<button type="button" class="ml-chip" data-a="' + esc(a) + '">' + esc(a) + '</button>').join('');
+  }
+  function remember(list) {
+    let r = []; try { r = JSON.parse(localStorage.getItem(LS_RECENT) || '[]'); } catch (e) { }
+    list.slice().reverse().forEach(a => { r = [a].concat(r.filter(x => x.toLowerCase() !== a.toLowerCase())); });
+    try { localStorage.setItem(LS_RECENT, JSON.stringify(r.slice(0, 12))); } catch (e) { }
+  }
+  function say(t, kind) { const s = $m('mailStatus'); s.textContent = t || ''; s.className = 'ml-status' + (t ? ' show ' + kind : ''); }
+  function updateRoute() {
+    $m('mailRoute').textContent = MAIL.cfg.apiUrl ? 'Sending through the Mail API · up to about 18 MB' : 'Sending through Firebase Trigger Email · files up to about 700 KB';
+  }
+
+  function mailOpen(src) {
+    if (src) MAIL.cur = src; else if (MAIL.last) MAIL.cur = MAIL.last;
+    MAIL.t = {}; say('');
+    mailSnackHide();
+    const c = MAIL.cur;
+    $m('mailReport').value = c ? (c.report || reportFromName(c.name, c.tab)) : '';
+    $m('mailOutlet').value = c ? guessOutlet(c) : ((typeof myOutletName !== 'undefined' && myOutletName) || '');
+    let names = []; try { names = obAll().map(o => o.name); } catch (e) { }
+    $m('mailOutletList').innerHTML = [ALL_OUT].concat(names).map(n => '<option value="' + esc(n) + '"></option>').join('');
+    $m('mailTo').value = ''; $m('mailCc').value = '';
+    refreshAuto(); renderAttach(); renderRecent(); updateRoute();
+    $m('mailCfgBox').style.display = (typeof isOwner !== 'undefined' && isOwner) ? 'block' : 'none';
+    $m('mailSendBtn').disabled = false; $m('mailSendBtn').textContent = '✉ Send email';
+    $m('mailModal').classList.add('open');
+    loadCfg();
+    setTimeout(() => $m('mailTo').focus(), 60);
+  }
+  function mailClose() { $m('mailModal').classList.remove('open'); }
+  function mailOpenReady(id) {
+    const r = window._readyFiles && window._readyFiles[id]; if (!r || !r.b64) return;
+    const bin = atob(r.b64), bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    mailOpen({ name: r.name || 'report.xlsx', blob: new Blob([bytes], { type: MIME.xlsx }), tab: 13, report: r.kindLabel || reportFromName(r.name, 13) });
+  }
+
+  // ── owner setup ──
+  async function loadCfg() {
+    if (MAIL.cfgLoaded) return; MAIL.cfgLoaded = true;
+    try { const l = JSON.parse(localStorage.getItem(LS_CFG) || 'null'); if (l) Object.assign(MAIL.cfg, l); } catch (e) { }
+    try {
+      const s = await db.collection('app_config').doc('mail').get();
+      if (s.exists) { const d = s.data(); ['apiUrl', 'token', 'fromName'].forEach(k => { if (d[k] != null) MAIL.cfg[k] = d[k]; }); }
+    } catch (e) { console.warn('mail setup not read from Firestore (needs a rule for app_config):', e.code || e); }
+    $m('mailCfgUrl').value = MAIL.cfg.apiUrl || ''; $m('mailCfgToken').value = MAIL.cfg.token || ''; $m('mailCfgFrom').value = MAIL.cfg.fromName || '';
+    updateRoute();
+  }
+  async function mailSaveCfg() {
+    const msg = $m('mailCfgMsg'), c = { apiUrl: $m('mailCfgUrl').value.trim(), token: $m('mailCfgToken').value.trim(), fromName: $m('mailCfgFrom').value.trim() || 'Bolas Stock Suite' };
+    if (c.apiUrl && !/^https:\/\//i.test(c.apiUrl)) { msg.style.color = '#E15C5C'; msg.textContent = 'The link must start with https://'; return; }
+    Object.assign(MAIL.cfg, c);
+    try { localStorage.setItem(LS_CFG, JSON.stringify(c)); } catch (e) { }
+    updateRoute();
+    try {
+      await db.collection('app_config').doc('mail').set(Object.assign({ updatedBy: currentUser.email, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, c), { merge: true });
+      msg.style.color = '#3FB874'; msg.textContent = '✓ Saved for everyone';
+    } catch (e) {
+      msg.style.color = '#D6923B';
+      msg.textContent = e.code === 'permission-denied' ? 'Saved on this device only — add a Firestore rule for “app_config” to share it with everyone.' : 'Saved on this device only: ' + e.message;
+    }
+  }
+
+  // ── sending ──
+  const blobToB64 = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(new Error('Could not read the file.')); r.readAsDataURL(blob); });
+  const realReplyTo = () => { const e = (typeof currentUser !== 'undefined' && currentUser && currentUser.email) || ''; return typeof emailToLoginId === 'function' && emailToLoginId(e) ? '' : e; };
+
+  async function sendViaApi(p) {
+    const res = await fetch(MAIL.cfg.apiUrl, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ token: MAIL.cfg.token || '' }, p)) });
+    const txt = await res.text(); let j = null;
+    try { j = JSON.parse(txt); } catch (e) { }
+    if (!j) throw new Error('The Mail API gave an unexpected reply — check the link in Mail setup.');
+    if (!j.ok) throw new Error(j.error || 'The Mail API refused the request.');
+    return 'sent';
+  }
+  async function sendViaFirestore(p, sizeBytes) {
+    if (sizeBytes > MAX_FS) throw new Error('This file is ' + fmtSize(sizeBytes) + ' — too big for Firebase Trigger Email (about 700 KB). Ask the owner to set up the Mail API link.');
+    const ref = await db.collection('mail').add({
+      to: p.to.split(','), cc: p.cc ? p.cc.split(',') : [],
+      message: { subject: p.subject, text: p.text, html: p.html, attachments: p.attachments.map(a => ({ filename: a.filename, content: a.contentBase64, encoding: 'base64' })) },
+      report: p.report, outlet: p.outlet, createdByUid: currentUser.uid, createdByName: currentUser.displayName || currentUser.email,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    return new Promise((resolve, reject) => {
+      let off = null; const stop = setTimeout(() => { if (off) off(); resolve('queued'); }, 20000);
+      off = ref.onSnapshot(s => {
+        const d = s.data(), st = d && d.delivery && d.delivery.state;
+        if (st === 'SUCCESS') { clearTimeout(stop); off(); resolve('sent'); }
+        else if (st === 'ERROR') { clearTimeout(stop); off(); reject(new Error((d.delivery && d.delivery.error) || 'The mail could not be delivered.')); }
+      }, () => { /* listener errors are not fatal — the 20 s timer reports "queued" */ });
+    });
+  }
+
+  async function mailSend() {
+    if (MAIL.sending) return;
+    const to = parseList($m('mailTo').value), cc = parseList($m('mailCc').value);
+    const rep = $m('mailReport').value.trim(), out = $m('mailOutlet').value.trim(), subject = $m('mailSubject').value.trim(), body = $m('mailBody').value;
+    const bad = to.concat(cc).filter(a => !validEmail(a));
+    if (!to.length) return say('Type the e-mail ID you want to send to.', 'err');
+    if (bad.length) return say('This does not look like an e-mail ID: ' + bad[0], 'err');
+    if (!out) return say('Choose the outlet (or “' + ALL_OUT + '”) so the subject shows which outlet this report is for.', 'err');
+    if (!rep) return say('Type which report this is, so the subject shows it.', 'err');
+    if (!subject) return say('The subject is empty.', 'err');
+    if (!MAIL.cur || !MAIL.cur.blob) return say('Attach the report first.', 'err');
+    const size = MAIL.cur.blob.size;
+    if (MAIL.cfg.apiUrl && size > MAX_API) return say('This file is ' + fmtSize(size) + ' — too big to e-mail (limit about 18 MB).', 'err');
+
+    MAIL.sending = true; const btn = $m('mailSendBtn'); btn.disabled = true; btn.textContent = 'Sending…'; say('Sending to ' + to.join(', ') + '…', 'wait');
+    try {
+      const b64 = await blobToB64(MAIL.cur.blob), fname = MAIL.cur.name, ext = extOf(fname);
+      const payload = {
+        to: to.join(','), cc: cc.join(','), subject, text: body, report: rep, outlet: out, fromName: MAIL.cfg.fromName || 'Bolas Stock Suite', replyTo: realReplyTo(),
+        html: '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:14px;line-height:1.55;color:#1c2330">' + esc(body).replace(/\n/g, '<br>') + '</div>',
+        attachments: [{ filename: fname, mimeType: MIME[ext] || 'application/octet-stream', contentBase64: b64 }]
+      };
+      const how = MAIL.cfg.apiUrl ? await sendViaApi(payload) : await sendViaFirestore(payload, size);
+      remember(to.concat(cc));
+      if (typeof logActivity === 'function') logActivity('email_report', (MAIL.cur.tab || 6), (subject + ' → ' + to.join(', ')).slice(0, 190));
+      if (how === 'sent') say('✓ Sent to ' + to.join(', ') + '. Subject: ' + subject, 'ok');
+      else say('✓ Queued for delivery to ' + to.join(', ') + '. If it does not arrive in a few minutes, the Firebase Trigger Email extension is probably not installed — ask the owner to set up the Mail API link instead.', 'ok');
+      btn.textContent = '✓ Sent';
+      setTimeout(() => { if ($m('mailModal').classList.contains('open') && !MAIL.sending) { btn.disabled = false; btn.textContent = '✉ Send email'; } }, 2500);
+    } catch (e) {
+      console.error('mailSend failed:', e);
+      say("Couldn't send: " + (e.code === 'permission-denied' ? 'Firestore does not allow writing to the “mail” collection yet (add a rule), or use the Mail API link.' : (e.message || e)), 'err');
+      btn.disabled = false; btn.textContent = '✉ Send email';
+    }
+    MAIL.sending = false;
+  }
+
+  // ── wiring ──
+  document.addEventListener('click', e => { const c = e.target.closest && e.target.closest('.ml-chip'); if (!c || !$m('mailRecent').contains(c)) return; const cur = parseList($m('mailTo').value), a = c.dataset.a; if (!cur.some(x => x.toLowerCase() === a.toLowerCase())) cur.push(a); $m('mailTo').value = cur.join(', '); });
+  $m('mailReport').addEventListener('input', () => { refreshAuto(); });
+  $m('mailOutlet').addEventListener('input', () => { refreshAuto(); });
+  $m('mailSubject').addEventListener('input', () => { MAIL.t.subject = true; });
+  $m('mailBody').addEventListener('input', () => { MAIL.t.body = true; });
+  $m('mailFile').addEventListener('change', e => {
+    const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
+    MAIL.cur = { name: f.name, blob: f, tab: MAIL.cur ? MAIL.cur.tab : activeTab() };
+    $m('mailReport').value = reportFromName(f.name, MAIL.cur.tab);
+    const o = guessOutlet(MAIL.cur); if (o && !$m('mailOutlet').value.trim()) $m('mailOutlet').value = o;
+    MAIL.t.subject = MAIL.t.body = false; refreshAuto(); renderAttach(); say('');
+  });
+  $m('mailModal').addEventListener('click', e => { if (e.target === $m('mailModal')) mailClose(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && $m('mailModal').classList.contains('open')) mailClose(); });
+
+  Object.assign(window, { mailOpen, mailClose, mailSend, mailSaveCfg, mailOpenReady, mailSnackHide });
+})();
+
+</script>
+
+
+<div id="packWarn" role="alert"><div style="flex:1" id="packWarnTxt"></div><button onclick="document.getElementById('packWarn').classList.remove('show')" aria-label="Dismiss">✕</button></div>
+<script>
+// Tells whoever ran the file when new products could NOT be sent to the owner's "Product Pack Sizes" list (otherwise it only logged to the console).
+function packSaveWarn(tool, count, why) {
+  const reason = typeof why === 'string' ? why : (why && why.code === 'permission-denied' ? 'this account is not allowed to save new products (Firestore rules)' : ((why && why.message) || 'save failed'));
+  const el = document.getElementById('packWarn'); if (!el) return;
+  document.getElementById('packWarnTxt').innerHTML = '<b>⚠ ' + count + ' new product' + (count === 1 ? '' : 's') + ' in ' + tool + ' could not be sent to the owner.</b><br>The report is fine, but the owner will not see these in Product Pack Sizes to confirm the weight. Reason: ' + String(reason).replace(/[<>&]/g, '') + '. Please tell the owner.';
+  el.classList.add('show'); clearTimeout(packSaveWarn._t); packSaveWarn._t = setTimeout(() => el.classList.remove('show'), 45000);
+}
+// Bell → owner dashboard; if the only thing waiting is new products, jump straight to that list.
+function bellGo() {
+  switchTab(4);
+  const c = window.__bellCounts || {};
+  if (!c.requests && c.products) {
+    let tries = 0; const t = setInterval(() => {
+      const w = document.getElementById('ownerPackWrap');
+      if (w && w.offsetHeight > 60) { clearInterval(t); w.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      else if (++tries > 15) clearInterval(t);
+    }, 300);
+  }
+}
 </script>
 
 </body>
