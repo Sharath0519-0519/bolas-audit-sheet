@@ -656,6 +656,9 @@ textarea.ml-in{min-height:170px;resize:vertical;font-family:'DM Mono',monospace;
     <button class="tab" data-tab="17" onclick="switchTab(17)">
       <span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/><path d="M8 15l2.5 2.5L16 13"/></svg></span><span class="tab-label">Event Details</span>
     </button>
+    <button class="tab" data-tab="18" onclick="switchTab(18)">
+      <span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="tab-label">Attendance</span>
+    </button>
     <button class="tab" data-tab="13" onclick="switchTab(13)">
       <span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></span><span class="tab-label">Ready Files</span>
     </button>
@@ -1315,6 +1318,11 @@ textarea.ml-in{min-height:170px;resize:vertical;font-family:'DM Mono',monospace;
 .ev-day span{font-size:10px;font-weight:400;color:var(--muted)}
 .ev-day.on{border-color:#5B7FE0;color:#5B7FE0;background:rgba(91,127,224,.12)}
 </style>
+<div class="panel" id="panel18">
+  <div class="results-title" style="margin-top:0">🕒 Staff Attendance</div>
+  <div id="attNav" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"></div>
+  <div id="attBody"></div>
+</div>
 <div class="panel" id="panel17">
   <div class="section-head">
     <span class="dot" style="background:#E8710A"></span>
@@ -6032,19 +6040,27 @@ async function p14StreamRows(file) {
   // 3. sheet rows (streamed, one <row> at a time). Keep the first 30 rows whole to find the header, then only the needed columns.
   const rows = []; let keep = null, seq = 0, buf = '';
   const decide = () => { const f = p14FindHeader(rows); keep = f ? new Set(Object.values(f.col).filter(v => v >= 0)) : new Set(); };
-  const cellRe = /<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
+  // Fast row reader: plain indexOf scanning instead of a regex per cell; cells in unneeded columns are skipped without being read.
   const doRow = (tag, body) => {
-    const rn = p14Attr(tag, 'r'); const ri = rn ? +rn - 1 : seq; seq = ri + 1;
+    let ri = seq; const rq = tag.indexOf(' r="');
+    if (rq >= 0) { const n = +tag.slice(rq + 4, tag.indexOf('"', rq + 4)); if (n) ri = n - 1; }
+    seq = ri + 1;
     if (keep === null && ri >= 30) decide();
-    const arr = []; let ci = 0, m; cellRe.lastIndex = 0;
-    while ((m = cellRe.exec(body))) {
-      const at = m[1], inner = m[2]; const ref = at.match(/\br="([A-Z]+)\d*"/); const c = ref ? p14ColIdx(ref[1]) : ci; ci = c + 1;
+    const arr = []; let ci = 0, p = 0;
+    for (;;) {
+      const a = body.indexOf('<c', p); if (a < 0) break;
+      const ch = body.charCodeAt(a + 2); if (ch !== 32 && ch !== 62 && ch !== 47) { p = a + 2; continue; }   // not <c / <c> / <c/>  (e.g. <col>)
+      const gt = body.indexOf('>', a); if (gt < 0) break;
+      let c = ci; const cq = body.indexOf(' r="', a);
+      if (cq >= 0 && cq < gt) { c = 0; for (let k = cq + 4; ; k++) { const cc = body.charCodeAt(k); if (cc < 65 || cc > 90) break; c = c * 26 + cc - 64; } c -= 1; }
+      ci = c + 1;
+      if (body.charCodeAt(gt - 1) === 47) { p = gt + 1; continue; }              // empty cell <c .../>
+      const z = body.indexOf('</c>', gt), end = z < 0 ? body.length : z; p = end + 4;
       if (keep !== null && !keep.has(c)) continue;
-      if (inner == null) continue;
-      const tm = at.match(/\bt="([^"]*)"/), t = tm ? tm[1] : 'n'; let v;
-      if (t === 'inlineStr') { let s = '', mm; const re = /<t\b[^>]*>([\s\S]*?)<\/t>/g; while ((mm = re.exec(inner))) s += mm[1]; v = p14XmlDec(s); }
+      const tq = body.indexOf(' t="', a); const t = (tq >= 0 && tq < gt) ? body.slice(tq + 4, body.indexOf('"', tq + 4)) : 'n'; let v;
+      if (t === 'inlineStr') { let s2 = '', mm; const re = /<t\b[^>]*>([\s\S]*?)<\/t>/g, inner = body.slice(gt + 1, end); while ((mm = re.exec(inner))) s2 += mm[1]; v = p14XmlDec(s2); }
       else {
-        const a = inner.indexOf('<v>'); if (a < 0) continue; const z = inner.indexOf('</v>', a); const raw = inner.slice(a + 3, z < 0 ? inner.length : z);
+        const va = body.indexOf('<v>', gt); if (va < 0 || va > end) continue; const vz = body.indexOf('</v>', va), raw = body.slice(va + 3, (vz < 0 || vz > end) ? end : vz);
         if (t === 's') v = ss[+raw]; else if (t === 'b') v = raw === '1'; else if (t === 'e') v = ''; else if (t === 'str') v = p14XmlDec(raw); else { v = parseFloat(raw); if (isNaN(v)) v = raw; }
       }
       if (v !== undefined) arr[c] = v;
@@ -6086,18 +6102,26 @@ function p14Parse(rows) {
   const found = p14FindHeader(rows), h = found ? found.h : -1, col = found ? found.col : {};
   if (h < 0) throw new Error('Could not find the Date Time, Customer Name, Invoice Amount and Payment Mode columns. Is this the Invoice List file?');
   const days = {}, outlets = {}; let n = 0, skipped = 0;
-  for (let i = h + 1; i < rows.length; i++) {
-    const r = rows[i] || [], dv = r[col.d]; let y, m, d;
+  // A year of invoices has only ~365 different dates, a handful of outlets and channels: work each one out once and reuse it.
+  const dkC = new Map(), ouC = new Map(), chC = new Map();
+  const dayKey = dv => {
+    let k = dkC.get(dv); if (k !== undefined) return k; let y, m, d;
     if (typeof dv === 'number') { const o = XLSX.SSF.parse_date_code(dv); y = o.y; m = o.m; d = o.d; }
-    else { const t = norm(dv).match(/(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/); if (!t) continue; d = +t[1]; m = +t[2]; y = +t[3]; }
-    const amt = parseFloat(norm(r[col.a]).replace(/[^0-9.\-]/g, ''));
+    else { const t = norm(dv).match(/(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/); if (!t) { dkC.set(dv, null); return null; } d = +t[1]; m = +t[2]; y = +t[3]; }
+    k = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`; dkC.set(dv, k); return k;
+  };
+  for (let i = h + 1; i < rows.length; i++) {
+    const r = rows[i] || [], dv = r[col.d];
+    const key = dayKey(dv); if (key === null) continue;
+    const av = r[col.a];
+    const amt = (typeof av === 'number' && Math.abs(av) < 1e21 && (av === 0 || Math.abs(av) >= 1e-6)) ? av : parseFloat(norm(av).replace(/[^0-9.\-]/g, ''));
     if (isNaN(amt)) continue;
-    const ou = p14Outlet(col.e >= 0 ? r[col.e] : '', col.t >= 0 ? r[col.t] : '', col.b >= 0 ? r[col.b] : '');
+    const oe = col.e >= 0 ? r[col.e] : '', ot = col.t >= 0 ? r[col.t] : '', ob = col.b >= 0 ? r[col.b] : '', ok = oe + '\u0001' + ot + '\u0001' + ob;
+    let ou = ouC.get(ok); if (!ou) { ou = p14Outlet(oe, ot, ob); ouC.set(ok, ou); }
     if (p14MyOutlets && !p14MyOutlets.includes(ou.code)) { skipped++; continue; }
     if (!outlets[ou.code]) outlets[ou.code] = { code: ou.code, name: ou.name };
     else if (!outlets[ou.code].name && ou.name) outlets[ou.code].name = ou.name;
-    const k = p14Channel(col.n >= 0 ? r[col.n] : '', r[col.p]);
-    const key = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const cn = col.n >= 0 ? r[col.n] : '', ck = cn + '\u0001' + r[col.p]; let k = chC.get(ck); if (k === undefined) { k = p14Channel(cn, r[col.p]); chC.set(ck, k); }
     const od = days[ou.code] || (days[ou.code] = {});
     const e = od[key] || (od[key] = { s: p14Zero(), o: p14Zero() });
     e.s[k] += amt; e.o[k] += 1; n++;
@@ -8698,7 +8722,7 @@ function p3CmJumpUnfilled(){
 const $=id=>document.getElementById(id), esc=s=>escHtml(s==null?'':s);
 const num=v=>{const n=parseFloat(String(v==null?'':v).replace(/[₹,\s]/g,''));return isFinite(n)?n:0;};
 const fmt=n=>(Math.round(n*100)/100).toLocaleString('en-IN');
-PANEL_NAMES[17]='Event Details';
+PANEL_NAMES[17]='Event Details'; PANEL_NAMES[18]='Attendance';
 let rows=[], evRates=null, evId=null, impKind='taken', cands=null, hist={};
 
 // ── item-name matching (same idea as the Stock Audit rate matcher) ──
@@ -9077,6 +9101,160 @@ async function open(){
   cands=null; rows.forEach(r=>{if(!r.price)autoPrice(r);}); fillList(); rateStatus(); render(); loadHist();
 }
 const prev=switchTab; switchTab=function(n){prev(n); if(n===17)open();};
+})();
+</script>
+
+<script>
+// ══ STAFF ATTENDANCE — face match + live check + GPS (100 m) + rotating on-site code ══
+// Outlet key = outlet code (outlets.number / user.myOutletCode). Firestore: outlet_geo, attendance_codes, attendance_staff, attendance (rules in attendance_rules.txt)
+(function(){
+const $=id=>document.getElementById(id), T=()=>firebase.firestore.FieldValue.serverTimestamp();
+const FACE='https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/', RADIUS=100, MAX_ACC=75, MATCH=0.5;
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const isMgr=()=>isOwner||isClusterManager;
+let view='me', reg=null, timer=null, faceReady=null;
+const devId=()=>{try{let d=localStorage.getItem('attDev');if(!d){d=(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random());localStorage.setItem('attDev',d);}return d;}catch(e){return 'nodev';}};
+const dateKey=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+const hm=t=>t&&t.toDate?t.toDate().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'—';
+const meters=(a,b,c,d)=>{const R=6371000,r=x=>x*Math.PI/180,h=Math.sin(r(c-a)/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(r(d-b)/2)**2;return 2*R*Math.asin(Math.sqrt(h));};
+const say=(m,ok)=>{const e=$('attMsg');if(e){e.textContent=m;e.style.color=ok?'#3FB874':'#E15C5C';}};
+
+// ---------- face-api (loaded only when needed; models are fetched once, then cached by the browser) ----------
+function loadFace(){ return faceReady||(faceReady=new Promise((res,rej)=>{
+  const s=document.createElement('script'); s.src=FACE+'dist/face-api.js';
+  s.onload=async()=>{try{const u=FACE+'model/';await Promise.all([faceapi.nets.tinyFaceDetector.loadFromUri(u),faceapi.nets.faceLandmark68Net.loadFromUri(u),faceapi.nets.faceRecognitionNet.loadFromUri(u)]);res();}catch(e){faceReady=null;rej(e);}};
+  s.onerror=()=>{faceReady=null;rej(new Error('Could not load the face library — check internet'));}; document.head.appendChild(s);})); }
+const ear=(p,a)=>{const d=(i,j)=>Math.hypot(p[i].x-p[j].x,p[i].y-p[j].y);return (d(a+1,a+5)+d(a+2,a+4))/(2*d(a,a+3));};
+const yaw=p=>(p[30].x-p[0].x)/(p[16].x-p[0].x);
+// Opens the camera (live only), asks for a blink or a head turn so a photo cannot pass, returns {descs, thumb}
+async function faceStep(want, title){
+  await loadFace();
+  const box=document.createElement('div'); box.style.cssText='position:fixed;inset:0;background:#000d;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#fff;font-family:inherit';
+  box.innerHTML='<div style="font-weight:700">'+esc(title)+'</div><video playsinline muted style="width:min(86vw,360px);border-radius:14px;transform:scaleX(-1)"></video><div id="attInst" style="font-size:16px;min-height:24px">Look at the camera…</div><button class="mini-btn mini-btn-no" id="attCancel">Cancel</button>';
+  document.body.appendChild(box); const v=box.querySelector('video'), inst=box.querySelector('#attInst'); let stop=false;
+  const done=r=>{stop=true;try{v.srcObject&&v.srcObject.getTracks().forEach(t=>t.stop());}catch(e){}box.remove();return r;};
+  return new Promise(async(resolve)=>{
+    box.querySelector('#attCancel').onclick=()=>resolve(done(null));
+    try{ v.srcObject=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:640,height:480},audio:false}); await v.play(); }catch(e){ return resolve(done({err:'Camera blocked — allow camera access'})); }
+    const opt=new faceapi.TinyFaceDetectorOptions({inputSize:224,scoreThreshold:0.5}), descs=[], chal=Math.random()<0.5?'blink':'turn'; let thumb='', phase=0, closed=false, t0=Date.now();
+    const grab=()=>{const c=document.createElement('canvas');c.width=c.height=160;const s=Math.min(v.videoWidth,v.videoHeight);c.getContext('2d').drawImage(v,(v.videoWidth-s)/2,(v.videoHeight-s)/2,s,s,0,0,160,160);return c.toDataURL('image/jpeg',0.6);};
+    while(!stop){
+      await new Promise(r=>setTimeout(r,160));
+      if(Date.now()-t0>40000) return resolve(done({err:'Timed out — try again in better light'}));
+      const f=await faceapi.detectSingleFace(v,opt).withFaceLandmarks().withFaceDescriptor(); if(!f){inst.textContent='Face not found — look at the camera';continue;}
+      const p=f.landmarks.positions, y=yaw(p);
+      if(phase===0){ if(Math.abs(y-0.5)>0.1){inst.textContent='Face the camera straight';continue;}
+        descs.push(Array.from(f.descriptor).map(x=>+x.toFixed(4))); thumb=grab(); inst.textContent='Hold still… '+descs.length+'/'+want;
+        if(descs.length>=want){phase=1;inst.textContent=chal==='blink'?'Now blink your eyes':'Now turn your head slightly to one side';} else await new Promise(r=>setTimeout(r,500)); }
+      else if(chal==='blink'){ const e=(ear(p,36)+ear(p,42))/2; if(e<0.2)closed=true; else if(closed&&e>0.24) return resolve(done({descs,thumb,live:'blink'})); }
+      else if(Math.abs(y-0.5)>0.16) return resolve(done({descs,thumb,live:'turn'}));
+    }
+  });
+}
+const faceDist=(d,list)=>Math.min(...list.map(r=>Math.hypot(...r.map((x,i)=>x-d[i]))));
+
+// ---------- GPS: several readings, accuracy and sanity checks ----------
+function gps(){ return new Promise((res,rej)=>{ if(!navigator.geolocation)return rej({message:'No GPS on this device'}); const S=[];
+  const id=navigator.geolocation.watchPosition(p=>S.push(p.coords),e=>{navigator.geolocation.clearWatch(id);rej(e);},{enableHighAccuracy:true,maximumAge:0,timeout:15000});
+  setTimeout(()=>{navigator.geolocation.clearWatch(id);S.length?res(S):rej({message:'No GPS reading — switch on location'});},7000); }); }
+async function place(code){
+  say('Checking your location… stand still for a few seconds',true);
+  const S=await gps().catch(e=>{throw new Error('Location: '+(e.message||'blocked — allow location'));}), b=S.reduce((m,c)=>c.accuracy<m.accuracy?c:m,S[0]), flags=[];
+  if(b.accuracy>MAX_ACC) throw new Error('GPS is weak (±'+Math.round(b.accuracy)+' m). Go outside / near a window and try again.');
+  if(S.length>=3&&S.every(c=>c.latitude===S[0].latitude&&c.longitude===S[0].longitude)) flags.push('gps-frozen');
+  if(b.accuracy<=1) flags.push('gps-too-perfect');
+  const g=await db.collection('outlet_geo').doc(code).get(); if(!g.exists) throw new Error('The owner has not set this outlet\u2019s location yet.');
+  const o=g.data(), d=Math.round(meters(b.latitude,b.longitude,o.lat,o.lng)), r=o.radius||RADIUS;
+  if(d>r) throw new Error('You are '+d+' m from the outlet. Attendance works only within '+r+' m.');
+  return {lat:+b.latitude.toFixed(6),lng:+b.longitude.toFixed(6),acc:Math.round(b.accuracy),dist:d,flags};
+}
+function askCode(){ return new Promise(res=>{ const c=prompt('Enter the 6-digit code shown on the outlet manager\u2019s screen'); res(c&&/^\d{6}$/.test(c.trim())?c.trim():null); }); }
+
+// ---------- staff: register / check in / check out ----------
+async function register(){
+  if(!myOutletCode) return say('Choose your outlet first (top bar), then register.');
+  say('Loading face check… first time may take a minute',true);
+  const r=await faceStep(3,'Register your face').catch(e=>({err:e.message})); if(!r)return say(''); if(r.err)return say(r.err);
+  await db.collection('attendance_staff').doc(currentUser.uid).set({uid:currentUser.uid,name:currentUser.displayName||currentUser.email,email:currentUser.email||'',outletCode:myOutletCode,outletName:myOutletName,faces:r.descs,photo:r.thumb,deviceId:devId(),status:'pending',createdAt:T()});
+  say('Registered. Waiting for the owner to approve.',true); open();
+}
+async function mark(kind){
+  try{
+    if(reg.deviceId!==devId()) return say('This is not your registered phone. Ask the owner to reset your registration.');
+    const p=await place(reg.outletCode);
+    say('Loading face check…',true);
+    const f=await faceStep(1,kind==='in'?'Check in':'Check out'); if(!f)return say(''); if(f.err)return say(f.err);
+    const sc=faceDist(f.descs[0],reg.faces); if(sc>MATCH) return say('Face does not match your registration. Try again in better light.');
+    const code=await askCode(); if(!code) return say('Code needed.');
+    const ev={t:T(),lat:p.lat,lng:p.lng,acc:p.acc,dist:p.dist,face:+(1-sc).toFixed(2),live:f.live,code,photo:f.thumb,dev:devId(),flags:p.flags};
+    const ref=db.collection('attendance').doc(currentUser.uid+'_'+dateKey());
+    if(kind==='in') await ref.set({uid:currentUser.uid,name:reg.name,outletCode:reg.outletCode,outletName:reg.outletName,date:dateKey(),in:ev});
+    else await ref.update({out:ev});
+    say((kind==='in'?'Checked in':'Checked out')+' ✓',true); open();
+  }catch(e){ say(/permission/i.test(e.message||'')?'Rejected: the code is wrong or expired, or you are outside the outlet area. Check the code and try again.':(e.message||String(e))); }
+}
+async function staffView(){
+  const b=$('attBody'); const s=await db.collection('attendance_staff').doc(currentUser.uid).get(); reg=s.exists?s.data():null;
+  let h='<div id="attMsg" style="margin:8px 0;font-weight:600"></div>';
+  if(!reg) h+='<div class="table-wrap" style="padding:18px"><p>Register once: your face is saved on this phone\u2019s check and approved by the owner.</p><button class="download-btn" onclick="attReg()">📷 Register my face</button></div>';
+  else if(reg.status!=='approved') h+='<div class="table-wrap" style="padding:18px">'+(reg.status==='rejected'?'Your registration was rejected. Ask the owner.':'⏳ Waiting for owner approval…')+'</div>';
+  else{ const d=await db.collection('attendance').doc(currentUser.uid+'_'+dateKey()).get(), a=d.exists?d.data():null;
+    h+='<div class="table-wrap" style="padding:18px"><div>Outlet: <b>'+esc(reg.outletName)+'</b> · Today: In <b>'+hm(a&&a.in&&a.in.t)+'</b> · Out <b>'+hm(a&&a.out&&a.out.t)+'</b></div><div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">'
+      +(!a?'<button class="download-btn" onclick="attMark(\'in\')">✅ Check in</button>':(!a.out?'<button class="download-btn" onclick="attMark(\'out\')">🏁 Check out</button>':'<span>Done for today ✓</span>'))
+      +(reg.canShowCode?'<button class="download-btn" onclick="attView(\'code\')">🔢 Show outlet code</button>':'')+'</div></div>'; }
+  b.innerHTML=h;
+}
+
+// ---------- owner / cluster manager ----------
+async function recsView(){
+  const b=$('attBody'); b.innerHTML='<div style="margin:8px 0">Date <input type="date" id="attDate" value="'+dateKey()+'" onchange="attView(\'recs\')"></div><div id="attList">Loading…</div>';
+  const d=$('attDate').value||dateKey(); const q=await db.collection('attendance').where('date','==',d).get();
+  const rows=q.docs.map(x=>x.data()).filter(a=>isOwner||!Array.isArray(p14Assigned)||!p14Assigned.length||p14Assigned.includes(a.outletCode)).sort((a,b)=>(a.outletName+a.name).localeCompare(b.outletName+b.name));
+  const cell=e=>e?'<img src="'+e.photo+'" width="36" height="36" style="border-radius:6px;vertical-align:middle"> '+hm(e.t):'—';
+  const flag=a=>[].concat((a.in||{}).flags||[],(a.out||{}).flags||[]).join(', ');
+  $('attList').innerHTML='<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th style="text-align:left">Name</th><th>In</th><th>Out</th><th>Distance in/out</th><th>Face % in</th><th>Flags</th></tr></thead><tbody>'
+   +rows.map(a=>'<tr><td style="text-align:left">'+esc(a.outletName)+'</td><td style="text-align:left">'+esc(a.name)+'</td><td>'+cell(a.in)+'</td><td>'+cell(a.out)+'</td><td>'+(a.in?a.in.dist:'—')+' / '+(a.out?a.out.dist:'—')+' m</td><td>'+(a.in?Math.round(a.in.face*100):'—')+'</td><td style="color:#E15C5C">'+esc(flag(a))+'</td></tr>').join('')
+   +(rows.length?'':'<tr><td colspan="7" style="text-align:center;color:var(--muted)">No attendance on this date</td></tr>')+'</tbody></table></div></div>';
+}
+async function staffAdminView(){
+  const b=$('attBody'); const q=await db.collection('attendance_staff').get(); const L=q.docs.map(d=>d.data());
+  b.innerHTML='<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th>Photo</th><th style="text-align:left">Name</th><th>Outlet</th><th>Status</th><th>Action</th></tr></thead><tbody>'
+   +L.map(s=>'<tr><td><img src="'+s.photo+'" width="44" height="44" style="border-radius:8px"></td><td style="text-align:left">'+esc(s.name)+'</td><td>'+esc(s.outletName)+'</td><td>'+esc(s.status)+(s.canShowCode?' · code':'')+'</td><td>'
+   +(s.status!=='approved'?'<button class="mini-btn mini-btn-ok" onclick="attSet(\''+s.uid+'\',\'approved\')">✓ Approve</button> ':'')+(s.status!=='rejected'?'<button class="mini-btn mini-btn-no" onclick="attSet(\''+s.uid+'\',\'rejected\')">✕ Reject</button> ':'')
+   +'<button class="mini-btn" onclick="attCan(\''+s.uid+'\','+(!s.canShowCode)+')">'+(s.canShowCode?'Remove code access':'Allow show-code')+'</button> <button class="mini-btn mini-btn-no" onclick="attReset(\''+s.uid+'\')">Reset phone/face</button></td></tr>').join('')
+   +(L.length?'':'<tr><td colspan="5" style="text-align:center;color:var(--muted)">No registrations yet</td></tr>')+'</tbody></table></div></div>';
+}
+async function locView(){
+  const b=$('attBody'); b.innerHTML='Loading…'; const [o,g]=await Promise.all([db.collection('outlets').where('status','==','approved').get(),db.collection('outlet_geo').get()]);
+  const G={}; g.docs.forEach(d=>G[d.id]=d.data());
+  b.innerHTML='<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th>Latitude</th><th>Longitude</th><th>Radius m</th><th>Action</th></tr></thead><tbody>'
+   +o.docs.map(d=>d.data()).sort((a,b)=>String(a.number).localeCompare(String(b.number))).map(x=>{const c=String(x.number),e=G[c]||{};return '<tr data-c="'+esc(c)+'" data-n="'+esc(x.name)+'"><td style="text-align:left">'+esc(c)+' · '+esc(x.name)+'</td><td><input class="la" size="10" value="'+(e.lat||'')+'"></td><td><input class="lo" size="10" value="'+(e.lng||'')+'"></td><td><input class="ra" size="4" value="'+(e.radius||RADIUS)+'"></td><td><button class="mini-btn" onclick="attHere(this)">📍 I am at this outlet</button> <button class="mini-btn mini-btn-ok" onclick="attSave(this)">Save</button></td></tr>';}).join('')+'</tbody></table></div></div><div id="attMsg" style="margin-top:8px"></div>';
+}
+async function codeView(){
+  const b=$('attBody'); let outs=[]; if(isMgr()){const o=await db.collection('outlets').where('status','==','approved').get();outs=o.docs.map(d=>d.data());} else outs=[{number:reg.outletCode,name:reg.outletName}];
+  b.innerHTML='<div class="table-wrap" style="padding:18px;text-align:center">Outlet <select id="attOut">'+outs.map(x=>'<option value="'+esc(x.number)+'">'+esc(x.number)+' · '+esc(x.name)+'</option>').join('')+'</select><div id="attCode" style="font:700 64px DM Mono,monospace;letter-spacing:8px;margin:14px 0">······</div><div id="attLeft" style="color:var(--muted)">Keep this screen open at the outlet. Staff type this code to check in/out.</div></div>';
+  let prev=null; const gen=()=>{const a=new Uint32Array(1);crypto.getRandomValues(a);return String(a[0]%1000000).padStart(6,'0');};
+  const tick=async()=>{ if(!$('attCode')||!$('panel18').classList.contains('active')) return stopCode(); const c=gen();
+    try{ await db.collection('attendance_codes').doc($('attOut').value).set({code:c,prev:prev,t:T()}); $('attCode').textContent=c.slice(0,3)+' '+c.slice(3); prev=c; }catch(e){ $('attLeft').textContent='Could not publish code: '+e.message; } };
+  stopCode(); tick(); timer=setInterval(tick,30000); $('attOut').onchange=()=>{prev=null;tick();};
+}
+function stopCode(){ if(timer){clearInterval(timer);timer=null;} }
+
+window.attReg=register; window.attMark=mark;
+window.attSet=async(u,s)=>{await db.collection('attendance_staff').doc(u).update({status:s,reviewedBy:currentUser.email});staffAdminView();};
+window.attCan=async(u,v)=>{await db.collection('attendance_staff').doc(u).update({canShowCode:v});staffAdminView();};
+window.attReset=async u=>{if(confirm('Delete this registration? The person must register again.')){await db.collection('attendance_staff').doc(u).delete();staffAdminView();}};
+window.attHere=btn=>{const r=btn.closest('tr');navigator.geolocation.getCurrentPosition(p=>{r.querySelector('.la').value=p.coords.latitude.toFixed(6);r.querySelector('.lo').value=p.coords.longitude.toFixed(6);say('Got your position (±'+Math.round(p.coords.accuracy)+' m). Tap Save.',true);},e=>say('Location blocked'),{enableHighAccuracy:true});};
+window.attSave=async btn=>{const r=btn.closest('tr'),lat=parseFloat(r.querySelector('.la').value),lng=parseFloat(r.querySelector('.lo').value),rad=parseInt(r.querySelector('.ra').value)||RADIUS;
+  if(!isFinite(lat)||!isFinite(lng))return say('Enter latitude and longitude');
+  await db.collection('outlet_geo').doc(r.dataset.c).set({code:r.dataset.c,name:r.dataset.n,lat,lng,radius:rad,cosLat:+Math.cos(lat*Math.PI/180).toFixed(6),by:currentUser.email,t:T()}); say('Saved '+r.dataset.n+' ✓',true);};
+
+const VIEWS={me:staffView,recs:recsView,staff:staffAdminView,loc:locView,code:codeView};
+window.attView=v=>{view=v;stopCode();paintNav();VIEWS[v]().catch(e=>{$('attBody').innerHTML='<div style="color:#E15C5C;padding:12px">'+esc(e.message)+'</div>';});};
+function paintNav(){ const N=[['me','My attendance']].concat(isMgr()?[['recs','Records'],['staff','Registrations'],['loc','Outlet locations'],['code','On-site code']]:[]);
+  $('attNav').innerHTML=N.map(n=>'<button class="mini-btn" style="'+(n[0]===view?'background:var(--accent,#3FB874);color:#fff':'')+'" onclick="attView(\''+n[0]+'\')">'+n[1]+'</button>').join(''); }
+function open(){ if(!currentUser)return; if(view==='code'&&!isMgr()&&!(reg&&reg.canShowCode))view='me'; attView(view); }
+const prev=switchTab; switchTab=function(n){prev(n); if(n===18)open(); else stopCode();};
 })();
 </script>
 
