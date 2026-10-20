@@ -8976,7 +8976,7 @@ window.evDownload=async(withOther)=>{   // withOther=true → adds “From Other
   const BLK={style:'thin',color:{argb:'FF000000'}}, bd={top:BLK,left:BLK,bottom:BLK,right:BLK};
   const fill=argb=>({type:'pattern',pattern:'solid',fgColor:{argb}});
   const YEL='FFFFFF00', SKY='FF00B0F0', CREAM='FFFFF2CC';
-  const BAL_FMT='[Blue]+General" Excess";[Red]-General" Loss";"✓"', BAL_VFMT='[Blue]+#,##0.##;[Red]-#,##0.##;0';
+  const BAL_FMT='[Blue]+General;[Red]-General;0', BAL_VFMT='[Blue]+#,##0.##;[Red]-#,##0.##;0';   // Excel: plain signed numbers only (no tick mark)
   const letter=n=>{let t='';while(n>0){const m=(n-1)%26;t=String.fromCharCode(65+m)+t;n=Math.floor((n-1)/26);}return t;};
   const sheetName=k=>nd===1?'Event Details':'Day '+(k+1)+(dayDate(k)?' - '+dmy(dayDate(k)):'');
   const layout=k=>{
