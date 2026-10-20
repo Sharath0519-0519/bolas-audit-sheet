@@ -1311,22 +1311,27 @@ textarea.ml-in{min-height:170px;resize:vertical;font-family:'DM Mono',monospace;
 #evTable th{white-space:nowrap;padding:8px 9px;font-size:10.5px}
 #evTable td{padding:5px 6px}
 .ev-btn{width:auto!important;padding:9px 14px!important;font-size:12.5px!important;margin:0 8px 8px 0}
+.ev-day{background:var(--surface);border:1.5px solid var(--border);color:var(--text);border-radius:10px;padding:7px 14px;font:700 12.5px inherit;font-family:inherit;cursor:pointer;margin:0 6px 6px 0;display:inline-flex;flex-direction:column;align-items:center;line-height:1.25}
+.ev-day span{font-size:10px;font-weight:400;color:var(--muted)}
+.ev-day.on{border-color:#5B7FE0;color:#5B7FE0;background:rgba(91,127,224,.12)}
 </style>
 <div class="panel" id="panel17">
   <div class="section-head">
     <span class="dot" style="background:#E8710A"></span>
-    <div><h2>Event Details</h2><p>Items taken to an event → invoiced → returned to outlet, with the difference (missing items) worked out for you</p></div>
+    <div><h2>Event Details</h2><p>Stock taken to an event → sample &amp; invoice day by day → closing balance carries to the next day → returned to outlet, with the difference (missing items) worked out for you</p></div>
   </div>
 
   <div class="setup-cards" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
     <div class="setup-card">
       <div class="setup-card-hdr"><div class="setup-num" style="background:#5B7FE0">1</div><h3>Event</h3></div>
       <label class="pc-label">Taken from outlet</label>
-      <input type="text" id="evOutlet" class="pc-input" list="p3OutletDatalist" autocomplete="off" placeholder="e.g. 053 Bangalore Vijayanagar">
+      <input type="text" id="evOutlet" class="pc-input" autocomplete="off" placeholder="Type 053 or a name — e.g. 053 Bangalore Vijayanagara">
       <label class="pc-label" style="margin-top:12px">Event name</label>
       <input type="text" id="evName" class="pc-input" placeholder="e.g. Dasara Exhibition">
-      <label class="pc-label" style="margin-top:12px">Date</label>
-      <input type="date" id="evDate" class="pc-input">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+        <div style="flex:1;min-width:130px"><label class="pc-label">From date</label><input type="date" id="evDate" class="pc-input"></div>
+        <div style="flex:1;min-width:130px"><label class="pc-label">To date <span style="font-weight:400;color:var(--muted)">(multi-day event)</span></label><input type="date" id="evDateTo" class="pc-input"></div>
+      </div>
       <label class="pc-label" style="margin-top:12px">Location</label>
       <input type="text" id="evLoc" class="pc-input">
       <label class="pc-label" style="margin-top:12px">Staff at event</label>
@@ -1343,21 +1348,22 @@ textarea.ml-in{min-height:170px;resize:vertical;font-family:'DM Mono',monospace;
 
   <div style="margin:18px 0 6px">
     <input type="file" id="evImpFile" accept=".xlsx,.xls,.csv" style="display:none">
-    <button class="download-btn ev-btn" onclick="evAddRow()" style="border:2px solid #5B7FE0;color:#5B7FE0">+ Add item</button>
     <button class="download-btn ev-btn" onclick="evImportPick('taken')" style="border:2px solid var(--border);color:var(--text)">⬆ Import items taken (Excel)</button>
     <button class="download-btn ev-btn" onclick="evImportPick('inv')" style="border:2px solid var(--border);color:var(--text)">⬆ Import invoice (Excel)</button>
   </div>
 
+  <div id="evDays" style="margin:6px 0 2px"></div>
   <div id="evCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:11px;margin:14px 0"></div>
 
   <div class="table-wrap"><div class="table-scroll"><table id="evTable">
-    <thead><tr>
-      <th>#</th><th style="text-align:left">Item</th><th>Taken from Outlet</th><th>From Other Outlet</th><th>Other Outlet Name</th><th>Total Taken</th>
-      <th>Invoiced</th><th>Selling Price ₹</th><th>Invoiced Amt ₹</th><th>Returned to Outlet</th><th>Diff (Missing)</th><th>Diff Value ₹</th><th></th>
-    </tr></thead>
+    <thead id="evHead"></thead>
     <tbody id="evBody"></tbody>
     <tfoot id="evFoot"></tfoot>
   </table></div></div>
+  <div style="margin:10px 0 6px">
+    <button class="download-btn ev-btn" onclick="evAddRow()" style="border:2px solid #5B7FE0;color:#5B7FE0">+ Add item</button>
+    <span style="font-size:11.5px;color:var(--muted)">Use the <strong>＋</strong> at the end of a row to add an item right below that row.</span>
+  </div>
   <datalist id="evItemList"></datalist>
 
   <div class="setup-card" style="margin-bottom:16px;max-width:520px">
@@ -1371,7 +1377,7 @@ textarea.ml-in{min-height:170px;resize:vertical;font-family:'DM Mono',monospace;
 
   <div class="results-title" style="margin-top:26px">Saved Events</div>
   <div id="evHistory"><p style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px">Loading…</p></div>
-  <div class="note-strip" style="background:var(--surface);border:1px solid var(--border)"><strong>Diff</strong> = Total Taken − Invoiced − Returned. A red number is stock that went to the event but was neither invoiced nor returned; amber means more was invoiced / returned than taken.</div>
+  <div class="note-strip" style="background:var(--surface);border:1px solid var(--border)"><strong>Closing Balance</strong> = Total − Sample − Invoice for that day, and it becomes the next day’s <strong>Opening Balance</strong> (add any extra stock under <strong>Additional Stock</strong>). On the last day <strong>Diff</strong> = Closing Balance − Returned to outlet: a red number is stock that is neither returned nor accounted for; amber means more was returned than was left.</div>
 </div>
 <!-- ══ PANEL 15 — OUTLET DOCUMENTS (Cluster Manager + Owner only) ══ -->
 <div class="panel" id="panel15">
@@ -7712,7 +7718,7 @@ function saveAuditRecord(stats, shortItems, excessItems) {
 // Typing a code, a name, part of a name, or even a misspelling ("hosure" → 051 Hosur) shows matches.
 // ══════════════════════════════════════════════════════════════
 let obFire = [], obLoadedAt = 0;
-const OB_IDS = ['p3OutletName','pcOutletName','clOutletName','ogInput'];
+const OB_IDS = ['p3OutletName','pcOutletName','clOutletName','ogInput','evOutlet'];
 const OB_STOP = new Set(['bolas','boals','factory','outlet','the','store','stores']);
 const obNorm = s => String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 function obMaster(){ return Object.values(P14_BUILTIN).map(o=>({code:o.code,name:o.code+' '+o.name,type:o.type})); }
@@ -7807,19 +7813,28 @@ function obSearch(q){
     P.innerHTML = hits.length ? hits.map((o,i)=>`<div class="ob-row${i===idx?' on':''}" data-i="${i}"><span>${escHtml(o.name)}</span>${o.type?`<span class="ob-tag">${o.type==='franchise'?'Franchise':'Company'}</span>`:''}</div>`).join('')
       : `<div class="ob-empty">No match in the outlet list.${isOwner?' To add a new outlet, type its full name and use "+ Save to Outlet Manager".':' Ask the owner to add this outlet.'}</div>`;
   }
-  function show(el){ inp = el; hits = obSearch(el.value); idx = hits.length && el.value.trim() ? 0 : -1; render(); P.style.display = 'block'; pos(); }
+  const isOb = el => !!el && (OB_IDS.includes(el.id) || (el.classList && el.classList.contains('ob-free')));
+  // "ob-free" boxes (Event Details → Other Outlet Name) also accept any text you type, so the list only
+  // shows while something is typed and matches, and Enter only picks a suggestion you moved to yourself
+  // (a bare outlet number like 053 is the exception — it is pre-selected).
+  function show(el){
+    const free = el.classList.contains('ob-free'), v = el.value.trim();
+    inp = el; hits = (free && !v) ? [] : obSearch(el.value);
+    if(free && !hits.length){ hide(); return; }
+    idx = hits.length && v && (!free || /^\d+$/.test(v)) ? 0 : -1; render(); P.style.display = 'block'; pos();
+  }
   function pick(i){
     const o = hits[i]; if(!o || !inp) return;
     const el = inp; picking = true; el.value = o.name; el.dispatchEvent(new Event('input',{bubbles:true})); picking = false; hide();
   }
   document.addEventListener('focusin', e=>{
     const t = e.target;
-    if(OB_IDS.includes(t.id) && !t.readOnly){   // a staff member's locked outlet box never opens the picker
+    if(isOb(t) && !t.readOnly){   // a staff member's locked outlet box never opens the picker
       if(Date.now()-obLoadedAt > 60000 && typeof db !== 'undefined' && currentUser){ obLoadedAt = Date.now(); p3LoadOutletDatalist(); }
-      show(t);
+      if(t.classList.contains('ob-free')) hide(); else show(t);   // free-text boxes only suggest once you type
     } else if(!P.contains(t)) hide();
   });
-  document.addEventListener('input', e=>{ if(!picking && OB_IDS.includes(e.target.id) && !e.target.readOnly) show(e.target); });
+  document.addEventListener('input', e=>{ if(!picking && isOb(e.target) && !e.target.readOnly) show(e.target); });
   document.addEventListener('keydown', e=>{
     if(!inp || e.target !== inp || P.style.display === 'none') return;
     if(e.key==='ArrowDown' || e.key==='ArrowUp'){
@@ -8746,36 +8761,82 @@ function rateStatus(fn){
 function fillList(){$('evItemList').innerHTML=pool().slice(0,3000).map(v=>'<option value="'+esc(v.name)+'">').join('');}
 
 // ── table ──
-const blank=()=>({name:'',own:'',other:'',from:'',inv:'',price:'',ret:'',pm:false,pa:false,mn:''});
-const calc=r=>{const t=num(r.own)+num(r.other),d=t-num(r.inv)-num(r.ret),p=num(r.price);return{t,d,a:num(r.inv)*p,v:d*p};};
+const blank=()=>({name:'',own:'',other:'',from:'',price:'',ret:'',d:[],pm:false,pa:false,mn:''});
+
+// ── days: the From–To dates decide how many days (tabs / Excel sheets) the event has ──
+const MAXD=62; let cur=0;   // cur = the day shown on screen (0 = day 1)
+const dmy=s=>s?String(s).split('-').reverse().join('-'):'';
+function nDays(){const a=$('evDate').value,b=$('evDateTo').value;if(!a||!b||b<=a)return 1;return Math.max(1,Math.min(MAXD,Math.round((Date.parse(b)-Date.parse(a))/864e5)+1));}
+function dayDate(k){const a=$('evDate').value;if(!a)return '';const p=a.split('-').map(Number);return new Date(Date.UTC(p[0],p[1]-1,p[2]+k)).toISOString().slice(0,10);}
+const dayObj=(r,k)=>{if(!r.d)r.d=[];if(!r.d[k])r.d[k]={add:'',smp:'',inv:''};return r.d[k];};
+// Day 1 total = stock taken (own + other outlet). Every later day: Opening = previous day's Closing, Total = Opening + Additional stock.
+// Closing = Total − Sample − Invoice.
+function run(r){
+  const n=nDays(),out=[]; let open=num(r.own)+num(r.other);
+  for(let k=0;k<n;k++){const x=(r.d&&r.d[k])||{},add=k?num(x.add):0,smp=num(x.smp),inv=num(x.inv),tot=open+add,close=tot-smp-inv;out.push({open,add,tot,smp,inv,close});open=close;}
+  return out;
+}
+// last day: Diff (Missing) = Closing balance − Returned to outlet
+const calc=r=>{const D=run(r),L=D[D.length-1],p=num(r.price),d=L.close-num(r.ret);return{D,L,p,d,v:d*p};};
 const dCell=d=>d===0?'<span style="color:#3FB874">✓</span>':'<strong style="color:'+(d>0?'#E15C5C':'#D6923B')+'">'+fmt(d)+'</strong>';
+const cCell=c=>c<0?'<strong style="color:#E15C5C">'+fmt(c)+'</strong>':fmt(c);
 function render(){
-  const inp=(i,f,v,w,ex)=>'<input class="ev-in'+(ex||'')+'" data-f="'+f+'" '+(f==='from'||f==='name'?'':'type="number" min="0" step="any" inputmode="decimal" ')+'value="'+esc(v)+'" style="width:'+w+'px">';
-  $('evBody').innerHTML=rows.map((r,i)=>'<tr data-i="'+i+'"><td>'+(i+1)+'</td>'
+  const nd=nDays(); if(cur>=nd)cur=nd-1; const k=cur,last=k===nd-1;
+  $('evDays').innerHTML=nd>1?Array.from({length:nd},(_,j)=>'<button class="ev-day'+(j===k?' on':'')+'" data-day="'+j+'">Day '+(j+1)+'<span>'+esc(dmy(dayDate(j)).slice(0,5))+'</span></button>').join('')
+    :'<span style="font-size:11.5px;color:var(--muted)">One-day event. For a multi-day event set the <strong>To date</strong> — each day gets its own tab and its own Excel sheet, and a day’s closing balance becomes the next day’s opening balance.</span>';
+  const H=['#','Item'].concat(k===0?['Taken from Outlet','From Other Outlet','Other Outlet Name','Total']:['Opening Balance','Additional Stock','Total'],
+    ['Sample','Selling Price ₹','Sample Amt ₹','Invoice','Invoice Amt ₹','Closing Balance'],last?['Returned to Outlet','Diff (Missing)','Diff Value ₹']:[],['']);
+  $('evHead').innerHTML='<tr>'+H.map(h=>'<th'+(h==='Item'?' style="text-align:left"':'')+'>'+h+'</th>').join('')+'</tr>';
+  const inp=(f,v,w,ex)=>'<input class="ev-in'+(ex||'')+(f==='from'?' ob-free':'')+'" data-f="'+f+'" '+(f==='from'?'autocomplete="off" placeholder="e.g. 053 or any name" ':'type="number" min="0" step="any" inputmode="decimal" ')+'value="'+esc(v)+'" style="width:'+w+'px">';
+  const din=(f,v,w)=>'<input class="ev-in" data-d="'+f+'" type="number" min="0" step="any" inputmode="decimal" value="'+esc(v)+'" style="width:'+w+'px">';
+  $('evBody').innerHTML=rows.map((r,i)=>{const x=(r.d&&r.d[k])||{};
+    return '<tr data-i="'+i+'"><td>'+(i+1)+'</td>'
     +'<td style="text-align:left"><input class="ev-in" list="evItemList" data-f="name" value="'+esc(r.name)+'" style="width:230px" placeholder="Item name"></td>'
-    +'<td>'+inp(i,'own',r.own,76)+'</td><td>'+inp(i,'other',r.other,76)+'</td><td>'+inp(i,'from',r.from,120)+'</td>'
-    +'<td id="evT'+i+'" style="color:var(--text);font-weight:700"></td><td>'+inp(i,'inv',r.inv,76)+'</td>'
-    +'<td title="'+esc(r.pa?'Auto: '+r.mn:'')+'">'+inp(i,'price',r.price,84,r.pa?' auto':'')+'</td><td id="evA'+i+'"></td>'
-    +'<td>'+inp(i,'ret',r.ret,76)+'</td><td id="evD'+i+'"></td><td id="evV'+i+'"></td>'
-    +'<td><button onclick="evDelRow('+i+')" aria-label="Remove" style="background:none;border:none;color:#E15C5C;cursor:pointer;font-size:14px">✕</button></td></tr>').join('');
+    +(k===0?'<td>'+inp('own',r.own,76)+'</td><td>'+inp('other',r.other,76)+'</td><td>'+inp('from',r.from,250)+'</td>'
+           :'<td id="evO'+i+'"></td><td>'+din('add',x.add,76)+'</td>')
+    +'<td id="evT'+i+'" style="color:var(--text);font-weight:700"></td>'
+    +'<td>'+din('smp',x.smp,76)+'</td><td title="'+esc(r.pa?'Auto: '+r.mn:'')+'">'+inp('price',r.price,84,r.pa?' auto':'')+'</td><td id="evSA'+i+'"></td>'
+    +'<td>'+din('inv',x.inv,76)+'</td><td id="evIA'+i+'"></td><td id="evC'+i+'" style="font-weight:700"></td>'
+    +(last?'<td>'+inp('ret',r.ret,76)+'</td><td id="evD'+i+'"></td><td id="evV'+i+'"></td>':'')
+    +'<td style="white-space:nowrap"><button onclick="evInsRow('+i+')" title="Add an item below this row" aria-label="Add item below" style="background:none;border:none;color:#5B7FE0;cursor:pointer;font-size:16px;font-weight:700">＋</button>'
+    +'<button onclick="evDelRow('+i+')" aria-label="Remove" style="background:none;border:none;color:#E15C5C;cursor:pointer;font-size:14px">✕</button></td></tr>';}).join('');
   paint();
 }
 function paint(){
-  let T=0,I=0,R=0,D=0,A=0,V=0;
-  rows.forEach((r,i)=>{const c=calc(r);T+=c.t;I+=num(r.inv);R+=num(r.ret);D+=c.d;A+=c.a;V+=c.v;
-    const s=(id,h)=>{const e=$(id+i);if(e)e.innerHTML=h;}; s('evT',fmt(c.t)); s('evA',c.a?fmt(c.a):'—'); s('evD',dCell(c.d)); s('evV',c.v?fmt(c.v):'—');});
+  const k=cur,nd=nDays(),last=k===nd-1; let O=0,Ad=0,T=0,S=0,I=0,C=0,SA=0,IA=0,R=0,D=0,V=0;
+  rows.forEach((r,i)=>{const c=calc(r),x=c.D[k],p=c.p;
+    O+=x.open;Ad+=x.add;T+=x.tot;S+=x.smp;I+=x.inv;C+=x.close;SA+=x.smp*p;IA+=x.inv*p;R+=num(r.ret);D+=c.d;V+=c.v;
+    const s=(id,h)=>{const e=$(id+i);if(e)e.innerHTML=h;};
+    s('evO',fmt(x.open)); s('evT',fmt(x.tot)); s('evSA',x.smp*p?fmt(x.smp*p):'—'); s('evIA',x.inv*p?fmt(x.inv*p):'—'); s('evC',cCell(x.close)); s('evD',dCell(c.d)); s('evV',c.v?fmt(c.v):'—');});
   const cd=(v,l,c)=>'<div class="sc"><div class="sv" style="'+(c?'color:'+c+';':'')+'font-size:19px">'+v+'</div><div class="sl">'+l+'</div></div>';
-  $('evCards').innerHTML=cd(fmt(T),'Total Taken','#5B7FE0')+cd(fmt(I),'Invoiced','#3FB874')+cd(fmt(R),'Returned to Outlet','#74b9ff')+cd(fmt(D),'Diff (Missing)',D===0?'#3FB874':'#E15C5C')+cd('₹'+fmt(A),'Invoiced Amount','#3FB874')+cd('₹'+fmt(V),'Diff Value',V===0?'#3FB874':'#E15C5C');
-  $('evFoot').innerHTML='<tr style="background:var(--surface2);font-weight:700"><td colspan="5" style="text-align:right;color:var(--text)">TOTAL</td><td style="color:var(--text)">'+fmt(T)+'</td><td style="color:var(--text)">'+fmt(I)+'</td><td></td><td style="color:var(--text)">'+fmt(A)+'</td><td style="color:var(--text)">'+fmt(R)+'</td><td>'+dCell(D)+'</td><td style="color:var(--text)">'+fmt(V)+'</td><td></td></tr>';
+  $('evCards').innerHTML=cd(fmt(T),(nd>1?'Day '+(k+1)+' · ':'')+'Total Stock','#5B7FE0')+cd(fmt(S),'Sample','#D6923B')+cd(fmt(I),'Invoiced','#3FB874')+cd(fmt(C),'Closing Balance','#74b9ff')+cd('₹'+fmt(SA),'Sample Amount','#D6923B')+cd('₹'+fmt(IA),'Invoice Amount','#3FB874')
+    +(last?cd(fmt(D),'Diff (Missing)',D===0?'#3FB874':'#E15C5C')+cd('₹'+fmt(V),'Diff Value',V===0?'#3FB874':'#E15C5C'):'');
+  const td=h=>'<td style="color:var(--text)">'+h+'</td>';
+  $('evFoot').innerHTML='<tr style="background:var(--surface2);font-weight:700"><td colspan="'+(k===0?5:2)+'" style="text-align:right;color:var(--text)">TOTAL</td>'
+    +(k===0?td(fmt(T)):td(fmt(O))+td(fmt(Ad))+td(fmt(T)))+td(fmt(S))+'<td></td>'+td(fmt(SA))+td(fmt(I))+td(fmt(IA))+td(cCell(C))
+    +(last?td(fmt(R))+'<td>'+dCell(D)+'</td>'+td(fmt(V)):'')+'<td></td></tr>';
 }
 $('evBody').addEventListener('input',e=>{
-  const f=e.target.dataset.f,tr=e.target.closest('tr'); if(!f||!tr)return; const r=rows[+tr.dataset.i];
+  const f=e.target.dataset.f,df=e.target.dataset.d,tr=e.target.closest('tr'); if((!f&&!df)||!tr)return; const r=rows[+tr.dataset.i];
+  if(df){dayObj(r,cur)[df]=e.target.value; paint(); return;}
   r[f]=e.target.value; if(f==='price'){r.pm=true;r.pa=false;e.target.classList.remove('auto');} paint();
 });
+$('evDays').addEventListener('click',e=>{const b=e.target.closest('[data-day]');if(!b)return;cur=+b.dataset.day;render();});
+// typing just an outlet number ("53" / "053") becomes the full outlet name from the master list
+function outletFull(v){
+  v=String(v||'').trim(); if(!/^\d{1,3}$/.test(v))return v;
+  const code=v.padStart(3,'0'), o=(typeof obAll==='function'?obAll():[]).find(x=>x.code===code);
+  return o?o.name:v;
+}
 $('evBody').addEventListener('change',e=>{
-  if(e.target.dataset.f!=='name')return; const r=rows[+e.target.closest('tr').dataset.i]; r.pm=false; autoPrice(r); render();
+  const f=e.target.dataset.f, r=rows[+e.target.closest('tr').dataset.i];
+  if(f==='from'){const full=outletFull(e.target.value); if(full!==e.target.value){e.target.value=full;} r.from=full; return;}
+  if(f!=='name')return; r.pm=false; autoPrice(r); render();
 });
-window.evAddRow=()=>{rows.push(blank());render();const n=document.querySelectorAll('#evBody tr:last-child .ev-in');if(n[0])n[0].focus();};
+$('evOutlet').addEventListener('change',e=>{e.target.value=outletFull(e.target.value);});
+const focusRow=i=>{const n=document.querySelectorAll('#evBody tr')[i];const f=n&&n.querySelector('.ev-in');if(f)f.focus();};
+window.evAddRow=()=>{rows.push(blank());render();focusRow(rows.length-1);};
+window.evInsRow=i=>{rows.splice(i+1,0,blank());render();focusRow(i+1);};
 window.evDelRow=i=>{rows.splice(i,1);if(!rows.length)rows.push(blank());render();};
 
 // ── import (Excel with Item + Qty) ──
@@ -8789,11 +8850,11 @@ $('evImpFile').addEventListener('change',async e=>{
       g.slice(c.h+1).forEach(r=>{const name=String(r[c.nc]).trim(),q=num(r[c.vc]);if(!name||q<=0||/^total/i.test(name))return;const k=key(name),o=agg.get(k);o?o.q+=q:agg.set(k,{name,q});});
     });
     if(!agg.size)throw new Error('No item + quantity columns found in that file.');
-    rows=rows.filter(r=>r.name||num(r.own)||num(r.inv)); let add=0,upd=0;
+    rows=rows.filter(r=>r.name||num(r.own)||num(r.other)||(r.d||[]).some(x=>x&&(num(x.add)||num(x.smp)||num(x.inv)))); let add=0,upd=0;
     agg.forEach((o,k)=>{
       let r=rows.find(x=>key(x.name)===k);
       if(r)upd++; else{r=blank();r.name=o.name;rows.push(r);add++;}
-      if(impKind==='inv')r.inv=o.q; else r.own=o.q; r.pm=r.pm&&!!num(r.price); autoPrice(r);
+      if(impKind==='inv')dayObj(r,cur).inv=o.q; else if(cur===0)r.own=o.q; else dayObj(r,cur).add=o.q; r.pm=r.pm&&!!num(r.price); autoPrice(r);
     });
     if(!rows.length)rows.push(blank()); render(); msg('✓ Imported '+agg.size+' items ('+add+' new, '+upd+' updated) from '+file.name+'.',true);
   }catch(err){msg(err.message,false);}
@@ -8801,19 +8862,27 @@ $('evImpFile').addEventListener('change',async e=>{
 $('evRateFile').addEventListener('change',e=>{if(e.target.files[0])loadRateFile(e.target.files[0]);});
 
 // ── save / history / excel ──
+// one day → "2026-10-01"; several days → "2026-10-01 to 2026-10-10"
+function dateText(a,b){a=a||'';b=b||'';return b&&b!==a?(a?a+' to '+b:b):a;}
+$('evDate').addEventListener('change',()=>{const f=$('evDate').value,t=$('evDateTo');t.min=f||'';if(f&&t.value&&t.value<f)t.value=f;render();});
+$('evDateTo').addEventListener('change',()=>{render();});
 function msg(t,ok){const m=$('evMsg');m.style.color=ok?'#3FB874':'#E15C5C';m.textContent=t;}
 function snapshot(){
-  const rs=rows.filter(r=>String(r.name).trim()).map(r=>({name:r.name.trim(),own:num(r.own),other:num(r.other),from:r.from||'',inv:num(r.inv),price:num(r.price),ret:num(r.ret)}));
-  let t=0,d=0,v=0; rs.forEach(r=>{const c=calc(r);t+=c.t;d+=c.d;v+=c.v;});
-  return{rows:rs,totals:{taken:t,diff:d,diffValue:v}};
+  const n=nDays();
+  const rs=rows.filter(r=>String(r.name).trim()).map(r=>({name:r.name.trim(),own:num(r.own),other:num(r.other),from:r.from||'',price:num(r.price),ret:num(r.ret),
+    d:Array.from({length:n},(_,k)=>{const x=(r.d&&r.d[k])||{};return{add:k?num(x.add):0,smp:num(x.smp),inv:num(x.inv)};})}));
+  rs.forEach(r=>{r.inv=r.d.reduce((a,x)=>a+x.inv,0);});   // total invoiced over all days (older saved events only have this)
+  let t=0,d=0,v=0; rs.forEach(r=>{const c=calc(r);t+=c.D[0].open+c.D.reduce((a,x)=>a+x.add,0);d+=c.d;v+=c.v;});
+  return{rows:rs,totals:{taken:t,diff:d,diffValue:v},days:n};
 }
 window.evSave=async()=>{
   const outlet=$('evOutlet').value.trim(),name=$('evName').value.trim(),s=snapshot();
   if(!currentUser)return msg('Please sign in first.',false);
   if(!outlet||!name)return msg('Enter the outlet and the event name first.',false);
   if(!s.rows.length)return msg('Add at least one item first.',false);
-  const data={outletName:outlet,eventName:name,eventDate:$('evDate').value,location:$('evLoc').value.trim(),staff:$('evStaff').value.trim(),remarks:$('evRemarks').value.trim(),
-    rows:s.rows,totals:s.totals,ts:firebase.firestore.FieldValue.serverTimestamp(),updatedByName:currentUser.displayName||currentUser.email};
+  if($('evDateTo').value&&$('evDate').value&&$('evDateTo').value<$('evDate').value)return msg('The “To” date is before the “From” date.',false);
+  const data={outletName:outlet,eventName:name,eventDate:$('evDate').value,eventDateTo:$('evDateTo').value,location:$('evLoc').value.trim(),staff:$('evStaff').value.trim(),remarks:$('evRemarks').value.trim(),
+    rows:s.rows,totals:s.totals,days:s.days,ts:firebase.firestore.FieldValue.serverTimestamp(),updatedByName:currentUser.displayName||currentUser.email};
   try{
     if(evId)await db.collection('event_details').doc(evId).set(data,{merge:true});
     else{const ref=await db.collection('event_details').add(Object.assign({createdByUid:currentUser.uid,createdByName:currentUser.displayName||currentUser.email},data));evId=ref.id;}
@@ -8825,7 +8894,7 @@ async function loadHist(){
   try{
     const docs=await scopedDocs('event_details',30); hist={}; docs.forEach(d=>hist[d.id]=d.data());
     w.innerHTML=docs.length?docs.map(d=>{const x=d.data(),t=x.totals||{},ok=!t.diff;
-      return '<div class="sc" style="text-align:left;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><div style="flex:1;min-width:180px"><div style="font-weight:700;font-size:13px">'+esc(x.eventName)+'</div><div style="color:var(--muted);font-size:11px;font-family:\'DM Mono\',monospace">'+esc(x.outletName)+' · '+esc(x.eventDate||'—')+' · '+(x.rows||[]).length+' items</div></div>'
+      return '<div class="sc" style="text-align:left;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><div style="flex:1;min-width:180px"><div style="font-weight:700;font-size:13px">'+esc(x.eventName)+'</div><div style="color:var(--muted);font-size:11px;font-family:\'DM Mono\',monospace">'+esc(x.outletName)+' · '+esc(dateText(x.eventDate,x.eventDateTo)||'—')+' · '+(x.rows||[]).length+' items</div></div>'
         +'<div style="font-size:12px;font-weight:700;color:'+(ok?'#3FB874':'#E15C5C')+'">'+(ok?'No difference':'Diff '+fmt(t.diff||0)+' · ₹'+fmt(t.diffValue||0))+'</div>'
         +'<button class="mini-btn" data-open="'+d.id+'" style="border:1px solid var(--border);color:var(--text)">Open</button>'
         +((isOwner||x.createdByUid===currentUser.uid)?'<button class="mini-btn" data-del="'+d.id+'" style="border:1px solid #E15C5C;color:#E15C5C">Delete</button>':'')+'</div>';}).join('')
@@ -8834,29 +8903,97 @@ async function loadHist(){
 }
 $('evHistory').addEventListener('click',async e=>{
   const o=e.target.dataset.open,d=e.target.dataset.del;
-  if(o&&hist[o]){const x=hist[o];evId=o;$('evOutlet').value=x.outletName||'';$('evName').value=x.eventName||'';$('evDate').value=x.eventDate||'';$('evLoc').value=x.location||'';$('evStaff').value=x.staff||'';$('evRemarks').value=x.remarks||'';
-    rows=(x.rows||[]).map(r=>Object.assign(blank(),{name:r.name,own:r.own||'',other:r.other||'',from:r.from||'',inv:r.inv||'',price:r.price||'',ret:r.ret||''}));if(!rows.length)rows.push(blank());lockOutlet();render();msg('Opened “'+x.eventName+'”.',true);window.scrollTo({top:0,behavior:'smooth'});}
+  if(o&&hist[o]){const x=hist[o];evId=o;$('evOutlet').value=x.outletName||'';$('evName').value=x.eventName||'';$('evDate').value=x.eventDate||'';$('evDateTo').value=x.eventDateTo||'';$('evLoc').value=x.location||'';$('evStaff').value=x.staff||'';$('evRemarks').value=x.remarks||'';
+    rows=(x.rows||[]).map(r=>Object.assign(blank(),{name:r.name,own:r.own||'',other:r.other||'',from:r.from||'',price:r.price||'',ret:r.ret||'',d:Array.isArray(r.d)?r.d.map(q=>({add:q.add||'',smp:q.smp||'',inv:q.inv||''})):[{add:'',smp:'',inv:r.inv||''}]}));if(!rows.length)rows.push(blank());cur=0;lockOutlet();render();msg('Opened “'+x.eventName+'”.',true);window.scrollTo({top:0,behavior:'smooth'});}
   if(d&&confirm('Delete this saved event?')){try{await db.collection('event_details').doc(d).delete();if(evId===d)evId=null;loadHist();}catch(err){msg(err.message,false);}}
 });
-window.evNew=()=>{evId=null;['evName','evLoc','evStaff','evRemarks'].forEach(i=>$(i).value='');rows=[blank()];$('evDate').value=today();if(!isStaffUser())$('evOutlet').value='';lockOutlet();render();msg('',true);};
+window.evNew=()=>{evId=null;['evName','evLoc','evStaff','evRemarks'].forEach(i=>$(i).value='');rows=[blank()];cur=0;$('evDate').value=today();$('evDateTo').value='';if(!isStaffUser())$('evOutlet').value='';lockOutlet();render();msg('',true);};
+// Excel: one sheet per day, laid out like the team's event sheet —
+//   [title | stock]  [Sampling: Sample · S.P · Total]  [Invoice: Invoice · S.P · Total]  [Closing Balance]
+// Day 2+ sheets start with Opening Balance (a live link to the previous sheet's Closing Balance) + Additional Stock.
 window.evDownload=async()=>{
   const s=snapshot(); if(!s.rows.length)return msg('Add at least one item first.',false);
   if(typeof ExcelJS==='undefined')return msg('The Excel library has not loaded — check your internet connection and try again.',false);
-  const wb=new ExcelJS.Workbook(); wb.creator='Bolas Stock Suite'; const ws=wb.addWorksheet('Event Details');
-  const thin={style:'thin',color:{argb:'FFBBBBBB'}},bd={top:thin,left:thin,bottom:thin,right:thin};
-  ws.addRow([($('evOutlet').value||'').toUpperCase()+' — EVENT STOCK RECONCILIATION']); ws.mergeCells('A1:L1'); ws.getCell('A1').font={bold:true,size:14};
-  ws.addRow(['Event',$('evName').value,'','Date',$('evDate').value,'','Location',$('evLoc').value]); ws.addRow(['Staff',$('evStaff').value,'','Remarks',$('evRemarks').value]);
-  ws.addRow([]);
-  const H=ws.addRow(['#','Item','Taken from Outlet','From Other Outlet','Other Outlet Name','Total Taken','Invoiced','Selling Price (₹)','Invoiced Amount (₹)','Returned to Outlet','Diff (Missing)','Diff Value (₹)']);
-  H.eachCell(c=>{c.font={bold:true,color:{argb:'FFFFFFFF'}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF2E3F9F'}};c.alignment={horizontal:'center',vertical:'middle',wrapText:true};c.border=bd;});
-  s.rows.forEach((r,i)=>{const n=6+i,row=ws.addRow([i+1,r.name,r.own||0,r.other||0,r.from,{formula:`C${n}+D${n}`},r.inv||0,r.price||null,{formula:`G${n}*N(H${n})`},r.ret||0,{formula:`F${n}-G${n}-J${n}`},{formula:`K${n}*N(H${n})`}]);
-    row.eachCell(c=>c.border=bd); row.getCell(11).numFmt='[Red]0.##;[Red]-0.##;"✓"'; [8,9,12].forEach(k=>row.getCell(k).numFmt='#,##0.00');});
-  const L=5+s.rows.length,T=ws.addRow(['','TOTAL','','','',{formula:`SUM(F6:F${L})`},{formula:`SUM(G6:G${L})`},'',{formula:`SUM(I6:I${L})`},{formula:`SUM(J6:J${L})`},{formula:`SUM(K6:K${L})`},{formula:`SUM(L6:L${L})`}]);
-  T.eachCell({includeEmpty:true},c=>{c.font={bold:true};c.border=bd;c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFEDEDED'}};}); T.getCell(11).numFmt='[Red]0.##;[Red]-0.##;"✓"';
-  [5,38,12,12,18,11,11,13,15,13,12,14].forEach((w,i)=>ws.getColumn(i+1).width=w); ws.getRow(5).height=32; ws.views=[{state:'frozen',ySplit:5}];
-  const buf=await wb.xlsx.writeBuffer(),a=document.createElement('a');
+  const nd=nDays(), runs=s.rows.map(r=>run(r));
+  // other-outlet columns only when some row has an other-outlet quantity or name; Returned/Diff only when something was returned
+  const useOther=s.rows.some(r=>r.other>0||String(r.from||'').trim()), useRet=s.rows.some(r=>r.ret>0);
+  const wb=new ExcelJS.Workbook(); wb.creator='Bolas Stock Suite';
+  const BLK={style:'thin',color:{argb:'FF000000'}}, bd={top:BLK,left:BLK,bottom:BLK,right:BLK};
+  const fill=argb=>({type:'pattern',pattern:'solid',fgColor:{argb}});
+  const YEL='FFFFFF00', SKY='FF00B0F0', CREAM='FFFFF2CC';
+  const letter=n=>{let t='';while(n>0){const m=(n-1)%26;t=String.fromCharCode(65+m)+t;n=Math.floor((n-1)/26);}return t;};
+  const sheetName=k=>nd===1?'Event Details':'Day '+(k+1)+(dayDate(k)?' - '+dmy(dayDate(k)):'');
+  const layout=k=>{
+    const L=[{id:'name',h:'Products / SKUs',w:56,g:'t'}];
+    if(k===0){
+      if(useOther)L.push({id:'own',h:'Taken from Outlet',w:12,g:'t'},{id:'other',h:'From Other Outlet',w:12,g:'t'},{id:'from',h:'Other Outlet Name',w:32,g:'t'});
+      L.push({id:'tot',h:'Total',w:11,g:'t'});
+    }else L.push({id:'open',h:'Opening Balance',w:12,g:'t'},{id:'add',h:'Additional Stock',w:12,g:'t'},{id:'tot',h:'Total',w:11,g:'t'});
+    L.push({id:'smp',h:'Sample',w:10,g:'s'},{id:'sp1',h:'S.P',w:10,g:'s'},{id:'sa',h:'Total',w:11,g:'s'},{id:'gap1',w:4,gap:1},
+           {id:'inv',h:'Invoice',w:10,g:'i'},{id:'sp2',h:'S.P',w:10,g:'i'},{id:'ia',h:'Total',w:11,g:'i'},{id:'gap2',w:4,gap:1},
+           {id:'close',h:'Closing Balance',w:13,g:'c'});
+    if(k===nd-1&&useRet)L.push({id:'ret',h:'Returned to Outlet',w:13,g:'c'},{id:'diff',h:'Diff (Missing)',w:12,g:'c'},{id:'dv',h:'Diff Value (₹)',w:13,g:'c'});
+    const col={}; L.forEach((c,i)=>col[c.id]=letter(i+1)); return {L,col};
+  };
+  const lays=Array.from({length:nd},(_,k)=>layout(k)), names=Array.from({length:nd},(_,k)=>sheetName(k));
+  const evName=($('evName').value||'Event').trim().toUpperCase(), n0=3, nL=n0+s.rows.length-1, tr=nL+2;   // data rows n0..nL, one blank row, then TOTAL
+  const notes=[['Taken from outlet',$('evOutlet').value],['Event dates',nd>1||$('evDateTo').value?dmy($('evDate').value)+' to '+dmy($('evDateTo').value||$('evDate').value):dmy($('evDate').value)],
+    ['Location',$('evLoc').value],['Staff at event',$('evStaff').value],['Remarks',$('evRemarks').value]].filter(x=>String(x[1]||'').replace(/[\s-]|to/g,'').length);
+  for(let k=0;k<nd;k++){
+    const {L,col}=lays[k], ws=wb.addWorksheet(names[k]), date=dayDate(k), pv=k?lays[k-1]:null, ix=id=>L.findIndex(c=>c.id===id)+1;
+    // row 1 — group headings (title over the stock block, Sampling, Invoice, Closing)
+    const title=evName+(date?' '+dmy(date):'')+(nd>1?' (DAY '+(k+1)+')':'');
+    const heads={t:title,s:'Sampling',i:'Invoice',c:L.some(c=>c.id==='ret')?'Closing / Return':'Closing'};
+    ['t','s','i','c'].forEach(g=>{
+      const cs=L.map((c,i)=>c.g===g?i+1:0).filter(Boolean); if(!cs.length)return; const a=cs[0],b=cs[cs.length-1];
+      if(b>a)ws.mergeCells(1,a,1,b);
+      for(let j=a;j<=b;j++){const c=ws.getCell(1,j);c.fill=fill(g==='t'?YEL:CREAM);c.border=bd;}
+      const m=ws.getCell(1,a); m.value=heads[g]; m.font=g==='t'?{bold:true,size:16,color:{argb:'FF000000'}}:{bold:true,size:12,color:{argb:'FF000000'}}; m.alignment={horizontal:'center',vertical:'middle',wrapText:true};
+    });
+    // row 2 — column headings
+    const H=ws.getRow(2); L.forEach((c,j)=>{if(c.gap)return;const x=H.getCell(j+1);x.value=c.h;x.font={bold:true,size:12,color:{argb:'FF000000'}};x.fill=fill(SKY);x.border=bd;x.alignment={horizontal:'center',vertical:'middle',wrapText:true};});
+    // item rows
+    s.rows.forEach((r,i)=>{
+      const n=n0+i, x=runs[i][k], c=id=>col[id]+n, p=r.price||0, v={};
+      v.name=r.name; v.own=r.own||0; v.other=r.other||null; v.from=r.from||null;
+      v.open=pv?{formula:`'${names[k-1]}'!${pv.col.close}${n}`,result:x.open}:null;
+      v.add=x.add||null;
+      v.tot=k===0?(useOther?{formula:`${c('own')}+${c('other')}`,result:x.tot}:x.tot):{formula:`${c('open')}+${c('add')}`,result:x.tot};
+      v.smp=x.smp||null; v.sp1=r.price||null; v.sa={formula:`${c('smp')}*N(${c('sp1')})`,result:x.smp*p};
+      v.inv=x.inv||null; v.sp2={formula:`IF(${c('sp1')}="","",${c('sp1')})`,result:r.price||''}; v.ia={formula:`${c('inv')}*N(${c('sp2')})`,result:x.inv*p};
+      v.close={formula:`${c('tot')}-${c('smp')}-${c('inv')}`,result:x.close};
+      v.ret=r.ret||null; v.diff={formula:`${c('close')}-N(${c('ret')})`,result:x.close-r.ret}; v.dv={formula:`${c('diff')}*N(${c('sp1')})`,result:(x.close-r.ret)*p};
+      const row=ws.getRow(n);
+      L.forEach((cc,j)=>{
+        if(cc.gap)return; const cell=row.getCell(j+1); cell.value=v[cc.id]===undefined?null:v[cc.id]; cell.border=bd;
+        if(cc.id==='name'){cell.font={bold:true};cell.alignment={vertical:'middle'};}
+        else if(['sp1','sp2','sa','ia','dv'].includes(cc.id)){cell.alignment={horizontal:'right',vertical:'middle'};}
+        else{cell.font={bold:true};cell.alignment={horizontal:'center',vertical:'middle'};}
+        if(cc.id==='close')cell.numFmt='General;[Red]-General;General';
+        if(cc.id==='diff')cell.numFmt='[Red]General;[Red]-General;"✓"';
+      });
+    });
+    // TOTAL row (S.P columns are prices, so they are not summed)
+    const agg={own:0,other:0,open:0,add:0,tot:0,smp:0,sa:0,inv:0,ia:0,close:0,ret:0,diff:0,dv:0};
+    s.rows.forEach((r,i)=>{const x=runs[i][k],p=r.price||0;agg.own+=r.own;agg.other+=r.other;agg.open+=x.open;agg.add+=x.add;agg.tot+=x.tot;agg.smp+=x.smp;agg.sa+=x.smp*p;agg.inv+=x.inv;agg.ia+=x.inv*p;agg.close+=x.close;agg.ret+=r.ret;agg.diff+=x.close-r.ret;agg.dv+=(x.close-r.ret)*p;});
+    const T=ws.getRow(tr);
+    L.forEach((cc,j)=>{
+      if(cc.gap)return; const cell=T.getCell(j+1);
+      if(cc.id==='name')cell.value='TOTAL'; else if(cc.id in agg)cell.value={formula:`SUM(${col[cc.id]}${n0}:${col[cc.id]}${nL})`,result:agg[cc.id]};
+      cell.font={bold:true,size:12}; cell.fill=fill(CREAM); cell.alignment={horizontal:'center',vertical:'middle'};
+      cell.border={top:{style:'medium',color:{argb:'FF000000'}},left:BLK,bottom:{style:'medium',color:{argb:'FF000000'}},right:BLK};
+      if(cc.id==='diff')cell.numFmt='[Red]General;[Red]-General;"✓"'; if(cc.id==='close')cell.numFmt='General;[Red]-General;General';
+    });
+    // event details underneath, so the top of the sheet stays exactly like the team's format
+    notes.forEach((x,j)=>{const c=ws.getCell(tr+2+j,1);c.value=x[0]+': '+x[1];c.font={italic:true,color:{argb:'FF555555'}};});
+    L.forEach((c,j)=>ws.getColumn(j+1).width=c.w);
+    ws.getRow(1).height=30; ws.getRow(2).height=34;
+    ws.views=[{state:'frozen',xSplit:1,ySplit:2}];
+    ws.pageSetup={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0};
+  }
+  const buf=await wb.xlsx.writeBuffer(),a=document.createElement('a'), dTxt=dateText($('evDate').value,$('evDateTo').value);
   a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
-  a.download='Event_'+(($('evName').value||'Details').replace(/[^\w\-]+/g,'_'))+'_'+($('evDate').value||'')+'.xlsx'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  a.download='Event_'+(($('evName').value||'Details').replace(/[^\w\-]+/g,'_'))+'_'+(dTxt?dTxt.replace(' to ','_to_'):'')+'.xlsx'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
   logActivity('download_file',17,'Event Details · '+$('evName').value);
 };
 
