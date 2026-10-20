@@ -1318,7 +1318,7 @@ textarea.ml-in{min-height:170px;resize:vertical;font-family:'DM Mono',monospace;
 <div class="panel" id="panel17">
   <div class="section-head">
     <span class="dot" style="background:#E8710A"></span>
-    <div><h2>Event Details</h2><p>Stock taken to an event → sample &amp; invoice day by day → closing balance carries to the next day → returned to outlet, with the difference (missing items) worked out for you</p></div>
+    <div><h2>Event Details</h2><p>Stock taken to an event → sample &amp; invoice day by day → closing balance carries to the next day → taken back to store on the last day, with Loss (negative) and Excess (positive) worked out for you</p></div>
   </div>
 
   <div class="setup-cards" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
@@ -1371,13 +1371,14 @@ textarea.ml-in{min-height:170px;resize:vertical;font-family:'DM Mono',monospace;
     <textarea id="evRemarks" rows="2" class="pc-input" style="resize:vertical"></textarea>
   </div>
   <button class="download-btn ev-btn" onclick="evSave()" style="border:2px solid #5B7FE0;color:#5B7FE0">💾 Save event</button>
-  <button class="download-btn ev-btn" onclick="evDownload()" style="border:2px solid #3FB874;color:#3FB874">⬇ Download Excel</button>
+  <button class="download-btn ev-btn" onclick="evDownload(false)" style="border:2px solid #3FB874;color:#3FB874">⬇ Excel</button>
+  <button class="download-btn ev-btn" onclick="evDownload(true)" style="border:2px solid #3FB874;color:#3FB874">⬇ Excel — with Other Outlet</button>
   <button class="download-btn ev-btn" onclick="evNew()" style="border:2px solid var(--border);color:var(--muted)">New event</button>
   <div id="evMsg" style="margin-top:6px;font-family:'DM Mono',monospace;font-size:11.5px;min-height:16px"></div>
 
   <div class="results-title" style="margin-top:26px">Saved Events</div>
   <div id="evHistory"><p style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px">Loading…</p></div>
-  <div class="note-strip" style="background:var(--surface);border:1px solid var(--border)"><strong>Closing Balance</strong> = Total − Sample − Invoice for that day, and it becomes the next day’s <strong>Opening Balance</strong> (add any extra stock under <strong>Additional Stock</strong>). On the last day <strong>Diff</strong> = Closing Balance − Returned to outlet: a red number is stock that is neither returned nor accounted for; amber means more was returned than was left.</div>
+  <div class="note-strip" style="background:var(--surface);border:1px solid var(--border)"><strong>Closing Balance</strong> = Total − Sample − Invoice for that day, and it becomes the next day’s <strong>Opening Balance</strong> (add any extra stock under <strong>Additional Stock</strong>). On the last day enter <strong>Taken back to Store</strong>; <strong>Balance</strong> = Taken back to Store − Closing Balance. A <strong style="color:#E15C5C">negative</strong> balance is a <strong>Loss</strong> of product (less came back than should have); a <strong style="color:#D6923B">positive</strong> balance is an <strong>Excess</strong> of the item.</div>
 </div>
 <!-- ══ PANEL 15 — OUTLET DOCUMENTS (Cluster Manager + Owner only) ══ -->
 <div class="panel" id="panel15">
@@ -4552,13 +4553,27 @@ async function touchUserDoc(user, ownerFlag) {
 }
 
 // ---- Firestore: append one activity event ----
-function logActivity(action, panel, detail) {
+// Which outlet a download belongs to: the outlet typed in that tool; staff fall back to their own outlet.
+function guessDownloadOutlet(panel) {
+  const v = id => { const e = document.getElementById(id); return e ? e.value.trim() : ''; };
+  const p = +panel; let o = '';
+  if (p === 3) o = v('p3OutletName'); else if (p === 11) o = v('pcOutletName'); else if (p === 12) o = v('clOutletName'); else if (p === 17) o = v('evOutlet');
+  if (!o && [3, 5, 11, 12, 17].includes(p)) o = (isStaffUser() && myOutletName) ? myOutletName : (p === 5 ? 'All outlets' : '');
+  return o;
+}
+function logActivity(action, panel, detail, outlet) {
   if (!currentUser) return;
-  db.collection('activity').add({
+  const rec = {
     uid: currentUser.uid, email: currentUser.email, name: currentUser.displayName || '',
     action, panel: String(panel), detail: String(detail || '').slice(0, 200),
     ts: firebase.firestore.FieldValue.serverTimestamp()
-  }).catch(e => console.warn('logActivity failed:', e));
+  };
+  if (action === 'download_file') {
+    rec.report = (typeof PANEL_NAMES !== 'undefined' && PANEL_NAMES[panel]) || String(panel);
+    const o = (outlet !== undefined ? outlet : guessDownloadOutlet(panel));
+    if (o) rec.outlet = String(o).slice(0, 200);
+  }
+  db.collection('activity').add(rec).catch(e => console.warn('logActivity failed:', e));
 }
 
 // ---- Track tab switches (wraps the existing switchTab — doesn't change what it does) ----
@@ -4612,7 +4627,7 @@ function fileNameFor(n) {
   if (dlBtn) dlBtn.addEventListener('click', () => logActivity('download_file', n, fileNameFor(n)));
 });
 document.getElementById('p3BtnGo')?.addEventListener('click', () => logActivity('process_file', 3, fileNameFor(3)));
-document.querySelector('.modal-btn-dl')?.addEventListener('click', () => logActivity('download_file', 3, fileNameFor(3)));
+document.querySelector('.modal-btn-dl')?.addEventListener('click', () => logActivity('download_file', 3, p3GetFileName()));
 
 // ---- Owner tab: only ever created in the DOM for the owner account ----
 function addOwnerTab() {
@@ -4627,7 +4642,7 @@ function addOwnerTab() {
 document.getElementById('ownerRefreshBtn')?.addEventListener('click', loadOwnerDashboard);
 
 // ---- Owner dashboard: live-updating usage + approval data ----
-let ownerUsersUnsub = null, ownerActUnsub = null, ownerPackUnsub = null, ownerP1PackUnsub = null;
+let ownerUsersUnsub = null, ownerActUnsub = null, ownerPackUnsub = null, ownerP1PackUnsub = null, ownerDlUnsub = null, ownerLatestDl = null;
 let ownerLatestUsers = null, ownerLatestActs = null;
 
 function stopOwnerDashboard() {
@@ -4635,6 +4650,8 @@ function stopOwnerDashboard() {
   if (ownerActUnsub) { ownerActUnsub(); ownerActUnsub = null; }
   if (ownerPackUnsub) { ownerPackUnsub(); ownerPackUnsub = null; }
   if (ownerP1PackUnsub) { ownerP1PackUnsub(); ownerP1PackUnsub = null; }
+  if (ownerDlUnsub) { ownerDlUnsub(); ownerDlUnsub = null; }
+  ownerLatestDl = null;
   if (outletReqUnsub) { outletReqUnsub(); outletReqUnsub = null; }
   ownerLatestUsers = null; ownerLatestActs = null;
 }
@@ -4681,6 +4698,11 @@ function loadOwnerDashboard() {
       ownerLatestActs = snap.docs.map(d => d.data());
       renderOwnerDashboard();
     }, err => console.warn('activity listener failed:', err));
+
+  // Downloads only (newest 150). If Firestore asks for an index, the table falls back to the downloads found in the general activity feed.
+  ownerDlUnsub = db.collection('activity').where('action', '==', 'download_file').orderBy('ts', 'desc').limit(150)
+    .onSnapshot(snap => { ownerLatestDl = snap.docs.map(d => d.data()); renderOwnerDashboard(); },
+      err => { console.warn('downloads listener failed (create the index Firestore suggests):', err); ownerLatestDl = null; });
 
   // New-outlet requests from team members / cluster managers, waiting for the owner's approval
   if (outletReqUnsub) { outletReqUnsub(); outletReqUnsub = null; }
@@ -5167,6 +5189,24 @@ function renderOwnerDashboard() {
     html += `<tr><td style="text-align:left">${escHtml(u.name || '—')}</td><td style="text-align:left">${escHtml(emailLabel(u.email))}</td><td style="text-align:left">${outletCell}</td><td>${pill}</td><td style="text-align:center">${u.loginCount || 1}</td><td>${fmtTs(u.lastLogin)}</td><td>${actionBtn} ${cmBtn} ${resetBtn} ${u.isClusterManager && u.status === 'approved' ? `<button class="mini-btn cm-outlets" style="border:1px solid #8B5CF6;color:#8B5CF6" data-uid="${u.uid}" data-codes="${(u.assignedOutlets || []).join(',')}">Outlets</button> <button class="mini-btn cm-all" style="border:1px solid ${u.allOutletsAccess ? '#E15C5C;color:#E15C5C' : '#3FB874;color:#3FB874'}" data-uid="${u.uid}" data-grant="${u.allOutletsAccess ? '0' : '1'}">${u.allOutletsAccess ? 'Revoke all-outlets' : 'Allow all outlets'}</button>` : ''}</td></tr>`;
   });
   if (!others.length) html += `<tr><td colspan="7" style="text-align:center;color:var(--muted)">No approved or blocked users yet</td></tr>`;
+  html += `</tbody></table></div></div>`;
+
+  // ---- Downloaded reports: which report, which outlet, who, when ----
+  const dlOutlet = a => {
+    if (a.outlet) return a.outlet;
+    const f = String(a.detail || '').replace(/\.xlsx$/i, '');   // older records: read the outlet out of the file name
+    let m = String(a.panel) === '3' && f.match(/^(.+?)_Stock_Audit_/); if (m) return m[1].replace(/_/g, ' ');
+    m = String(a.panel) === '11' && f.match(/^Petty_Cash_(.+)_\d{2,4}-\d{2}-\d{2,4}$/); if (m) return m[1].replace(/_/g, ' ');
+    return '';
+  };
+  const dls = (ownerLatestDl || acts.filter(a => a.action === 'download_file')).slice(0, 150);
+  html += `<div class="results-title" style="margin-top:24px">⬇ Downloaded Reports</div>`;
+  html += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Downloaded By</th><th style="text-align:left">Report</th><th style="text-align:left">Outlet</th><th style="text-align:left">File</th><th>When</th></tr></thead><tbody>`;
+  dls.forEach(a => {
+    const o = dlOutlet(a), rep = a.report || PANEL_NAMES[a.panel] || a.panel;
+    html += `<tr><td style="text-align:left">${escHtml(a.name || a.email || '—')}</td><td style="text-align:left">${escHtml(rep)}</td><td style="text-align:left">${o ? escHtml(o) : '<span style="color:var(--muted)">— (not outlet-specific)</span>'}</td><td style="text-align:left">${escHtml(a.detail || '—')}</td><td>${fmtTs(a.ts)}</td></tr>`;
+  });
+  if (!dls.length) html += `<tr><td colspan="5" style="text-align:center;color:var(--muted)">No downloads yet</td></tr>`;
   html += `</tbody></table></div></div>`;
 
   html += `<div class="results-title" style="margin-top:24px">Recent Activity</div>`;
@@ -6935,7 +6975,7 @@ async function scDownload() {
     const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
     const fname = `Sales_Comparison_${SC.mode}_${new Date().toISOString().slice(0, 10)}.xlsx`, a = document.createElement('a'); a.href = url; a.download = fname;
     document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
-    if (typeof logActivity === 'function') logActivity('download_file', 16, fname);
+    if (typeof logActivity === 'function') { const so = scM.x.sc.map(o => o.label); logActivity('download_file', 16, fname, so.length === p14Data.outlets.length ? 'All outlets (' + so.length + ')' : so.length <= 3 ? so.join(', ') : so.length + ' outlets: ' + so.slice(0, 3).join(', ') + '…'); }
     if (note) alert(note);
   } catch (e) { console.error(e); alert("Couldn't build the Excel file: " + e.message); }
   btn.innerHTML = old; btn.disabled = false;
@@ -7110,7 +7150,8 @@ $14('p14DownloadBtn').addEventListener('click', async () => {
     const a = document.createElement('a'); a.href = url; a.download = fname;
     document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
-    logActivity('download_file', 14, fname);
+    { const picked = p14Data.outlets.filter(o => codes.includes(o.code)).map(o => o.label);
+      logActivity('download_file', 14, fname, picked.length === p14Data.outlets.length ? 'All outlets (' + picked.length + ')' : picked.length <= 3 ? picked.join(', ') : picked.length + ' outlets: ' + picked.slice(0, 3).join(', ') + '…'); }
   } catch (e) { console.error(e); p14Err("Couldn't build the Excel file: " + e.message); }
 });
 
@@ -8776,16 +8817,29 @@ function run(r){
   for(let k=0;k<n;k++){const x=(r.d&&r.d[k])||{},add=k?num(x.add):0,smp=num(x.smp),inv=num(x.inv),tot=open+add,close=tot-smp-inv;out.push({open,add,tot,smp,inv,close});open=close;}
   return out;
 }
-// last day: Diff (Missing) = Closing balance − Returned to outlet
-const calc=r=>{const D=run(r),L=D[D.length-1],p=num(r.price),d=L.close-num(r.ret);return{D,L,p,d,v:d*p};};
-const dCell=d=>d===0?'<span style="color:#3FB874">✓</span>':'<strong style="color:'+(d>0?'#E15C5C':'#D6923B')+'">'+fmt(d)+'</strong>';
+// last day: Balance = Taken back to store − Closing balance.  Negative = LOSS of product, positive = EXCESS of item.
+const calc=r=>{const D=run(r),L=D[D.length-1],p=num(r.price),d=num(r.ret)-L.close;return{D,L,p,d,v:d*p};};
+const dCell=d=>d===0?'<span style="color:#3FB874">✓</span>':d<0?'<strong style="color:#E15C5C">'+fmt(d)+' Loss</strong>':'<strong style="color:#D6923B">+'+fmt(d)+' Excess</strong>';
+// loss / excess totals of a saved event, worked out from its rows (works for events saved before this change too)
+function evBal(x){
+  const rs=(x&&x.rows)||[]; const o={pending:!rs.some(r=>num(r.ret)>0),loss:0,lossV:0,excess:0,excessV:0};
+  rs.forEach(r=>{const ds=Array.isArray(r.d)&&r.d.length?r.d:[{add:0,smp:0,inv:r.inv||0}];
+    let c=num(r.own)+num(r.other); ds.forEach((q,k)=>{c+=(k?num(q.add):0)-num(q.smp)-num(q.inv);});
+    const d=num(r.ret)-c,pr=num(r.price); if(d<0){o.loss+=-d;o.lossV+=-d*pr;}else if(d>0){o.excess+=d;o.excessV+=d*pr;}});
+  return o;
+}
+function evBalHtml(b){
+  if(b.pending)return '<span style="color:var(--muted);font-weight:400">Taken back not entered yet</span>';
+  if(!b.loss&&!b.excess)return '<span style="color:#3FB874">No loss / excess</span>';
+  return (b.loss?'<div style="color:#E15C5C">Loss '+fmt(b.loss)+' · ₹'+fmt(b.lossV)+'</div>':'')+(b.excess?'<div style="color:#D6923B">Excess '+fmt(b.excess)+' · ₹'+fmt(b.excessV)+'</div>':'');
+}
 const cCell=c=>c<0?'<strong style="color:#E15C5C">'+fmt(c)+'</strong>':fmt(c);
 function render(){
   const nd=nDays(); if(cur>=nd)cur=nd-1; const k=cur,last=k===nd-1;
   $('evDays').innerHTML=nd>1?Array.from({length:nd},(_,j)=>'<button class="ev-day'+(j===k?' on':'')+'" data-day="'+j+'">Day '+(j+1)+'<span>'+esc(dmy(dayDate(j)).slice(0,5))+'</span></button>').join('')
     :'<span style="font-size:11.5px;color:var(--muted)">One-day event. For a multi-day event set the <strong>To date</strong> — each day gets its own tab and its own Excel sheet, and a day’s closing balance becomes the next day’s opening balance.</span>';
   const H=['#','Item'].concat(k===0?['Taken from Outlet','From Other Outlet','Other Outlet Name','Total']:['Opening Balance','Additional Stock','Total'],
-    ['Sample','Selling Price ₹','Sample Amt ₹','Invoice','Invoice Amt ₹','Closing Balance'],last?['Returned to Outlet','Diff (Missing)','Diff Value ₹']:[],['']);
+    ['Sample','Selling Price ₹','Sample Amt ₹','Invoice','Invoice Amt ₹','Closing Balance'],last?['Taken back to Store','Balance (− Loss / + Excess)','Balance Value ₹']:[],['']);
   $('evHead').innerHTML='<tr>'+H.map(h=>'<th'+(h==='Item'?' style="text-align:left"':'')+'>'+h+'</th>').join('')+'</tr>';
   const inp=(f,v,w,ex)=>'<input class="ev-in'+(ex||'')+(f==='from'?' ob-free':'')+'" data-f="'+f+'" '+(f==='from'?'autocomplete="off" placeholder="e.g. 053 or any name" ':'type="number" min="0" step="any" inputmode="decimal" ')+'value="'+esc(v)+'" style="width:'+w+'px">';
   const din=(f,v,w)=>'<input class="ev-in" data-d="'+f+'" type="number" min="0" step="any" inputmode="decimal" value="'+esc(v)+'" style="width:'+w+'px">';
@@ -8803,14 +8857,14 @@ function render(){
   paint();
 }
 function paint(){
-  const k=cur,nd=nDays(),last=k===nd-1; let O=0,Ad=0,T=0,S=0,I=0,C=0,SA=0,IA=0,R=0,D=0,V=0;
+  const k=cur,nd=nDays(),last=k===nd-1; let O=0,Ad=0,T=0,S=0,I=0,C=0,SA=0,IA=0,R=0,D=0,V=0,LQ=0,LV=0,EQ=0,EV=0;
   rows.forEach((r,i)=>{const c=calc(r),x=c.D[k],p=c.p;
-    O+=x.open;Ad+=x.add;T+=x.tot;S+=x.smp;I+=x.inv;C+=x.close;SA+=x.smp*p;IA+=x.inv*p;R+=num(r.ret);D+=c.d;V+=c.v;
+    O+=x.open;Ad+=x.add;T+=x.tot;S+=x.smp;I+=x.inv;C+=x.close;SA+=x.smp*p;IA+=x.inv*p;R+=num(r.ret);D+=c.d;V+=c.v;if(c.d<0){LQ-=c.d;LV-=c.v;}else if(c.d>0){EQ+=c.d;EV+=c.v;}
     const s=(id,h)=>{const e=$(id+i);if(e)e.innerHTML=h;};
     s('evO',fmt(x.open)); s('evT',fmt(x.tot)); s('evSA',x.smp*p?fmt(x.smp*p):'—'); s('evIA',x.inv*p?fmt(x.inv*p):'—'); s('evC',cCell(x.close)); s('evD',dCell(c.d)); s('evV',c.v?fmt(c.v):'—');});
   const cd=(v,l,c)=>'<div class="sc"><div class="sv" style="'+(c?'color:'+c+';':'')+'font-size:19px">'+v+'</div><div class="sl">'+l+'</div></div>';
   $('evCards').innerHTML=cd(fmt(T),(nd>1?'Day '+(k+1)+' · ':'')+'Total Stock','#5B7FE0')+cd(fmt(S),'Sample','#D6923B')+cd(fmt(I),'Invoiced','#3FB874')+cd(fmt(C),'Closing Balance','#74b9ff')+cd('₹'+fmt(SA),'Sample Amount','#D6923B')+cd('₹'+fmt(IA),'Invoice Amount','#3FB874')
-    +(last?cd(fmt(D),'Diff (Missing)',D===0?'#3FB874':'#E15C5C')+cd('₹'+fmt(V),'Diff Value',V===0?'#3FB874':'#E15C5C'):'');
+    +(last?cd(fmt(R),'Taken back to Store','#74b9ff')+cd(fmt(LQ),'Loss (items)',LQ?'#E15C5C':'#3FB874')+cd('₹'+fmt(LV),'Loss Value',LV?'#E15C5C':'#3FB874')+cd(fmt(EQ),'Excess (items)',EQ?'#D6923B':'#3FB874')+cd('₹'+fmt(EV),'Excess Value',EV?'#D6923B':'#3FB874'):'');
   const td=h=>'<td style="color:var(--text)">'+h+'</td>';
   $('evFoot').innerHTML='<tr style="background:var(--surface2);font-weight:700"><td colspan="'+(k===0?5:2)+'" style="text-align:right;color:var(--text)">TOTAL</td>'
     +(k===0?td(fmt(T)):td(fmt(O))+td(fmt(Ad))+td(fmt(T)))+td(fmt(S))+'<td></td>'+td(fmt(SA))+td(fmt(I))+td(fmt(IA))+td(cCell(C))
@@ -8873,7 +8927,8 @@ function snapshot(){
     d:Array.from({length:n},(_,k)=>{const x=(r.d&&r.d[k])||{};return{add:k?num(x.add):0,smp:num(x.smp),inv:num(x.inv)};})}));
   rs.forEach(r=>{r.inv=r.d.reduce((a,x)=>a+x.inv,0);});   // total invoiced over all days (older saved events only have this)
   let t=0,d=0,v=0; rs.forEach(r=>{const c=calc(r);t+=c.D[0].open+c.D.reduce((a,x)=>a+x.add,0);d+=c.d;v+=c.v;});
-  return{rows:rs,totals:{taken:t,diff:d,diffValue:v},days:n};
+  const b=evBal({rows:rs});   // balance = taken back − closing: negative = loss, positive = excess
+  return{rows:rs,totals:{taken:t,diff:d,diffValue:v,loss:b.loss,lossValue:b.lossV,excess:b.excess,excessValue:b.excessV,balance:'taken-back minus closing'},days:n};
 }
 window.evSave=async()=>{
   const outlet=$('evOutlet').value.trim(),name=$('evName').value.trim(),s=snapshot();
@@ -8893,9 +8948,9 @@ async function loadHist(){
   const w=$('evHistory'); if(!currentUser){w.innerHTML='';return;}
   try{
     const docs=await scopedDocs('event_details',30); hist={}; docs.forEach(d=>hist[d.id]=d.data());
-    w.innerHTML=docs.length?docs.map(d=>{const x=d.data(),t=x.totals||{},ok=!t.diff;
+    w.innerHTML=docs.length?docs.map(d=>{const x=d.data(),b=evBal(x);
       return '<div class="sc" style="text-align:left;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><div style="flex:1;min-width:180px"><div style="font-weight:700;font-size:13px">'+esc(x.eventName)+'</div><div style="color:var(--muted);font-size:11px;font-family:\'DM Mono\',monospace">'+esc(x.outletName)+' · '+esc(dateText(x.eventDate,x.eventDateTo)||'—')+' · '+(x.rows||[]).length+' items</div></div>'
-        +'<div style="font-size:12px;font-weight:700;color:'+(ok?'#3FB874':'#E15C5C')+'">'+(ok?'No difference':'Diff '+fmt(t.diff||0)+' · ₹'+fmt(t.diffValue||0))+'</div>'
+        +'<div style="font-size:12px;font-weight:700;text-align:right">'+evBalHtml(b)+'</div>'
         +'<button class="mini-btn" data-open="'+d.id+'" style="border:1px solid var(--border);color:var(--text)">Open</button>'
         +((isOwner||x.createdByUid===currentUser.uid)?'<button class="mini-btn" data-del="'+d.id+'" style="border:1px solid #E15C5C;color:#E15C5C">Delete</button>':'')+'</div>';}).join('')
       :'<p style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:12px">No saved events yet.</p>';
@@ -8911,16 +8966,17 @@ window.evNew=()=>{evId=null;['evName','evLoc','evStaff','evRemarks'].forEach(i=>
 // Excel: one sheet per day, laid out like the team's event sheet —
 //   [title | stock]  [Sampling: Sample · S.P · Total]  [Invoice: Invoice · S.P · Total]  [Closing Balance]
 // Day 2+ sheets start with Opening Balance (a live link to the previous sheet's Closing Balance) + Additional Stock.
-window.evDownload=async()=>{
+window.evDownload=async(withOther)=>{   // withOther=true → adds “From Other Outlet” + “Other Outlet Name” columns; otherwise the plain format
   const s=snapshot(); if(!s.rows.length)return msg('Add at least one item first.',false);
   if(typeof ExcelJS==='undefined')return msg('The Excel library has not loaded — check your internet connection and try again.',false);
   const nd=nDays(), runs=s.rows.map(r=>run(r));
   // other-outlet columns only when some row has an other-outlet quantity or name; Returned/Diff only when something was returned
-  const useOther=s.rows.some(r=>r.other>0||String(r.from||'').trim()), useRet=s.rows.some(r=>r.ret>0);
+  const useOther=withOther===true, useRet=s.rows.some(r=>r.ret>0);   // the Taken back / Loss / Excess columns appear when something was taken back
   const wb=new ExcelJS.Workbook(); wb.creator='Bolas Stock Suite';
   const BLK={style:'thin',color:{argb:'FF000000'}}, bd={top:BLK,left:BLK,bottom:BLK,right:BLK};
   const fill=argb=>({type:'pattern',pattern:'solid',fgColor:{argb}});
   const YEL='FFFFFF00', SKY='FF00B0F0', CREAM='FFFFF2CC';
+  const BAL_FMT='[Blue]+General" Excess";[Red]-General" Loss";"✓"', BAL_VFMT='[Blue]+#,##0.##;[Red]-#,##0.##;0';
   const letter=n=>{let t='';while(n>0){const m=(n-1)%26;t=String.fromCharCode(65+m)+t;n=Math.floor((n-1)/26);}return t;};
   const sheetName=k=>nd===1?'Event Details':'Day '+(k+1)+(dayDate(k)?' - '+dmy(dayDate(k)):'');
   const layout=k=>{
@@ -8932,7 +8988,7 @@ window.evDownload=async()=>{
     L.push({id:'smp',h:'Sample',w:10,g:'s'},{id:'sp1',h:'S.P',w:10,g:'s'},{id:'sa',h:'Total',w:11,g:'s'},{id:'gap1',w:4,gap:1},
            {id:'inv',h:'Invoice',w:10,g:'i'},{id:'sp2',h:'S.P',w:10,g:'i'},{id:'ia',h:'Total',w:11,g:'i'},{id:'gap2',w:4,gap:1},
            {id:'close',h:'Closing Balance',w:13,g:'c'});
-    if(k===nd-1&&useRet)L.push({id:'ret',h:'Returned to Outlet',w:13,g:'c'},{id:'diff',h:'Diff (Missing)',w:12,g:'c'},{id:'dv',h:'Diff Value (₹)',w:13,g:'c'});
+    if(k===nd-1&&useRet)L.push({id:'ret',h:'Taken back to Store',w:13,g:'c'},{id:'diff',h:'Balance (− Loss / + Excess)',w:16,g:'c'},{id:'dv',h:'Balance Value (₹)',w:14,g:'c'});
     const col={}; L.forEach((c,i)=>col[c.id]=letter(i+1)); return {L,col};
   };
   const lays=Array.from({length:nd},(_,k)=>layout(k)), names=Array.from({length:nd},(_,k)=>sheetName(k));
@@ -8943,7 +8999,7 @@ window.evDownload=async()=>{
     const {L,col}=lays[k], ws=wb.addWorksheet(names[k]), date=dayDate(k), pv=k?lays[k-1]:null, ix=id=>L.findIndex(c=>c.id===id)+1;
     // row 1 — group headings (title over the stock block, Sampling, Invoice, Closing)
     const title=evName+(date?' '+dmy(date):'')+(nd>1?' (DAY '+(k+1)+')':'');
-    const heads={t:title,s:'Sampling',i:'Invoice',c:L.some(c=>c.id==='ret')?'Closing / Return':'Closing'};
+    const heads={t:title,s:'Sampling',i:'Invoice',c:L.some(c=>c.id==='ret')?'Closing / Taken back':'Closing'};
     ['t','s','i','c'].forEach(g=>{
       const cs=L.map((c,i)=>c.g===g?i+1:0).filter(Boolean); if(!cs.length)return; const a=cs[0],b=cs[cs.length-1];
       if(b>a)ws.mergeCells(1,a,1,b);
@@ -8962,7 +9018,7 @@ window.evDownload=async()=>{
       v.smp=x.smp||null; v.sp1=r.price||null; v.sa={formula:`${c('smp')}*N(${c('sp1')})`,result:x.smp*p};
       v.inv=x.inv||null; v.sp2={formula:`IF(${c('sp1')}="","",${c('sp1')})`,result:r.price||''}; v.ia={formula:`${c('inv')}*N(${c('sp2')})`,result:x.inv*p};
       v.close={formula:`${c('tot')}-${c('smp')}-${c('inv')}`,result:x.close};
-      v.ret=r.ret||null; v.diff={formula:`${c('close')}-N(${c('ret')})`,result:x.close-r.ret}; v.dv={formula:`${c('diff')}*N(${c('sp1')})`,result:(x.close-r.ret)*p};
+      v.ret=r.ret||null; v.diff={formula:`N(${c('ret')})-${c('close')}`,result:r.ret-x.close}; v.dv={formula:`${c('diff')}*N(${c('sp1')})`,result:(r.ret-x.close)*p};
       const row=ws.getRow(n);
       L.forEach((cc,j)=>{
         if(cc.gap)return; const cell=row.getCell(j+1); cell.value=v[cc.id]===undefined?null:v[cc.id]; cell.border=bd;
@@ -8970,22 +9026,36 @@ window.evDownload=async()=>{
         else if(['sp1','sp2','sa','ia','dv'].includes(cc.id)){cell.alignment={horizontal:'right',vertical:'middle'};}
         else{cell.font={bold:true};cell.alignment={horizontal:'center',vertical:'middle'};}
         if(cc.id==='close')cell.numFmt='General;[Red]-General;General';
-        if(cc.id==='diff')cell.numFmt='[Red]General;[Red]-General;"✓"';
+        if(cc.id==='diff')cell.numFmt=BAL_FMT;
+        if(cc.id==='dv')cell.numFmt=BAL_VFMT;
       });
     });
     // TOTAL row (S.P columns are prices, so they are not summed)
     const agg={own:0,other:0,open:0,add:0,tot:0,smp:0,sa:0,inv:0,ia:0,close:0,ret:0,diff:0,dv:0};
-    s.rows.forEach((r,i)=>{const x=runs[i][k],p=r.price||0;agg.own+=r.own;agg.other+=r.other;agg.open+=x.open;agg.add+=x.add;agg.tot+=x.tot;agg.smp+=x.smp;agg.sa+=x.smp*p;agg.inv+=x.inv;agg.ia+=x.inv*p;agg.close+=x.close;agg.ret+=r.ret;agg.diff+=x.close-r.ret;agg.dv+=(x.close-r.ret)*p;});
+    s.rows.forEach((r,i)=>{const x=runs[i][k],p=r.price||0;agg.own+=r.own;agg.other+=r.other;agg.open+=x.open;agg.add+=x.add;agg.tot+=x.tot;agg.smp+=x.smp;agg.sa+=x.smp*p;agg.inv+=x.inv;agg.ia+=x.inv*p;agg.close+=x.close;agg.ret+=r.ret;agg.diff+=r.ret-x.close;agg.dv+=(r.ret-x.close)*p;});
     const T=ws.getRow(tr);
     L.forEach((cc,j)=>{
       if(cc.gap)return; const cell=T.getCell(j+1);
       if(cc.id==='name')cell.value='TOTAL'; else if(cc.id in agg)cell.value={formula:`SUM(${col[cc.id]}${n0}:${col[cc.id]}${nL})`,result:agg[cc.id]};
       cell.font={bold:true,size:12}; cell.fill=fill(CREAM); cell.alignment={horizontal:'center',vertical:'middle'};
       cell.border={top:{style:'medium',color:{argb:'FF000000'}},left:BLK,bottom:{style:'medium',color:{argb:'FF000000'}},right:BLK};
-      if(cc.id==='diff')cell.numFmt='[Red]General;[Red]-General;"✓"'; if(cc.id==='close')cell.numFmt='General;[Red]-General;General';
+      if(cc.id==='diff')cell.numFmt=BAL_FMT; if(cc.id==='dv')cell.numFmt=BAL_VFMT; if(cc.id==='close')cell.numFmt='General;[Red]-General;General';
     });
+    // last day: separate LOSS and EXCESS totals under TOTAL (negative balance = loss, positive balance = excess)
+    const extra=(k===nd-1&&L.some(c=>c.id==='diff'))?2:0;
+    if(extra){
+      const rngD=`${col.diff}${n0}:${col.diff}${nL}`, rngV=`${col.dv}${n0}:${col.dv}${nL}`; let lq=0,lv=0,eq=0,ev=0;
+      s.rows.forEach((r,i)=>{const d=r.ret-runs[i][k].close,pr=r.price||0; if(d<0){lq+=d;lv+=d*pr;}else if(d>0){eq+=d;ev+=d*pr;}});
+      [['LOSS (negative balance)','<0',lq,lv,'FFC0392B'],['EXCESS (positive balance)','>0',eq,ev,'FF1F5FBF']].forEach((z,j)=>{
+        const rw=ws.getRow(tr+1+j);
+        L.forEach((cc,jj)=>{ if(cc.gap)return; const cell=rw.getCell(jj+1); cell.fill=fill(CREAM); cell.border=bd; cell.font={bold:true,size:12,color:{argb:z[4]}}; cell.alignment={horizontal:jj?'center':'left',vertical:'middle'}; });
+        rw.getCell(1).value=z[0];
+        const cd=rw.getCell(ix('diff')); cd.value={formula:`SUMIF(${rngD},"${z[1]}")`,result:z[2]}; cd.numFmt=BAL_FMT;
+        const cv=rw.getCell(ix('dv')); cv.value={formula:`SUMIF(${rngV},"${z[1]}")`,result:z[3]}; cv.numFmt=BAL_VFMT;
+      });
+    }
     // event details underneath, so the top of the sheet stays exactly like the team's format
-    notes.forEach((x,j)=>{const c=ws.getCell(tr+2+j,1);c.value=x[0]+': '+x[1];c.font={italic:true,color:{argb:'FF555555'}};});
+    notes.forEach((x,j)=>{const c=ws.getCell(tr+2+extra+j,1);c.value=x[0]+': '+x[1];c.font={italic:true,color:{argb:'FF555555'}};});
     L.forEach((c,j)=>ws.getColumn(j+1).width=c.w);
     ws.getRow(1).height=30; ws.getRow(2).height=34;
     ws.views=[{state:'frozen',xSplit:1,ySplit:2}];
@@ -8994,7 +9064,7 @@ window.evDownload=async()=>{
   const buf=await wb.xlsx.writeBuffer(),a=document.createElement('a'), dTxt=dateText($('evDate').value,$('evDateTo').value);
   a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
   a.download='Event_'+(($('evName').value||'Details').replace(/[^\w\-]+/g,'_'))+'_'+(dTxt?dTxt.replace(' to ','_to_'):'')+'.xlsx'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
-  logActivity('download_file',17,'Event Details · '+$('evName').value);
+  logActivity('download_file',17,'Event Details · '+$('evName').value+(withOther===true?' (with other outlet)':''));
 };
 
 // ── opening the tab ──
