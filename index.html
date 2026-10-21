@@ -9126,29 +9126,41 @@ function loadFace(){ return faceReady||(faceReady=new Promise((res,rej)=>{
   s.onerror=()=>{faceReady=null;rej(new Error('Could not load the face library — check internet'));}; document.head.appendChild(s);})); }
 const ear=(p,a)=>{const d=(i,j)=>Math.hypot(p[i].x-p[j].x,p[i].y-p[j].y);return (d(a+1,a+5)+d(a+2,a+4))/(2*d(a,a+3));};
 const yaw=p=>(p[30].x-p[0].x)/(p[16].x-p[0].x);
-// Opens the camera (live only), asks for a blink or a head turn so a photo cannot pass, returns {descs, thumb}
+const median=a=>{const b=a.slice().sort((x,y)=>x-y);return b[b.length>>1];};
+// Live check: a blink (eyes close well below THIS person's open-eye level, then reopen) or a head turn to either side passes
+function liveCheck(S,p){
+  const y=yaw(p), e=(ear(p,36)+ear(p,42))/2;
+  if(Math.abs(y-0.5)>0.17) return 'turn';
+  if(e<S.base*0.74||e<0.17) S.closed=true; else if(S.closed&&e>S.base*0.86) return 'blink';
+  return null;
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+// Opens the camera (live only) and returns {descs, thumb, live}, {err} or null (cancelled)
 async function faceStep(want, title){
   await loadFace();
-  const box=document.createElement('div'); box.style.cssText='position:fixed;inset:0;background:#000d;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#fff;font-family:inherit';
-  box.innerHTML='<div style="font-weight:700">'+esc(title)+'</div><video playsinline muted style="width:min(86vw,360px);border-radius:14px;transform:scaleX(-1)"></video><div id="attInst" style="font-size:16px;min-height:24px">Look at the camera…</div><button class="mini-btn mini-btn-no" id="attCancel">Cancel</button>';
-  document.body.appendChild(box); const v=box.querySelector('video'), inst=box.querySelector('#attInst'); let stop=false;
+  const box=document.createElement('div'); box.style.cssText='position:fixed;inset:0;background:#000d;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#fff;font-family:inherit';
+  box.innerHTML='<div style="font-weight:700">'+esc(title)+'</div><video playsinline muted style="width:min(86vw,360px);border-radius:14px;transform:scaleX(-1)"></video><div id="attInst" style="font-size:16px;min-height:24px;text-align:center;padding:0 12px">Look at the camera…</div><div id="attDbg" style="font:12px DM Mono,monospace;opacity:.7"></div><button class="mini-btn mini-btn-no" id="attCancel">Cancel</button>';
+  document.body.appendChild(box); const v=box.querySelector('video'), inst=box.querySelector('#attInst'), dbg=box.querySelector('#attDbg'); let stop=false;
   const done=r=>{stop=true;try{v.srcObject&&v.srcObject.getTracks().forEach(t=>t.stop());}catch(e){}box.remove();return r;};
   return new Promise(async(resolve)=>{
     box.querySelector('#attCancel').onclick=()=>resolve(done(null));
-    try{ v.srcObject=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:640,height:480},audio:false}); await v.play(); }catch(e){ return resolve(done({err:'Camera blocked — allow camera access'})); }
-    const opt=new faceapi.TinyFaceDetectorOptions({inputSize:224,scoreThreshold:0.5}), descs=[], chal=Math.random()<0.5?'blink':'turn'; let thumb='', phase=0, closed=false, t0=Date.now();
-    const grab=()=>{const c=document.createElement('canvas');c.width=c.height=160;const s=Math.min(v.videoWidth,v.videoHeight);c.getContext('2d').drawImage(v,(v.videoWidth-s)/2,(v.videoHeight-s)/2,s,s,0,0,160,160);return c.toDataURL('image/jpeg',0.6);};
-    while(!stop){
-      await new Promise(r=>setTimeout(r,160));
-      if(Date.now()-t0>40000) return resolve(done({err:'Timed out — try again in better light'}));
-      const f=await faceapi.detectSingleFace(v,opt).withFaceLandmarks().withFaceDescriptor(); if(!f){inst.textContent='Face not found — look at the camera';continue;}
-      const p=f.landmarks.positions, y=yaw(p);
-      if(phase===0){ if(Math.abs(y-0.5)>0.1){inst.textContent='Face the camera straight';continue;}
-        descs.push(Array.from(f.descriptor).map(x=>+x.toFixed(4))); thumb=grab(); inst.textContent='Hold still… '+descs.length+'/'+want;
-        if(descs.length>=want){phase=1;inst.textContent=chal==='blink'?'Now blink your eyes':'Now turn your head slightly to one side';} else await new Promise(r=>setTimeout(r,500)); }
-      else if(chal==='blink'){ const e=(ear(p,36)+ear(p,42))/2; if(e<0.2)closed=true; else if(closed&&e>0.24) return resolve(done({descs,thumb,live:'blink'})); }
-      else if(Math.abs(y-0.5)>0.16) return resolve(done({descs,thumb,live:'turn'}));
-    }
+    try{ v.srcObject=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:640,height:480},audio:false}); await v.play(); }catch(e){ return resolve(done({err:'Camera blocked — allow camera access for this site'})); }
+    try{
+      const opt=new faceapi.TinyFaceDetectorOptions({inputSize:224,scoreThreshold:0.4}), descs=[], ears=[]; let thumb='', phase=0, S=null, t0=Date.now();
+      const grab=()=>{const c=document.createElement('canvas');c.width=c.height=160;const m=Math.min(v.videoWidth,v.videoHeight);c.getContext('2d').drawImage(v,(v.videoWidth-m)/2,(v.videoHeight-m)/2,m,m,0,0,160,160);return c.toDataURL('image/jpeg',0.6);};
+      while(!stop){
+        if(Date.now()-t0>(phase?25000:45000)) return resolve(done({err:phase?'Blink check not detected — blink slowly or turn your head, and try again':'Timed out — face the camera in good light and try again'}));
+        // step 1 needs the (slow) face fingerprint; step 2 only tracks the eyes/head, so it runs fast enough to catch a blink
+        let f=phase===0?await faceapi.detectSingleFace(v,opt).withFaceLandmarks().withFaceDescriptor():await faceapi.detectSingleFace(v,opt).withFaceLandmarks();
+        if(!f){inst.textContent='Face not found — look at the camera';await sleep(100);continue;}
+        const p=f.landmarks.positions; dbg.textContent='eyes '+((ear(p,36)+ear(p,42))/2).toFixed(2)+' · head '+yaw(p).toFixed(2);
+        if(phase===0){
+          if(Math.abs(yaw(p)-0.5)>0.15){inst.textContent='Face the camera straight';await sleep(100);continue;}
+          descs.push(Array.from(f.descriptor).map(x=>+x.toFixed(4))); ears.push((ear(p,36)+ear(p,42))/2); thumb=grab(); inst.textContent='Hold still… '+descs.length+'/'+want;
+          if(descs.length>=want){phase=1;S={closed:false,base:Math.max(0.15,median(ears))};t0=Date.now();inst.textContent='Now BLINK your eyes (or turn your head slightly)';} else await sleep(400);
+        } else { const r=liveCheck(S,p); if(r) return resolve(done({descs,thumb,live:r})); }
+      }
+    }catch(e){ return resolve(done({err:'Face check error: '+(e.message||e)})); }
   });
 }
 const faceDist=(d,list)=>Math.min(...list.map(r=>Math.hypot(...r.map((x,i)=>x-d[i]))));
@@ -9168,15 +9180,19 @@ async function place(code){
   if(d>r) throw new Error('You are '+d+' m from the outlet. Attendance works only within '+r+' m.');
   return {lat:+b.latitude.toFixed(6),lng:+b.longitude.toFixed(6),acc:Math.round(b.accuracy),dist:d,flags};
 }
-function askCode(){ return new Promise(res=>{ const c=prompt('Enter the 6-digit code shown on the outlet manager\u2019s screen'); res(c&&/^\d{6}$/.test(c.trim())?c.trim():null); }); }
+function askCode(){ return new Promise(res=>{ const b=document.createElement('div'); b.style.cssText='position:fixed;inset:0;background:#000c;z-index:9999;display:flex;align-items:center;justify-content:center';
+  b.innerHTML='<div style="background:#fff;color:#111;padding:20px;border-radius:14px;text-align:center;max-width:320px"><div style="font-weight:700;margin-bottom:10px">Enter the 6-digit code shown on the outlet manager\u2019s screen</div><input id="attCodeIn" inputmode="numeric" maxlength="6" style="font:700 28px DM Mono,monospace;letter-spacing:6px;text-align:center;width:11ch"><div style="margin-top:12px;display:flex;gap:8px;justify-content:center"><button class="download-btn" id="attOk">OK</button><button class="mini-btn mini-btn-no" id="attNo">Cancel</button></div></div>';
+  document.body.appendChild(b); const i=b.querySelector('#attCodeIn'); i.focus(); const fin=v=>{b.remove();res(v);};
+  b.querySelector('#attOk').onclick=()=>{const c=i.value.trim();fin(/^\d{6}$/.test(c)?c:null);}; b.querySelector('#attNo').onclick=()=>fin(null); }); }
 
 // ---------- staff: register / check in / check out ----------
 async function register(){
   if(!myOutletCode) return say('Choose your outlet first (top bar), then register.');
   say('Loading face check… first time may take a minute',true);
   const r=await faceStep(3,'Register your face').catch(e=>({err:e.message})); if(!r)return say(''); if(r.err)return say(r.err);
-  await db.collection('attendance_staff').doc(currentUser.uid).set({uid:currentUser.uid,name:currentUser.displayName||currentUser.email,email:currentUser.email||'',outletCode:myOutletCode,outletName:myOutletName,faces:r.descs,photo:r.thumb,deviceId:devId(),status:'pending',createdAt:T()});
+  try{ await db.collection('attendance_staff').doc(currentUser.uid).set({uid:currentUser.uid,name:currentUser.displayName||currentUser.email,email:currentUser.email||'',outletCode:myOutletCode,outletName:myOutletName,faces:r.descs,photo:r.thumb,deviceId:devId(),status:'pending',createdAt:T()});
   say('Registered. Waiting for the owner to approve.',true); open();
+  }catch(e){ say(/permission/i.test(e.message||'')?'Not allowed: publish the new attendance Firestore rules first (and make sure your outlet is chosen).':(e.message||String(e))); }
 }
 async function mark(kind){
   try{
