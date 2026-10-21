@@ -9163,7 +9163,7 @@ async function faceStep(want, title){
     }catch(e){ return resolve(done({err:'Face check error: '+(e.message||e)})); }
   });
 }
-const faceDist=(d,list)=>Math.min(...list.map(r=>Math.hypot(...r.map((x,i)=>x-d[i]))));
+const faceDist=(d,list)=>Math.min(...list.map(r=>{const a=Array.isArray(r)?r:r.d;return Math.hypot(...a.map((x,i)=>x-d[i]));}));
 
 // ---------- GPS: several readings, accuracy and sanity checks ----------
 function gps(){ return new Promise((res,rej)=>{ if(!navigator.geolocation)return rej({message:'No GPS on this device'}); const S=[];
@@ -9190,7 +9190,7 @@ async function register(){
   if(!myOutletCode) return say('Choose your outlet first (top bar), then register.');
   say('Loading face check… first time may take a minute',true);
   const r=await faceStep(3,'Register your face').catch(e=>({err:e.message})); if(!r)return say(''); if(r.err)return say(r.err);
-  try{ await db.collection('attendance_staff').doc(currentUser.uid).set({uid:currentUser.uid,name:currentUser.displayName||currentUser.email,email:currentUser.email||'',outletCode:myOutletCode,outletName:myOutletName,faces:r.descs,photo:r.thumb,deviceId:devId(),status:'pending',createdAt:T()});
+  try{ await db.collection('attendance_staff').doc(currentUser.uid).set({uid:currentUser.uid,name:currentUser.displayName||currentUser.email,email:currentUser.email||'',outletCode:myOutletCode,outletName:myOutletName,faces:r.descs.map(d=>({d})),photo:r.thumb,deviceId:devId(),status:'pending',createdAt:T()});
   say('Registered. Waiting for the owner to approve.',true); open();
   }catch(e){ say(/permission/i.test(e.message||'')?'Not allowed: publish the new attendance Firestore rules first (and make sure your outlet is chosen).':(e.message||String(e))); }
 }
