@@ -9328,7 +9328,7 @@ async function locInto(b){
   b.innerHTML='Loading…'; const [o,g]=await Promise.all([db.collection('outlets').where('status','==','approved').get(),db.collection('outlet_geo').get()]);
   const G={}; g.docs.forEach(d=>G[d.id]=d.data());
   b.innerHTML='<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th>Latitude</th><th>Longitude</th><th>Radius m</th><th>Action</th></tr></thead><tbody>'
-   +o.docs.map(d=>d.data()).sort((a,b)=>String(a.number).localeCompare(String(b.number))).map(x=>{const c=String(x.number),e=G[c]||{};return '<tr data-c="'+esc(c)+'" data-n="'+esc(x.name)+'"><td style="text-align:left">'+esc(c)+' · '+esc(x.name)+'</td><td><input class="la" size="10" value="'+(e.lat||'')+'"></td><td><input class="lo" size="10" value="'+(e.lng||'')+'"></td><td><input class="ra" size="4" value="'+(e.radius||RADIUS)+'"></td><td><button class="mini-btn" onclick="attHere(this)">📍 I am at this outlet</button> <button class="mini-btn mini-btn-ok" onclick="attSave(this)">Save</button></td></tr>';}).join('')+'</tbody></table></div></div><div id="attMsg" style="margin-top:8px"></div>';
+   +o.docs.map(d=>d.data()).sort((a,b)=>String(a.number).localeCompare(String(b.number))).map(x=>{const c=String(x.number),e=G[c]||{};return '<tr data-c="'+esc(c)+'" data-n="'+esc(x.name)+'"><td style="text-align:left">'+esc(c)+' · '+esc(x.name)+'</td><td><input class="la" size="10" oninput="attSplit(this)" placeholder="paste 12.93, 77.61" value="'+(e.lat||'')+'"></td><td><input class="lo" size="10" value="'+(e.lng||'')+'"></td><td><input class="ra" size="4" value="'+(e.radius||RADIUS)+'"></td><td><button class="mini-btn" onclick="attHere(this)">📍 I am at this outlet</button> <button class="mini-btn mini-btn-ok" onclick="attSave(this)">Save</button></td></tr>';}).join('')+'</tbody></table></div></div><div id="attMsg" style="margin-top:8px"></div>';
 }
 async function codeView(){
   const b=$('attBody'); let outs=[]; if(isMgr()){const o=await db.collection('outlets').where('status','==','approved').get();outs=o.docs.map(d=>d.data());} else outs=[{number:reg.outletCode,name:reg.outletName}];
@@ -9340,7 +9340,7 @@ async function codeView(){
 }
 function stopCode(){ if(timer){clearInterval(timer);timer=null;} }
 
-window.attReg=register; window.attMark=mark; window.attLocInto=b=>locInto(b).catch(e=>{b.innerHTML='<div style="color:#E15C5C;padding:12px">'+esc(e.message)+'</div>';});
+window.attReg=register; window.attMark=mark; window.attSplit=el=>{const m=el.value.split(/[\s,]+/).filter(Boolean);if(m.length>=2&&isFinite(m[0])&&isFinite(m[1])){el.value=m[0];el.closest('tr').querySelector('.lo').value=m[1];}}; window.attLocInto=b=>locInto(b).catch(e=>{b.innerHTML='<div style="color:#E15C5C;padding:12px">'+esc(e.message)+'</div>';});
 window.attSet=async(u,s)=>{await db.collection('attendance_staff').doc(u).update({status:s,reviewedBy:currentUser.email});staffAdminView();};
 window.attCan=async(u,v)=>{await db.collection('attendance_staff').doc(u).update({canShowCode:v});staffAdminView();};
 window.attReset=async u=>{if(confirm('Delete this registration? The person must register again.')){await db.collection('attendance_staff').doc(u).delete();staffAdminView();}};
