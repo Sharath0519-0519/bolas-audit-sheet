@@ -1015,6 +1015,7 @@ textarea.ml-in{min-height:170px;resize:vertical;font-family:'DM Mono',monospace;
   </div>
   <div id="ownerPendingWrap" style="margin-bottom:28px"></div>
   <div id="ownerOutletReqWrap" style="margin-bottom:28px"></div>
+  <div id="ownerAttReqWrap" style="margin-bottom:28px"></div>
   <div id="ownerProdSearchBar" style="margin-bottom:16px;max-width:560px">
     <label class="pc-label" for="ownerProdSearch">🔍 Search products (Stock Audit &amp; Kernel Report pack sizes below)</label>
     <input type="search" id="ownerProdSearch" class="pc-input" placeholder="e.g. cashew nut" autocomplete="off" spellcheck="false">
@@ -4650,7 +4651,7 @@ function addOwnerTab() {
 document.getElementById('ownerRefreshBtn')?.addEventListener('click', loadOwnerDashboard);
 
 // ---- Owner dashboard: live-updating usage + approval data ----
-let ownerUsersUnsub = null, ownerActUnsub = null, ownerPackUnsub = null, ownerP1PackUnsub = null, ownerDlUnsub = null, ownerLatestDl = null;
+let attReqUnsub = null, ownerUsersUnsub = null, ownerActUnsub = null, ownerPackUnsub = null, ownerP1PackUnsub = null, ownerDlUnsub = null, ownerLatestDl = null;
 let ownerLatestUsers = null, ownerLatestActs = null;
 
 function stopOwnerDashboard() {
@@ -4661,6 +4662,7 @@ function stopOwnerDashboard() {
   if (ownerDlUnsub) { ownerDlUnsub(); ownerDlUnsub = null; }
   ownerLatestDl = null;
   if (outletReqUnsub) { outletReqUnsub(); outletReqUnsub = null; }
+  if (attReqUnsub) { attReqUnsub(); attReqUnsub = null; }
   ownerLatestUsers = null; ownerLatestActs = null;
 }
 
@@ -4723,6 +4725,35 @@ function loadOwnerDashboard() {
       console.warn('outlet requests listener failed:', err);
       if (reqWrap) reqWrap.innerHTML = `<p style="color:#E15C5C;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load outlet requests: ${escHtml(err.message)}</p>`;
     });
+
+  // Staff face registrations (Attendance) waiting for the owner's approval
+  const attWrap = document.getElementById('ownerAttReqWrap');
+  if (attWrap) attWrap.innerHTML = loadingMsg;
+  attReqUnsub = db.collection('attendance_staff').where('status', '==', 'pending')
+    .onSnapshot(snap => renderOwnerAttReqs(snap.docs.map(d => d.data())), err => {
+      console.warn('attendance requests listener failed:', err);
+      if (attWrap) attWrap.innerHTML = `<p style="color:#E15C5C;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load attendance requests: ${escHtml(err.message)} (publish the attendance Firestore rules)</p>`;
+    });
+}
+
+function renderOwnerAttReqs(list) {
+  const wrap = document.getElementById('ownerAttReqWrap'); if (!wrap) return;
+  list.sort((a, b) => (a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0) - (b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0));
+  let h = `<div class="results-title">📷 Attendance Face Registrations${list.length ? ` <span class="pill pill-pending">${list.length}</span>` : ''}</div>`;
+  if (!list.length) { h += `<div class="table-wrap" style="padding:18px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">No face registrations waiting for approval</div>`; wrap.innerHTML = h; return; }
+  h += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th>Photo</th><th style="text-align:left">Name</th><th style="text-align:left">Outlet</th><th>Registered</th><th>Action</th></tr></thead><tbody>`;
+  list.forEach(s => {
+    h += `<tr><td><img src="${s.photo || ''}" width="52" height="52" style="border-radius:8px"></td><td style="text-align:left">${escHtml(s.name || s.email || '—')}</td><td style="text-align:left">${escHtml(s.outletName || '—')}</td><td>${fmtTs(s.createdAt)}</td><td>
+      <button class="mini-btn mini-btn-ok" data-aact="approved" data-auid="${escHtml(s.uid)}">✓ Approve</button>
+      <button class="mini-btn mini-btn-no" data-aact="rejected" data-auid="${escHtml(s.uid)}">✕ Reject</button></td></tr>`;
+  });
+  h += `</tbody></table></div></div>`;
+  wrap.innerHTML = h;
+  wrap.querySelectorAll('.mini-btn[data-aact]').forEach(b => b.addEventListener('click', async () => {
+    b.disabled = true;
+    try { await db.collection('attendance_staff').doc(b.dataset.auid).update({ status: b.dataset.aact, reviewedBy: currentUser.email }); }
+    catch (e) { b.disabled = false; alert('Could not update: ' + e.message); }
+  }));
 }
 
 function renderOwnerOutletRequests(list) {
@@ -8990,9 +9021,25 @@ window.evNew=()=>{evId=null;['evName','evLoc','evStaff','evRemarks'].forEach(i=>
 // Excel: one sheet per day, laid out like the team's event sheet —
 //   [title | stock]  [Sampling: Sample · S.P · Total]  [Invoice: Invoice · S.P · Total]  [Closing Balance]
 // Day 2+ sheets start with Opening Balance (a live link to the previous sheet's Closing Balance) + Additional Stock.
+// Asks which previous saved events (max 3) to add into the Total sheet. Resolves with the chosen ids, [] for none, or null if cancelled.
+function askPrev(){
+  const ids=Object.keys(hist).filter(i=>i!==evId); if(!ids.length)return Promise.resolve([]);
+  ids.sort((a,b)=>String(hist[b].eventDate||'').localeCompare(String(hist[a].eventDate||'')));
+  return new Promise(res=>{
+    const b=document.createElement('div'); b.style.cssText='position:fixed;inset:0;background:#000c;z-index:9999;display:flex;align-items:center;justify-content:center;padding:14px';
+    b.innerHTML='<div style="background:#fff;color:#111;border-radius:14px;padding:18px;max-width:440px;width:100%;max-height:82vh;overflow:auto"><div style="font-weight:700;margin-bottom:4px">Include previous events?</div><div style="font-size:12px;color:#555;margin-bottom:10px">Tick up to 3. They are added together with this event into one “Total” sheet: total quantity of every item, used for sample and all invoices.</div><div id="evPrevList"></div><div id="evPrevMsg" style="font-size:12px;color:#c0392b;min-height:16px"></div><div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end"><button class="mini-btn" id="evPrevCancel" style="color:#111">Cancel</button><button class="download-btn" id="evPrevGo" style="padding:8px 16px">⬇ Download</button></div></div>';
+    b.querySelector('#evPrevList').innerHTML=ids.map(i=>{const x=hist[i];return '<label style="display:flex;gap:10px;align-items:flex-start;padding:8px 4px;border-bottom:1px solid #eee;cursor:pointer"><input type="checkbox" data-id="'+i+'" style="margin-top:3px"><span><b>'+esc(x.eventName||'Event')+'</b><br><span style="font-size:12px;color:#555">'+esc(dateText(x.eventDate,x.eventDateTo)||'')+' · '+esc(x.outletName||'')+'</span></span></label>';}).join('');
+    document.body.appendChild(b);
+    const checked=()=>[...b.querySelectorAll('input:checked')];
+    b.addEventListener('change',e=>{if(checked().length>3){e.target.checked=false;b.querySelector('#evPrevMsg').textContent='You can add at most 3 previous events.';}else b.querySelector('#evPrevMsg').textContent='';});
+    b.querySelector('#evPrevCancel').onclick=()=>{b.remove();res(null);};
+    b.querySelector('#evPrevGo').onclick=()=>{const r=checked().map(c=>c.dataset.id);b.remove();res(r);};
+  });
+}
 window.evDownload=async(withOther)=>{   // withOther=true → adds “From Other Outlet” + “Other Outlet Name” columns; otherwise the plain format
   const s=snapshot(); if(!s.rows.length)return msg('Add at least one item first.',false);
   if(typeof ExcelJS==='undefined')return msg('The Excel library has not loaded — check your internet connection and try again.',false);
+  const prevIds=await askPrev(); if(prevIds===null)return;   // ask which previous events to add into the Total sheet
   const nd=nDays(), runs=s.rows.map(r=>run(r));
   // other-outlet columns only when some row has an other-outlet quantity or name; Returned/Diff only when something was returned
   const useOther=withOther===true, useRet=s.rows.some(r=>r.ret>0);   // the Taken back / Loss / Excess columns appear when something was taken back
@@ -9084,6 +9131,33 @@ window.evDownload=async(withOther)=>{   // withOther=true → adds “From Other
     ws.getRow(1).height=30; ws.getRow(2).height=34;
     ws.views=[{state:'frozen',xSplit:1,ySplit:2}];
     ws.pageSetup={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0};
+  }
+  // ── Total sheet: every item added up over all days of this event (+ any previous events picked) ──
+  if(nd>1||prevIds.length){
+    const agg=new Map(), evs=[]; const dT=dateText($('evDate').value,$('evDateTo').value);
+    const addEv=(label,rs)=>{evs.push(label);rs.forEach(r=>{
+      const ds=Array.isArray(r.d)&&r.d.length?r.d:[{add:0,smp:0,inv:r.inv||0}], pr=num(r.price), key=String(r.name).trim().toLowerCase();
+      const taken=num(r.own)+num(r.other)+ds.reduce((a,q,k)=>a+(k?num(q.add):0),0), sm=ds.reduce((a,q)=>a+num(q.smp),0), iv=ds.reduce((a,q)=>a+num(q.inv),0);
+      let g=agg.get(key); if(!g){g={name:String(r.name).trim(),taken:0,smp:0,sa:0,inv:0,ia:0,ret:0};agg.set(key,g);}
+      g.taken+=taken;g.smp+=sm;g.sa+=sm*pr;g.inv+=iv;g.ia+=iv*pr;g.ret+=num(r.ret);});};
+    addEv(($('evName').value||'This event')+(dT?' ('+dT+')':''),s.rows);
+    prevIds.forEach(i=>{const x=hist[i]; if(x)addEv((x.eventName||'Event')+(dateText(x.eventDate,x.eventDateTo)?' ('+dateText(x.eventDate,x.eventDateTo)+')':''),x.rows||[]);});
+    const list=[...agg.values()].sort((a,b)=>a.name.localeCompare(b.name)), anyRet=list.some(g=>g.ret>0);
+    const ws=wb.addWorksheet('Total'), heads=['Products / SKUs','Total Quantity','Used for Sample','Sample Amount ₹','Invoiced','Invoice Amount ₹','Closing Balance'].concat(anyRet?['Taken back to Store','Balance (− Loss / + Excess)']:[]);
+    const t1=ws.getCell(1,1); t1.value='TOTAL — '+evs.length+' event'+(evs.length>1?'s':'')+(nd>1?' · '+nd+' days':''); t1.font={bold:true,size:14};
+    evs.forEach((t,i)=>{ws.getCell(2+i,1).value=(i?'Previous: ':'This event: ')+t;});
+    const hr=3+evs.length;
+    heads.forEach((h,j)=>{const c=ws.getCell(hr,j+1);c.value=h;c.font={bold:true,size:11};c.fill=fill(SKY);c.border=bd;c.alignment={horizontal:j?'center':'left',vertical:'middle',wrapText:true};ws.getColumn(j+1).width=j?16:56;});
+    const f=(r,j)=>letter(j)+r; let r=hr+1; const first=r, T=[0,0,0,0,0,0,0,0];
+    list.forEach(g=>{
+      const close=g.taken-g.smp-g.inv, vals=[g.name,g.taken,g.smp,g.sa,g.inv,g.ia,{formula:`B${r}-C${r}-E${r}`,result:close}];
+      if(anyRet)vals.push(g.ret||null,{formula:`H${r}-G${r}`,result:g.ret-close});
+      vals.forEach((v,j)=>{const c=ws.getCell(r,j+1);c.value=v;c.border=bd;c.alignment={horizontal:j?'center':'left'};if(j===8)c.numFmt=BAL_FMT;});
+      T[1]+=g.taken;T[2]+=g.smp;T[3]+=g.sa;T[4]+=g.inv;T[5]+=g.ia;T[6]+=close;T[7]+=g.ret;r++;});
+    const last=r-1, tr=r;
+    heads.forEach((h,j)=>{const c=ws.getCell(tr,j+1),L=letter(j+1);c.border=bd;c.fill=fill(YEL);c.font={bold:true};c.alignment={horizontal:j?'center':'left'};
+      if(j===0)c.value='TOTAL'; else if(j<=6)c.value={formula:`SUM(${L}${first}:${L}${last})`,result:T[j]}; else if(j===7)c.value={formula:`SUM(H${first}:H${last})`,result:T[7]}; else {c.value={formula:`SUM(I${first}:I${last})`,result:T[7]-T[6]};c.numFmt=BAL_FMT;}});
+    ws.views=[{state:'frozen',ySplit:hr}];
   }
   const buf=await wb.xlsx.writeBuffer(),a=document.createElement('a'), dTxt=dateText($('evDate').value,$('evDateTo').value);
   a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
