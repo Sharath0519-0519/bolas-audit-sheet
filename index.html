@@ -9132,32 +9132,33 @@ window.evDownload=async(withOther)=>{   // withOther=true → adds “From Other
     ws.views=[{state:'frozen',xSplit:1,ySplit:2}];
     ws.pageSetup={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0};
   }
-  // ── Total sheet: every item added up over all days of this event (+ any previous events picked) ──
+  // ── Total sheet — same layout as the manual sheet: Total | Sampling (Sample, S.P, Total) | Invoice (Invoice, S.P, Total) ──
   if(nd>1||prevIds.length){
     const agg=new Map(), evs=[]; const dT=dateText($('evDate').value,$('evDateTo').value);
     const addEv=(label,rs)=>{evs.push(label);rs.forEach(r=>{
       const ds=Array.isArray(r.d)&&r.d.length?r.d:[{add:0,smp:0,inv:r.inv||0}], pr=num(r.price), key=String(r.name).trim().toLowerCase();
       const taken=num(r.own)+num(r.other)+ds.reduce((a,q,k)=>a+(k?num(q.add):0),0), sm=ds.reduce((a,q)=>a+num(q.smp),0), iv=ds.reduce((a,q)=>a+num(q.inv),0);
-      let g=agg.get(key); if(!g){g={name:String(r.name).trim(),taken:0,smp:0,sa:0,inv:0,ia:0,ret:0};agg.set(key,g);}
-      g.taken+=taken;g.smp+=sm;g.sa+=sm*pr;g.inv+=iv;g.ia+=iv*pr;g.ret+=num(r.ret);});};
+      let g=agg.get(key); if(!g){g={name:String(r.name).trim(),taken:0,smp:0,inv:0,pr:0};agg.set(key,g);}
+      g.taken+=taken;g.smp+=sm;g.inv+=iv; if(!g.pr&&pr)g.pr=pr;});};   // S.P = this event's selling price (else the latest previous one)
     addEv(($('evName').value||'This event')+(dT?' ('+dT+')':''),s.rows);
     prevIds.forEach(i=>{const x=hist[i]; if(x)addEv((x.eventName||'Event')+(dateText(x.eventDate,x.eventDateTo)?' ('+dateText(x.eventDate,x.eventDateTo)+')':''),x.rows||[]);});
-    const list=[...agg.values()].sort((a,b)=>a.name.localeCompare(b.name)), anyRet=list.some(g=>g.ret>0);
-    const ws=wb.addWorksheet('Total'), heads=['Products / SKUs','Total Quantity','Used for Sample','Sample Amount ₹','Invoiced','Invoice Amount ₹','Closing Balance'].concat(anyRet?['Taken back to Store','Balance (− Loss / + Excess)']:[]);
-    const t1=ws.getCell(1,1); t1.value='TOTAL — '+evs.length+' event'+(evs.length>1?'s':'')+(nd>1?' · '+nd+' days':''); t1.font={bold:true,size:14};
-    evs.forEach((t,i)=>{ws.getCell(2+i,1).value=(i?'Previous: ':'This event: ')+t;});
-    const hr=3+evs.length;
-    heads.forEach((h,j)=>{const c=ws.getCell(hr,j+1);c.value=h;c.font={bold:true,size:11};c.fill=fill(SKY);c.border=bd;c.alignment={horizontal:j?'center':'left',vertical:'middle',wrapText:true};ws.getColumn(j+1).width=j?16:56;});
-    const f=(r,j)=>letter(j)+r; let r=hr+1; const first=r, T=[0,0,0,0,0,0,0,0];
+    const list=[...agg.values()], ws=wb.addWorksheet('Total');
+    [56,10,10,10,12,3,10,10,12].forEach((w,j)=>{ws.getColumn(j+1).width=w;});
+    const put=(r,c,v,o)=>{o=o||{};const x=ws.getCell(r,c);x.value=v;if(!o.nb)x.border=bd;if(o.fill)x.fill=fill(o.fill);x.font={bold:!!o.b,size:11};x.alignment={horizontal:o.h||'right',vertical:'middle'};return x;};
+    put(1,1,($('evName').value||'Event')+(prevIds.length?' + '+prevIds.length+' previous':''),{fill:YEL,b:1,h:'center'}); put(1,2,null,{fill:YEL}); ws.mergeCells(1,1,1,2);
+    put(1,3,'Sampling',{fill:CREAM,b:1,h:'center'}); put(1,4,null,{fill:CREAM}); put(1,5,null,{fill:CREAM}); ws.mergeCells(1,3,1,5);
+    put(1,7,'Invoice',{fill:CREAM,b:1,h:'center'}); put(1,8,null,{fill:CREAM}); put(1,9,null,{fill:CREAM}); ws.mergeCells(1,7,1,9);
+    ['Products / SKUs','Total','Sample','S.P','Total',null,'Invoice','S.P','Total'].forEach((h,j)=>{if(h)put(2,j+1,h,{fill:SKY,b:1,h:'center'});});
+    let r=3; const first=r, T={q:0,sm:0,p:0,sa:0,iv:0,ia:0};
     list.forEach(g=>{
-      const close=g.taken-g.smp-g.inv, vals=[g.name,g.taken,g.smp,g.sa,g.inv,g.ia,{formula:`B${r}-C${r}-E${r}`,result:close}];
-      if(anyRet)vals.push(g.ret||null,{formula:`H${r}-G${r}`,result:g.ret-close});
-      vals.forEach((v,j)=>{const c=ws.getCell(r,j+1);c.value=v;c.border=bd;c.alignment={horizontal:j?'center':'left'};if(j===8)c.numFmt=BAL_FMT;});
-      T[1]+=g.taken;T[2]+=g.smp;T[3]+=g.sa;T[4]+=g.inv;T[5]+=g.ia;T[6]+=close;T[7]+=g.ret;r++;});
+      put(r,1,g.name,{h:'left'}); put(r,2,g.taken,{b:1}); put(r,3,g.smp||null); put(r,4,g.pr); put(r,5,{formula:`C${r}*D${r}`,result:g.smp*g.pr});
+      put(r,7,g.inv||null); put(r,8,g.pr); put(r,9,{formula:`G${r}*H${r}`,result:g.inv*g.pr});
+      T.q+=g.taken;T.sm+=g.smp;T.p+=g.pr;T.sa+=g.smp*g.pr;T.iv+=g.inv;T.ia+=g.inv*g.pr; r++;});
     const last=r-1, tr=r;
-    heads.forEach((h,j)=>{const c=ws.getCell(tr,j+1),L=letter(j+1);c.border=bd;c.fill=fill(YEL);c.font={bold:true};c.alignment={horizontal:j?'center':'left'};
-      if(j===0)c.value='TOTAL'; else if(j<=6)c.value={formula:`SUM(${L}${first}:${L}${last})`,result:T[j]}; else if(j===7)c.value={formula:`SUM(H${first}:H${last})`,result:T[7]}; else {c.value={formula:`SUM(I${first}:I${last})`,result:T[7]-T[6]};c.numFmt=BAL_FMT;}});
-    ws.views=[{state:'frozen',ySplit:hr}];
+    put(tr,1,'TOTAL',{fill:CREAM,b:1,h:'center'});
+    [[2,T.q],[3,T.sm],[4,T.p],[5,T.sa],[7,T.iv],[8,T.p],[9,T.ia]].forEach(([c,v])=>{const L=letter(c);put(tr,c,{formula:`SUM(${L}${first}:${L}${last})`,result:v},{fill:CREAM,b:1});});
+    evs.forEach((t,i)=>{const c=ws.getCell(tr+2+i,1);c.value=(i?'Previous: ':'Includes: ')+t;c.font={size:10,italic:true};});
+    ws.views=[{state:'frozen',ySplit:2}];
   }
   const buf=await wb.xlsx.writeBuffer(),a=document.createElement('a'), dTxt=dateText($('evDate').value,$('evDateTo').value);
   a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
