@@ -1016,6 +1016,7 @@ textarea.ml-in{min-height:170px;resize:vertical;font-family:'DM Mono',monospace;
   <div id="ownerPendingWrap" style="margin-bottom:28px"></div>
   <div id="ownerOutletReqWrap" style="margin-bottom:28px"></div>
   <div id="ownerAttReqWrap" style="margin-bottom:28px"></div>
+  <div id="ownerAttLocWrap" style="margin-bottom:28px"></div>
   <div id="ownerProdSearchBar" style="margin-bottom:16px;max-width:560px">
     <label class="pc-label" for="ownerProdSearch">🔍 Search products (Stock Audit &amp; Kernel Report pack sizes below)</label>
     <input type="search" id="ownerProdSearch" class="pc-input" placeholder="e.g. cashew nut" autocomplete="off" spellcheck="false">
@@ -4734,6 +4735,13 @@ function loadOwnerDashboard() {
       console.warn('attendance requests listener failed:', err);
       if (attWrap) attWrap.innerHTML = `<p style="color:#E15C5C;font-family:'DM Mono',monospace;font-size:12px;">Couldn't load attendance requests: ${escHtml(err.message)} (publish the attendance Firestore rules)</p>`;
     });
+
+  // Outlet locations for Attendance (owner sets each outlet's position + radius here)
+  const locWrap = document.getElementById('ownerAttLocWrap');
+  if (locWrap && window.attLocInto) {
+    locWrap.innerHTML = `<div class="results-title">📍 Attendance — Outlet Locations</div><p style="color:var(--muted);font-size:12px;margin:6px 0 10px">Stand at the outlet and tap “I am at this outlet”, then Save. Staff can mark attendance only within the radius (100 m).</p><div id="ownerAttLocBody"></div>`;
+    window.attLocInto(document.getElementById('ownerAttLocBody'));
+  }
 }
 
 function renderOwnerAttReqs(list) {
@@ -9192,7 +9200,7 @@ const devId=()=>{try{let d=localStorage.getItem('attDev');if(!d){d=(crypto.rando
 const dateKey=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
 const hm=t=>t&&t.toDate?t.toDate().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'—';
 const meters=(a,b,c,d)=>{const R=6371000,r=x=>x*Math.PI/180,h=Math.sin(r(c-a)/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(r(d-b)/2)**2;return 2*R*Math.asin(Math.sqrt(h));};
-const say=(m,ok)=>{const e=$('attMsg');if(e){e.textContent=m;e.style.color=ok?'#3FB874':'#E15C5C';}};
+const say=(m,ok)=>{document.querySelectorAll('[id=attMsg]').forEach(e=>{e.textContent=m;e.style.color=ok?'#3FB874':'#E15C5C';});};
 
 // ---------- face-api (loaded only when needed; models are fetched once, then cached by the browser) ----------
 function loadFace(){ return faceReady||(faceReady=new Promise((res,rej)=>{
@@ -9315,8 +9323,9 @@ async function staffAdminView(){
    +'<button class="mini-btn" onclick="attCan(\''+s.uid+'\','+(!s.canShowCode)+')">'+(s.canShowCode?'Remove code access':'Allow show-code')+'</button> <button class="mini-btn mini-btn-no" onclick="attReset(\''+s.uid+'\')">Reset phone/face</button></td></tr>').join('')
    +(L.length?'':'<tr><td colspan="5" style="text-align:center;color:var(--muted)">No registrations yet</td></tr>')+'</tbody></table></div></div>';
 }
-async function locView(){
-  const b=$('attBody'); b.innerHTML='Loading…'; const [o,g]=await Promise.all([db.collection('outlets').where('status','==','approved').get(),db.collection('outlet_geo').get()]);
+const locView=()=>locInto($('attBody'));
+async function locInto(b){
+  b.innerHTML='Loading…'; const [o,g]=await Promise.all([db.collection('outlets').where('status','==','approved').get(),db.collection('outlet_geo').get()]);
   const G={}; g.docs.forEach(d=>G[d.id]=d.data());
   b.innerHTML='<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th>Latitude</th><th>Longitude</th><th>Radius m</th><th>Action</th></tr></thead><tbody>'
    +o.docs.map(d=>d.data()).sort((a,b)=>String(a.number).localeCompare(String(b.number))).map(x=>{const c=String(x.number),e=G[c]||{};return '<tr data-c="'+esc(c)+'" data-n="'+esc(x.name)+'"><td style="text-align:left">'+esc(c)+' · '+esc(x.name)+'</td><td><input class="la" size="10" value="'+(e.lat||'')+'"></td><td><input class="lo" size="10" value="'+(e.lng||'')+'"></td><td><input class="ra" size="4" value="'+(e.radius||RADIUS)+'"></td><td><button class="mini-btn" onclick="attHere(this)">📍 I am at this outlet</button> <button class="mini-btn mini-btn-ok" onclick="attSave(this)">Save</button></td></tr>';}).join('')+'</tbody></table></div></div><div id="attMsg" style="margin-top:8px"></div>';
@@ -9331,7 +9340,7 @@ async function codeView(){
 }
 function stopCode(){ if(timer){clearInterval(timer);timer=null;} }
 
-window.attReg=register; window.attMark=mark;
+window.attReg=register; window.attMark=mark; window.attLocInto=b=>locInto(b).catch(e=>{b.innerHTML='<div style="color:#E15C5C;padding:12px">'+esc(e.message)+'</div>';});
 window.attSet=async(u,s)=>{await db.collection('attendance_staff').doc(u).update({status:s,reviewedBy:currentUser.email});staffAdminView();};
 window.attCan=async(u,v)=>{await db.collection('attendance_staff').doc(u).update({canShowCode:v});staffAdminView();};
 window.attReset=async u=>{if(confirm('Delete this registration? The person must register again.')){await db.collection('attendance_staff').doc(u).delete();staffAdminView();}};
