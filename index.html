@@ -497,6 +497,8 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 .mini-btn-ok:hover{background:rgba(63,184,116,.1)}
 .mini-btn-no{border:1px solid #E15C5C;color:#E15C5C}
 .mini-btn-no:hover{background:rgba(225,92,92,.1)}
+#panel18 .mini-btn:not(.mini-btn-ok):not(.mini-btn-no){color:var(--text);border:1px solid #3A4152}
+#panel18 .download-btn{color:#3FB874;border:2px solid #3FB874;width:auto;padding:12px 18px}
 /* Sales Comparison tab */
 .sc-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:20px}
 .sc-dd summary{list-style:none;cursor:pointer;padding:8px 10px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:9px;font-size:13px;min-width:210px}
@@ -9035,7 +9037,7 @@ function askPrev(){
   ids.sort((a,b)=>String(hist[b].eventDate||'').localeCompare(String(hist[a].eventDate||'')));
   return new Promise(res=>{
     const b=document.createElement('div'); b.style.cssText='position:fixed;inset:0;background:#000c;z-index:9999;display:flex;align-items:center;justify-content:center;padding:14px';
-    b.innerHTML='<div style="background:#fff;color:#111;border-radius:14px;padding:18px;max-width:440px;width:100%;max-height:82vh;overflow:auto"><div style="font-weight:700;margin-bottom:4px">Include previous events?</div><div style="font-size:12px;color:#555;margin-bottom:10px">Tick up to 3. They are added together with this event into one “Total” sheet: total quantity of every item, used for sample and all invoices.</div><div id="evPrevList"></div><div id="evPrevMsg" style="font-size:12px;color:#c0392b;min-height:16px"></div><div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end"><button class="mini-btn" id="evPrevCancel" style="color:#111">Cancel</button><button class="download-btn" id="evPrevGo" style="padding:8px 16px">⬇ Download</button></div></div>';
+    b.innerHTML='<div style="background:#fff;color:#111;border-radius:14px;padding:18px;max-width:440px;width:100%;max-height:82vh;overflow:auto"><div style="font-weight:700;margin-bottom:4px">Include previous events?</div><div style="font-size:12px;color:#555;margin-bottom:10px">Tick up to 3. They are added together with this event into one “Total” sheet: total quantity of every item, used for sample and all invoices.</div><div id="evPrevList"></div><div id="evPrevMsg" style="font-size:12px;color:#c0392b;min-height:16px"></div><div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end"><button class="mini-btn" id="evPrevCancel" style="color:#111">Cancel</button><button class="download-btn" id="evPrevGo" style="padding:8px 16px;color:#059669;border:2px solid #3FB874;width:auto">⬇ Download</button></div></div>';
     b.querySelector('#evPrevList').innerHTML=ids.map(i=>{const x=hist[i];return '<label style="display:flex;gap:10px;align-items:flex-start;padding:8px 4px;border-bottom:1px solid #eee;cursor:pointer"><input type="checkbox" data-id="'+i+'" style="margin-top:3px"><span><b>'+esc(x.eventName||'Event')+'</b><br><span style="font-size:12px;color:#555">'+esc(dateText(x.eventDate,x.eventDateTo)||'')+' · '+esc(x.outletName||'')+'</span></span></label>';}).join('');
     document.body.appendChild(b);
     const checked=()=>[...b.querySelectorAll('input:checked')];
@@ -9264,7 +9266,7 @@ async function place(code){
   return {lat:+b.latitude.toFixed(6),lng:+b.longitude.toFixed(6),acc:Math.round(b.accuracy),dist:d,flags};
 }
 function askCode(){ return new Promise(res=>{ const b=document.createElement('div'); b.style.cssText='position:fixed;inset:0;background:#000c;z-index:9999;display:flex;align-items:center;justify-content:center';
-  b.innerHTML='<div style="background:#fff;color:#111;padding:20px;border-radius:14px;text-align:center;max-width:320px"><div style="font-weight:700;margin-bottom:10px">Enter the 6-digit code shown on the outlet manager\u2019s screen</div><input id="attCodeIn" inputmode="numeric" maxlength="6" style="font:700 28px DM Mono,monospace;letter-spacing:6px;text-align:center;width:11ch"><div style="margin-top:12px;display:flex;gap:8px;justify-content:center"><button class="download-btn" id="attOk">OK</button><button class="mini-btn mini-btn-no" id="attNo">Cancel</button></div></div>';
+  b.innerHTML='<div style="background:#fff;color:#111;padding:20px;border-radius:14px;text-align:center;max-width:320px"><div style="font-weight:700;margin-bottom:10px">Enter the 6-digit code shown on the outlet manager\u2019s screen</div><input id="attCodeIn" inputmode="numeric" maxlength="6" style="font:700 28px DM Mono,monospace;letter-spacing:6px;text-align:center;width:11ch"><div style="margin-top:12px;display:flex;gap:8px;justify-content:center"><button class="download-btn" id="attOk" style="color:#059669;border:2px solid #3FB874;width:auto;padding:10px 20px">OK</button><button class="mini-btn mini-btn-no" id="attNo">Cancel</button></div></div>';
   document.body.appendChild(b); const i=b.querySelector('#attCodeIn'); i.focus(); const fin=v=>{b.remove();res(v);};
   b.querySelector('#attOk').onclick=()=>{const c=i.value.trim();fin(/^\d{6}$/.test(c)?c:null);}; b.querySelector('#attNo').onclick=()=>fin(null); }); }
 
@@ -9325,13 +9327,15 @@ async function staffAdminView(){
 }
 const locView=()=>locInto($('attBody'));
 async function locInto(b){
-  b.innerHTML='Loading…'; const [o,g]=await Promise.all([db.collection('outlets').where('status','==','approved').get(),db.collection('outlet_geo').get()]);
+  b.innerHTML='Loading…'; const [outs,g]=await Promise.all([outletList(),db.collection('outlet_geo').get()]);
   const G={}; g.docs.forEach(d=>G[d.id]=d.data());
-  b.innerHTML='<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th>Latitude</th><th>Longitude</th><th>Radius m</th><th>Action</th></tr></thead><tbody>'
-   +o.docs.map(d=>d.data()).sort((a,b)=>String(a.number).localeCompare(String(b.number))).map(x=>{const c=String(x.number),e=G[c]||{};return '<tr data-c="'+esc(c)+'" data-n="'+esc(x.name)+'"><td style="text-align:left">'+esc(c)+' · '+esc(x.name)+'</td><td><input class="la" size="10" oninput="attSplit(this)" placeholder="paste 12.93, 77.61" value="'+(e.lat||'')+'"></td><td><input class="lo" size="10" value="'+(e.lng||'')+'"></td><td><input class="ra" size="4" value="'+(e.radius||RADIUS)+'"></td><td><button class="mini-btn" onclick="attHere(this)">📍 I am at this outlet</button> <button class="mini-btn mini-btn-ok" onclick="attSave(this)">Save</button></td></tr>';}).join('')+'</tbody></table></div></div><div id="attMsg" style="margin-top:8px"></div>';
+  window.__attOuts=outs; window.__attGeo=G; window.__attLocEl=b;
+  const BULK='<details class="table-wrap" style="padding:14px;margin-bottom:12px"><summary style="cursor:pointer;font-weight:700">Advanced: set many outlets from a sheet</summary><div style="height:8px"></div><div style="font-size:12px;color:var(--muted);margin-bottom:10px">1) Download the sheet  2) Fill Latitude and Longitude in Excel  3) Choose the saved file (or paste the rows)  4) Import. Each line: outlet code, latitude, longitude.</div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="mini-btn" onclick="attTpl()">⬇ Download sheet (CSV)</button><input type="file" id="attCsv" accept=".csv,.txt"></div><textarea id="attPaste" rows="3" placeholder="or paste lines like:  001, 12.9345, 77.6116" style="width:100%;margin:10px 0;box-sizing:border-box"></textarea><button class="mini-btn mini-btn-ok" onclick="attImport()">Import &amp; save all</button></details>';
+  b.innerHTML=BULK+'<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th>Latitude</th><th>Longitude</th><th>Radius m</th><th>Action</th></tr></thead><tbody>'
+   +outs.map(x=>{const c=String(x.number),e=G[c]||{};return '<tr data-c="'+esc(c)+'" data-n="'+esc(x.name)+'"><td style="text-align:left">'+esc(c)+' · '+esc(x.name)+'</td><td><input class="la" size="10" oninput="attSplit(this)" placeholder="paste 12.93, 77.61" value="'+(e.lat||'')+'"></td><td><input class="lo" size="10" value="'+(e.lng||'')+'"></td><td><input class="ra" size="4" value="'+(e.radius||RADIUS)+'"></td><td><button class="mini-btn" onclick="attPick(this)">🗺 Pick on map</button> <button class="mini-btn" onclick="attHere(this)">📍 I am at this outlet</button> <button class="mini-btn mini-btn-ok" onclick="attSave(this)">Save</button></td></tr>';}).join('')+'</tbody></table></div></div><div id="attMsg" style="margin-top:8px"></div>';
 }
 async function codeView(){
-  const b=$('attBody'); let outs=[]; if(isMgr()){const o=await db.collection('outlets').where('status','==','approved').get();outs=o.docs.map(d=>d.data());} else outs=[{number:reg.outletCode,name:reg.outletName}];
+  const b=$('attBody'); let outs=[]; if(isMgr()){outs=await outletList();} else outs=[{number:reg.outletCode,name:reg.outletName}];
   b.innerHTML='<div class="table-wrap" style="padding:18px;text-align:center">Outlet <select id="attOut">'+outs.map(x=>'<option value="'+esc(x.number)+'">'+esc(x.number)+' · '+esc(x.name)+'</option>').join('')+'</select><div id="attCode" style="font:700 64px DM Mono,monospace;letter-spacing:8px;margin:14px 0">······</div><div id="attLeft" style="color:var(--muted)">Keep this screen open at the outlet. Staff type this code to check in/out.</div></div>';
   let prev=null; const gen=()=>{const a=new Uint32Array(1);crypto.getRandomValues(a);return String(a[0]%1000000).padStart(6,'0');};
   const tick=async()=>{ if(!$('attCode')||!$('panel18').classList.contains('active')) return stopCode(); const c=gen();
@@ -9340,7 +9344,47 @@ async function codeView(){
 }
 function stopCode(){ if(timer){clearInterval(timer);timer=null;} }
 
-window.attReg=register; window.attMark=mark; window.attSplit=el=>{const m=el.value.split(/[\s,]+/).filter(Boolean);if(m.length>=2&&isFinite(m[0])&&isFinite(m[1])){el.value=m[0];el.closest('tr').querySelector('.lo').value=m[1];}}; window.attLocInto=b=>locInto(b).catch(e=>{b.innerHTML='<div style="color:#E15C5C;padding:12px">'+esc(e.message)+'</div>';});
+window.attReg=register; window.attMark=mark;
+function loadLeaflet(){ return window.L?Promise.resolve():(loadLeaflet.p||(loadLeaflet.p=new Promise((res,rej)=>{
+  const c=document.createElement('link');c.rel='stylesheet';c.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';document.head.appendChild(c);
+  const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';sc.onload=res;sc.onerror=()=>{loadLeaflet.p=null;rej(new Error('Map could not load — check internet'));};document.head.appendChild(sc);}))); }
+// Pick an outlet's position on a map (search an area, switch to satellite, tap the outlet) and save it
+window.attPick=async btn=>{
+  const row=btn.closest('tr'), la=row.querySelector('.la'), lo=row.querySelector('.lo'), rad=parseInt(row.querySelector('.ra').value)||RADIUS;
+  try{await loadLeaflet();}catch(e){return say(e.message);}
+  let pt=(isFinite(parseFloat(la.value))&&isFinite(parseFloat(lo.value)))?{lat:+la.value,lng:+lo.value}:null;
+  const box=document.createElement('div'); box.style.cssText='position:fixed;inset:0;background:#000d;z-index:9999;display:flex;align-items:center;justify-content:center;padding:10px';
+  box.innerHTML='<div style="background:#fff;color:#111;border-radius:14px;padding:12px;width:min(96vw,760px)"><div style="font-weight:700;margin-bottom:6px">'+esc(row.dataset.n)+' — tap the outlet on the map</div><div style="display:flex;gap:6px;margin-bottom:6px"><input id="attQ" placeholder="Search area / place / address" style="flex:1;padding:6px"><button class="mini-btn" id="attQgo" style="color:#111;border:1px solid #888">Search</button></div><div id="attRes" style="font-size:12px"></div><div id="attMap" style="height:min(58vh,420px);border-radius:10px"></div><div id="attPos" style="font-size:12px;margin:6px 0;color:#555">Tap the exact outlet position</div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="mini-btn" id="attX" style="color:#111;border:1px solid #888">Cancel</button><button class="download-btn" id="attOKm" style="width:auto;padding:8px 16px;color:#059669;border:2px solid #3FB874">Use this &amp; save</button></div></div>';
+  document.body.appendChild(box);
+  const map=L.map(box.querySelector('#attMap')).setView(pt?[pt.lat,pt.lng]:[12.97,77.59],pt?18:11);
+  const osm=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}), sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'});
+  osm.addTo(map); L.control.layers({Map:osm,Satellite:sat}).addTo(map);
+  let dot=null, ring=null; const place=ll=>{pt={lat:ll.lat,lng:ll.lng}; if(dot){dot.setLatLng(ll);ring.setLatLng(ll);}else{dot=L.circleMarker(ll,{radius:7,color:'#d00',fillOpacity:1}).addTo(map);ring=L.circle(ll,{radius:rad,color:'#3FB874'}).addTo(map);} box.querySelector('#attPos').textContent=pt.lat.toFixed(6)+', '+pt.lng.toFixed(6)+'   (green circle = '+rad+' m allowed area)';};
+  if(pt)place(pt); map.on('click',e=>place(e.latlng));
+  const search=async()=>{ const q=box.querySelector('#attQ').value.trim(); if(!q)return; const r=box.querySelector('#attRes'); r.textContent='Searching…';
+    try{ const j=await (await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=in&q='+encodeURIComponent(q))).json();
+      r.innerHTML=j.length?j.map((x,i)=>'<div data-i="'+i+'" style="padding:4px;cursor:pointer;border-bottom:1px solid #eee">📍 '+esc(x.display_name)+'</div>').join(''):'Nothing found — try a nearby area name';
+      r.onclick=e=>{const d=e.target.closest('[data-i]');if(!d)return;const x=j[+d.dataset.i];map.setView([+x.lat,+x.lon],17);r.innerHTML='';};
+    }catch(e){r.textContent='Search failed — move the map by hand';} };
+  box.querySelector('#attQgo').onclick=search; box.querySelector('#attQ').onkeydown=e=>{if(e.key==='Enter')search();};
+  const close=()=>{try{map.remove();}catch(e){}box.remove();};
+  box.querySelector('#attX').onclick=close;
+  box.querySelector('#attOKm').onclick=()=>{ if(!pt){box.querySelector('#attPos').textContent='Tap the outlet on the map first';return;} la.value=pt.lat.toFixed(6); lo.value=pt.lng.toFixed(6); close(); row.querySelector('.mini-btn-ok').click(); };
+  setTimeout(()=>{try{map.invalidateSize();}catch(e){}},250);
+};
+window.attCsvText=()=>{const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"',G=window.__attGeo||{};return '\ufeff'+['Outlet Code,Outlet Name,Latitude,Longitude,Radius (m)'].concat((window.__attOuts||[]).map(o=>{const g=G[o.number]||{};return [q(o.number),q(o.name),g.lat||'',g.lng||'',g.radius||RADIUS].join(',');})).join('\r\n');};
+window.attTpl=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([attCsvText()],{type:'text/csv'}));a.download='outlet_locations.csv';a.click();};
+window.attImport=async()=>{
+  let txt=$('attPaste').value||''; const f=$('attCsv').files[0]; if(f)txt+='\n'+await f.text();
+  const known=new Map((window.__attOuts||[]).map(o=>[o.number,o])), rows=[], bad=[];
+  txt.split(/\r?\n/).forEach(line=>{ if(!line.trim())return; const t=line.match(/^\s*"?([0-9A-Za-z]+)"?/); if(!t)return; let c=t[1]; if(/^outlet/i.test(c))return; if(/^\d+$/.test(c))c=c.padStart(3,'0');
+    const n=line.slice(t[0].length).match(/-?\d{1,3}\.\d+/g), o=known.get(c);
+    if(!o||!n||n.length<2||Math.abs(+n[0])>90||Math.abs(+n[1])>180){bad.push(c);return;}
+    rows.push({code:c,name:o.name,lat:+n[0],lng:+n[1]}); });
+  if(!rows.length)return say('No valid rows found. Each line needs: outlet code, latitude, longitude.'+(bad.length?' Skipped: '+bad.slice(0,8).join(', '):''));
+  try{ for(let i=0;i<rows.length;i+=400){const bt=db.batch(); rows.slice(i,i+400).forEach(r=>bt.set(db.collection('outlet_geo').doc(r.code),{code:r.code,name:r.name,lat:r.lat,lng:r.lng,radius:((window.__attGeo||{})[r.code]||{}).radius||RADIUS,cosLat:+Math.cos(r.lat*Math.PI/180).toFixed(6),by:currentUser.email,t:T()})); await bt.commit();}
+    await locInto(window.__attLocEl); say('Saved '+rows.length+' outlets ✓'+(bad.length?' · skipped '+bad.length+': '+bad.slice(0,8).join(', '):''),true);
+  }catch(e){ say('Could not save: '+e.message); } }; window.attSplit=el=>{const m=el.value.split(/[\s,]+/).filter(Boolean);if(m.length>=2&&isFinite(m[0])&&isFinite(m[1])){el.value=m[0];el.closest('tr').querySelector('.lo').value=m[1];}}; window.attLocInto=b=>locInto(b).catch(e=>{b.innerHTML='<div style="color:#E15C5C;padding:12px">'+esc(e.message)+'</div>';});
 window.attSet=async(u,s)=>{await db.collection('attendance_staff').doc(u).update({status:s,reviewedBy:currentUser.email});staffAdminView();};
 window.attCan=async(u,v)=>{await db.collection('attendance_staff').doc(u).update({canShowCode:v});staffAdminView();};
 window.attReset=async u=>{if(confirm('Delete this registration? The person must register again.')){await db.collection('attendance_staff').doc(u).delete();staffAdminView();}};
@@ -9349,11 +9393,19 @@ window.attSave=async btn=>{const r=btn.closest('tr'),lat=parseFloat(r.querySelec
   if(!isFinite(lat)||!isFinite(lng))return say('Enter latitude and longitude');
   await db.collection('outlet_geo').doc(r.dataset.c).set({code:r.dataset.c,name:r.dataset.n,lat,lng,radius:rad,cosLat:+Math.cos(lat*Math.PI/180).toFixed(6),by:currentUser.email,t:T()}); say('Saved '+r.dataset.n+' ✓',true);};
 
+// All outlets = the built-in Master list (Outlet Manager) + outlets saved in Firestore; keyed by outlet code
+async function outletList(){
+  const M=new Map(), strip=(c,n)=>String(n||'').replace(new RegExp('^'+c.replace(/[^0-9A-Za-z]/g,'')+'\\s*'),'').trim();
+  obMaster().forEach(m=>{const c=String(m.code);M.set(c,{number:c,name:strip(c,m.name)});});
+  try{(await db.collection('outlets').where('status','==','approved').get()).docs.forEach(d=>{const x=d.data(),c=String(typeof outletCodeOf==='function'?outletCodeOf(x):x.number||'');if(c&&!M.has(c))M.set(c,{number:c,name:strip(c,x.name)});});}catch(e){}
+  return [...M.values()].sort((a,b)=>a.number.localeCompare(b.number,undefined,{numeric:true}));
+}
 const VIEWS={me:staffView,recs:recsView,staff:staffAdminView,loc:locView,code:codeView};
 window.attView=v=>{view=v;stopCode();paintNav();VIEWS[v]().catch(e=>{$('attBody').innerHTML='<div style="color:#E15C5C;padding:12px">'+esc(e.message)+'</div>';});};
 function paintNav(){ const N=[['me','My attendance']].concat(isMgr()?[['recs','Records'],['staff','Registrations'],['loc','Outlet locations'],['code','On-site code']]:[]);
   $('attNav').innerHTML=N.map(n=>'<button class="mini-btn" style="'+(n[0]===view?'background:var(--accent,#3FB874);color:#fff':'')+'" onclick="attView(\''+n[0]+'\')">'+n[1]+'</button>').join(''); }
-function open(){ if(!currentUser)return; if(view==='code'&&!isMgr()&&!(reg&&reg.canShowCode))view='me'; attView(view); }
+let first=true;
+function open(){ if(!currentUser)return; if(first){first=false;if(isMgr())view='recs';} if(view==='code'&&!isMgr()&&!(reg&&reg.canShowCode))view='me'; attView(view); }
 const prev=switchTab; switchTab=function(n){prev(n); if(n===18)open(); else stopCode();};
 })();
 </script>
