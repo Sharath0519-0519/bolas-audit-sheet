@@ -9292,7 +9292,7 @@ async function mark(kind){
     const ref=db.collection('attendance').doc(currentUser.uid+'_'+dateKey());
     if(kind==='in') await ref.set({uid:currentUser.uid,name:reg.name,outletCode:reg.outletCode,outletName:reg.outletName,date:dateKey(),in:ev});
     else await ref.update({out:ev});
-    say((kind==='in'?'Checked in':'Checked out')+' ✓',true); open();
+    window.__attFlash=(kind==='in'?'Checked in':'Checked out')+' ✓ — you were '+p.dist+' m from '+reg.outletName+' (GPS ±'+p.acc+' m, limit '+RADIUS+' m)'; open();
   }catch(e){ say(/permission/i.test(e.message||'')?'Rejected: you may be outside the outlet area, or the code is wrong/expired (if the owner requires it), or the attendance rules are not published.':(e.message||String(e))); }
 }
 async function staffView(){
@@ -9301,10 +9301,11 @@ async function staffView(){
   if(!reg) h+='<div class="table-wrap" style="padding:18px"><p>Register once: your face is saved on this phone\u2019s check and approved by the owner.</p><button class="download-btn" onclick="attReg()">📷 Register my face</button></div>';
   else if(reg.status!=='approved') h+='<div class="table-wrap" style="padding:18px">'+(reg.status==='rejected'?'Your registration was rejected. Ask the owner.':'⏳ Waiting for owner approval…')+'</div>';
   else{ const d=await db.collection('attendance').doc(currentUser.uid+'_'+dateKey()).get(), a=d.exists?d.data():null;
-    h+='<div class="table-wrap" style="padding:18px"><div>Outlet: <b>'+esc(reg.outletName)+'</b> · Today: In <b>'+hm(a&&a.in&&a.in.t)+'</b> · Out <b>'+hm(a&&a.out&&a.out.t)+'</b></div><div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">'
+    h+='<div class="table-wrap" style="padding:18px"><div>Outlet: <b>'+esc(reg.outletName)+'</b> · Today: In <b>'+hm(a&&a.in&&a.in.t)+'</b> · Out <b>'+hm(a&&a.out&&a.out.t)+'</b>'+(a&&a.in?' · <span style="color:var(--muted)">'+a.in.dist+' m from outlet</span>':'')+'</div><div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">'
       +(!a?'<button class="download-btn" onclick="attMark(\'in\')">✅ Check in</button>':(!a.out?'<button class="download-btn" onclick="attMark(\'out\')">🏁 Check out</button>':'<span>Done for today ✓</span>'))
       +(reg.canShowCode?'<button class="download-btn" onclick="attView(\'code\')">🔢 Show outlet code</button>':'')+'</div></div>'; }
   b.innerHTML=h;
+  if(window.__attFlash){say(window.__attFlash,true);window.__attFlash=null;}
 }
 
 // ---------- owner / cluster manager ----------
@@ -9373,7 +9374,7 @@ async function locInto(b){
   window.__attOuts=outs; window.__attGeo=G; window.__attLocEl=b;
   const BULK='<details class="table-wrap" style="padding:14px;margin-bottom:12px"><summary style="cursor:pointer;font-weight:700">Advanced: set many outlets from a sheet</summary><div style="height:8px"></div><div style="font-size:12px;color:var(--muted);margin-bottom:10px">1) Download the sheet  2) Fill Latitude and Longitude in Excel  3) Choose the saved file (or paste the rows)  4) Import. Each line: outlet code, latitude, longitude.</div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="mini-btn" onclick="attTpl()">⬇ Download sheet (CSV)</button><input type="file" id="attCsv" accept=".csv,.txt"></div><textarea id="attPaste" rows="3" placeholder="or paste lines like:  001, 12.9345, 77.6116" style="width:100%;margin:10px 0;box-sizing:border-box"></textarea><button class="mini-btn mini-btn-ok" onclick="attImport()">Import &amp; save all</button></details>';
   b.innerHTML=BULK+'<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th>Latitude</th><th>Longitude</th><th>Radius m</th><th>Action</th></tr></thead><tbody>'
-   +outs.map(x=>{const c=String(x.number),e=G[c]||{};return '<tr data-c="'+esc(c)+'" data-n="'+esc(x.name)+'"><td style="text-align:left">'+esc(c)+' · '+esc(x.name)+'</td><td><input class="la" size="10" oninput="attSplit(this)" placeholder="paste Google link or lat, lng" value="'+(e.lat||'')+'"></td><td><input class="lo" size="10" value="'+(e.lng||'')+'"></td><td><input class="ra" size="4" value="'+(e.radius||RADIUS)+'"></td><td><button class="mini-btn" style="color:#3FB874;border:1px solid #3FB874" onclick="attG(this)">🔎 Google Maps</button> <button class="mini-btn" onclick="attPick(this)">🗺 Pick on map</button> <button class="mini-btn" onclick="attHere(this)">📍 I am at this outlet</button> <button class="mini-btn mini-btn-ok att-save" onclick="attSave(this)">Save</button></td></tr>';}).join('')+'</tbody></table></div></div><div id="attMsg" style="margin-top:8px"></div>';
+   +outs.map(x=>{const c=String(x.number),e=G[c]||{};return '<tr data-c="'+esc(c)+'" data-n="'+esc(x.name)+'"><td style="text-align:left">'+esc(c)+' · '+esc(x.name)+'</td><td><input class="la" size="10" oninput="attSplit(this)" placeholder="paste Google link or lat, lng" value="'+(e.lat||'')+'"></td><td><input class="lo" size="10" value="'+(e.lng||'')+'"></td><td><input class="ra" size="4" value="'+(e.radius||RADIUS)+'"></td><td><button class="mini-btn" style="color:#3FB874;border:1px solid #3FB874" onclick="attG(this)">🔎 Google Maps</button> <button class="mini-btn" onclick="attView1(this)">👁 Check saved</button> <button class="mini-btn" onclick="attPick(this)">🗺 Pick on map</button> <button class="mini-btn" onclick="attHere(this)">📍 I am at this outlet</button> <button class="mini-btn mini-btn-ok att-save" onclick="attSave(this)">Save</button></td></tr>';}).join('')+'</tbody></table></div></div><div id="attMsg" style="margin-top:8px"></div>';
 }
 async function codeView(){
   const b=$('attBody'); let outs=[]; if(isMgr()){outs=await outletList();} else outs=[{number:reg.outletCode,name:reg.outletName}];
@@ -9388,6 +9389,7 @@ async function codeView(){
 function stopCode(){ if(timer){clearInterval(timer);timer=null;} }
 
 window.attReg=register; window.attMark=mark;
+window.attView1=btn=>{const r=btn.closest('tr'),la=parseFloat(r.querySelector('.la').value),lo=parseFloat(r.querySelector('.lo').value);if(!isFinite(la)||!isFinite(lo))return say('No location saved for this outlet yet');window.open('https://www.google.com/maps?q='+la+','+lo,'_blank');};
 function loadLeaflet(){ return window.L?Promise.resolve():(loadLeaflet.p||(loadLeaflet.p=new Promise((res,rej)=>{
   const c=document.createElement('link');c.rel='stylesheet';c.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';document.head.appendChild(c);
   const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';sc.onload=res;sc.onerror=()=>{loadLeaflet.p=null;rej(new Error('Map could not load — check internet'));};document.head.appendChild(sc);}))); }
