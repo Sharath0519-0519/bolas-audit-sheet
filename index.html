@@ -9286,13 +9286,14 @@ async function mark(kind){
     say('Loading face check…',true);
     const f=await faceStep(1,kind==='in'?'Check in':'Check out'); if(!f)return say(''); if(f.err)return say(f.err);
     const sc=faceDist(f.descs[0],reg.faces); if(sc>MATCH) return say('Face does not match your registration. Try again in better light.');
-    const code=await askCode(); if(!code) return say('Code needed.');
+    let code=''; const cfg=await db.collection('attendance_settings').doc('config').get().catch(()=>null);
+    if(cfg&&cfg.exists&&cfg.data().requireCode){ code=await askCode(); if(!code) return say('Code needed.'); }
     const ev={t:T(),lat:p.lat,lng:p.lng,acc:p.acc,dist:p.dist,face:+(1-sc).toFixed(2),live:f.live,code,photo:f.thumb,dev:devId(),flags:p.flags};
     const ref=db.collection('attendance').doc(currentUser.uid+'_'+dateKey());
     if(kind==='in') await ref.set({uid:currentUser.uid,name:reg.name,outletCode:reg.outletCode,outletName:reg.outletName,date:dateKey(),in:ev});
     else await ref.update({out:ev});
     say((kind==='in'?'Checked in':'Checked out')+' ✓',true); open();
-  }catch(e){ say(/permission/i.test(e.message||'')?'Rejected: the code is wrong or expired, or you are outside the outlet area. Check the code and try again.':(e.message||String(e))); }
+  }catch(e){ say(/permission/i.test(e.message||'')?'Rejected: you may be outside the outlet area, or the code is wrong/expired (if the owner requires it), or the attendance rules are not published.':(e.message||String(e))); }
 }
 async function staffView(){
   const b=$('attBody'); const s=await db.collection('attendance_staff').doc(currentUser.uid).get(); reg=s.exists?s.data():null;
@@ -9307,16 +9308,56 @@ async function staffView(){
 }
 
 // ---------- owner / cluster manager ----------
+const hrsOf=a=>(a.in&&a.out&&a.in.t&&a.out.t)?(a.out.t.toMillis()-a.in.t.toMillis())/3600000:0;
+const hmm=h=>h>0?Math.floor(h+1e-9)+'h '+String(Math.round((h%1)*60)%60).padStart(2,'0')+'m':'—';
+const tm=t=>t&&t.toDate?t.toDate().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:false}):'';
+const dmy=d=>String(d||'').split('-').reverse().join('-');
+let recRows=[];
 async function recsView(){
-  const b=$('attBody'); b.innerHTML='<div style="margin:8px 0">Date <input type="date" id="attDate" value="'+dateKey()+'" onchange="attView(\'recs\')"></div><div id="attList">Loading…</div>';
-  const d=$('attDate').value||dateKey(); const q=await db.collection('attendance').where('date','==',d).get();
-  const rows=q.docs.map(x=>x.data()).filter(a=>isOwner||!Array.isArray(p14Assigned)||!p14Assigned.length||p14Assigned.includes(a.outletCode)).sort((a,b)=>(a.outletName+a.name).localeCompare(b.outletName+b.name));
+  const b=$('attBody'), today=dateKey(), fr=window.__attFrom||today, to=window.__attTo||today;
+  b.innerHTML='<div style="margin:8px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center">From <input type="date" id="attFrom" value="'+fr+'" onchange="window.__attFrom=this.value"> To <input type="date" id="attTo" value="'+to+'" onchange="window.__attTo=this.value"> <button class="mini-btn" onclick="attView(\'recs\')">Show</button> <button class="mini-btn mini-btn-ok" onclick="attExcel()">⬇ Download Excel</button></div><div id="attList">Loading…</div>';
+  const q=await db.collection('attendance').where('date','>=',fr).where('date','<=',to).get();
+  recRows=q.docs.map(x=>x.data()).filter(a=>isOwner||!Array.isArray(p14Assigned)||!p14Assigned.length||p14Assigned.includes(a.outletCode)).sort((a,b)=>(a.date+a.outletName+a.name).localeCompare(b.date+b.outletName+b.name));
   const cell=e=>e?'<img src="'+e.photo+'" width="36" height="36" style="border-radius:6px;vertical-align:middle"> '+hm(e.t):'—';
   const flag=a=>[].concat((a.in||{}).flags||[],(a.out||{}).flags||[]).join(', ');
-  $('attList').innerHTML='<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th style="text-align:left">Name</th><th>In</th><th>Out</th><th>Distance in/out</th><th>Face % in</th><th>Flags</th></tr></thead><tbody>'
-   +rows.map(a=>'<tr><td style="text-align:left">'+esc(a.outletName)+'</td><td style="text-align:left">'+esc(a.name)+'</td><td>'+cell(a.in)+'</td><td>'+cell(a.out)+'</td><td>'+(a.in?a.in.dist:'—')+' / '+(a.out?a.out.dist:'—')+' m</td><td>'+(a.in?Math.round(a.in.face*100):'—')+'</td><td style="color:#E15C5C">'+esc(flag(a))+'</td></tr>').join('')
-   +(rows.length?'':'<tr><td colspan="7" style="text-align:center;color:var(--muted)">No attendance on this date</td></tr>')+'</tbody></table></div></div>';
+  const tot=recRows.reduce((s2,a)=>s2+hrsOf(a),0);
+  $('attList').innerHTML='<div style="margin:6px 0;font-weight:700">Total working hours: '+hmm(tot)+' ('+tot.toFixed(2)+' h) · '+recRows.length+' check-in'+(recRows.length===1?'':'s')+'</div><div class="table-wrap"><div class="table-scroll"><table><thead><tr><th>Date</th><th style="text-align:left">Outlet</th><th style="text-align:left">Name</th><th>In</th><th>Out</th><th>Hours</th><th>Distance in/out</th><th>Face % in</th><th>Flags</th></tr></thead><tbody>'
+   +recRows.slice(0,500).map(a=>'<tr><td>'+esc(dmy(a.date))+'</td><td style="text-align:left">'+esc(a.outletName)+'</td><td style="text-align:left">'+esc(a.name)+'</td><td>'+cell(a.in)+'</td><td>'+cell(a.out)+'</td><td><b>'+(a.out?hmm(hrsOf(a)):'<span style="color:var(--muted)">not out</span>')+'</b></td><td>'+(a.in?a.in.dist:'—')+' / '+(a.out?a.out.dist:'—')+' m</td><td>'+(a.in?Math.round(a.in.face*100):'—')+'</td><td style="color:#E15C5C">'+esc(flag(a))+'</td></tr>').join('')
+   +(recRows.length?'':'<tr><td colspan="9" style="text-align:center;color:var(--muted)">No attendance in this date range</td></tr>')+'</tbody></table></div></div>';
 }
+// Excel: every check-in with hours worked, plus a per-person summary with total hours
+window.attExcel=async()=>{
+  if(typeof ExcelJS==='undefined')return alert('The Excel library is still loading — try again in a moment');
+  if(!recRows.length)return alert('No attendance in this date range');
+  const wb=new ExcelJS.Workbook(), fill=c=>({type:'pattern',pattern:'solid',fgColor:{argb:c}}), bd={top:{style:'thin'},left:{style:'thin'},bottom:{style:'thin'},right:{style:'thin'}};
+  const head=(ws,H,W)=>{H.forEach((h,j)=>{const c=ws.getCell(1,j+1);c.value=h;c.font={bold:true};c.fill=fill('FF00B0F0');c.border=bd;c.alignment={horizontal:'center',vertical:'middle',wrapText:true};ws.getColumn(j+1).width=W[j];});};
+  const rows=recRows.slice().sort((a,b)=>(a.name+a.date).localeCompare(b.name+b.date)), n=rows.length, tot=rows.reduce((s2,a)=>s2+hrsOf(a),0);
+  const ws=wb.addWorksheet('Attendance');
+  head(ws,['Date','Outlet Code','Outlet','Name','Check-in','Check-out','Hours Worked (h:mm)','Hours (decimal)','Distance in (m)','Distance out (m)','Face match % (in)','Status','Flags'],[12,11,34,24,10,10,14,12,12,12,12,16,26]);
+  rows.forEach((a,i)=>{const r=i+2,h=hrsOf(a);
+    [dmy(a.date),a.outletCode,a.outletName,a.name,tm(a.in&&a.in.t),tm(a.out&&a.out.t),h>0?h/24:null,h>0?+h.toFixed(2):null,a.in?a.in.dist:null,a.out?a.out.dist:null,a.in?Math.round(a.in.face*100):null,a.out?'Present':'No check-out',[].concat((a.in||{}).flags||[],(a.out||{}).flags||[]).join(', ')]
+     .forEach((x,j)=>{const c=ws.getCell(r,j+1);c.value=x;c.border=bd;c.alignment={horizontal:(j===2||j===3)?'left':'center'};if(j===6)c.numFmt='[h]:mm';if(j===7)c.numFmt='0.00';});});
+  const tr=n+2; ws.getCell(tr,1).value='TOTAL WORKING HOURS';
+  for(let j=1;j<=13;j++){const c=ws.getCell(tr,j);c.fill=fill('FFFFF2CC');c.font={bold:true};c.border=bd;c.alignment={horizontal:'center'};}
+  const g=ws.getCell(tr,7);g.value={formula:`SUM(G2:G${tr-1})`,result:tot/24};g.numFmt='[h]:mm';
+  const h2=ws.getCell(tr,8);h2.value={formula:`SUM(H2:H${tr-1})`,result:+tot.toFixed(2)};h2.numFmt='0.00';
+  ws.views=[{state:'frozen',ySplit:1}];
+  // per person
+  const M=new Map(); rows.forEach(a=>{const k=a.name+'|'+a.outletCode;let m=M.get(k);if(!m){m={name:a.name,outlet:a.outletName,days:0,done:0,h:0};M.set(k,m);}m.days++;if(a.out)m.done++;m.h+=hrsOf(a);});
+  const sm=wb.addWorksheet('Summary by staff'); head(sm,['Name','Outlet','Days present','Total hours (h:mm)','Total hours (decimal)','Average per day (h:mm)'],[26,34,13,16,16,16]);
+  const list=[...M.values()].sort((a,b)=>a.name.localeCompare(b.name));
+  list.forEach((m,i)=>{const r=i+2;
+    const vals=[m.name,m.outlet,m.days,m.h/24,+m.h.toFixed(2),m.done?m.h/24/m.done:null];
+    vals.forEach((x,j)=>{const c=sm.getCell(r,j+1);c.value=x;c.border=bd;c.alignment={horizontal:j<2?'left':'center'};if(j===3||j===5)c.numFmt='[h]:mm';if(j===4)c.numFmt='0.00';});});
+  const st=list.length+2; sm.getCell(st,1).value='TOTAL';
+  for(let j=1;j<=6;j++){const c=sm.getCell(st,j);c.fill=fill('FFFFF2CC');c.font={bold:true};c.border=bd;c.alignment={horizontal:j<3?'left':'center'};}
+  const sd=sm.getCell(st,3);sd.value={formula:`SUM(C2:C${st-1})`,result:list.reduce((s2,m)=>s2+m.days,0)};
+  const sh=sm.getCell(st,4);sh.value={formula:`SUM(D2:D${st-1})`,result:tot/24};sh.numFmt='[h]:mm';
+  const sx=sm.getCell(st,5);sx.value={formula:`SUM(E2:E${st-1})`,result:+tot.toFixed(2)};sx.numFmt='0.00';
+  const buf=await wb.xlsx.writeBuffer(), a2=document.createElement('a');
+  a2.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+  a2.download='Attendance_'+(window.__attFrom||dateKey())+'_to_'+(window.__attTo||dateKey())+'.xlsx'; a2.click();
+};
 async function staffAdminView(){
   const b=$('attBody'); const q=await db.collection('attendance_staff').get(); const L=q.docs.map(d=>d.data());
   b.innerHTML='<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th>Photo</th><th style="text-align:left">Name</th><th>Outlet</th><th>Status</th><th>Action</th></tr></thead><tbody>'
@@ -9332,11 +9373,13 @@ async function locInto(b){
   window.__attOuts=outs; window.__attGeo=G; window.__attLocEl=b;
   const BULK='<details class="table-wrap" style="padding:14px;margin-bottom:12px"><summary style="cursor:pointer;font-weight:700">Advanced: set many outlets from a sheet</summary><div style="height:8px"></div><div style="font-size:12px;color:var(--muted);margin-bottom:10px">1) Download the sheet  2) Fill Latitude and Longitude in Excel  3) Choose the saved file (or paste the rows)  4) Import. Each line: outlet code, latitude, longitude.</div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="mini-btn" onclick="attTpl()">⬇ Download sheet (CSV)</button><input type="file" id="attCsv" accept=".csv,.txt"></div><textarea id="attPaste" rows="3" placeholder="or paste lines like:  001, 12.9345, 77.6116" style="width:100%;margin:10px 0;box-sizing:border-box"></textarea><button class="mini-btn mini-btn-ok" onclick="attImport()">Import &amp; save all</button></details>';
   b.innerHTML=BULK+'<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th>Latitude</th><th>Longitude</th><th>Radius m</th><th>Action</th></tr></thead><tbody>'
-   +outs.map(x=>{const c=String(x.number),e=G[c]||{};return '<tr data-c="'+esc(c)+'" data-n="'+esc(x.name)+'"><td style="text-align:left">'+esc(c)+' · '+esc(x.name)+'</td><td><input class="la" size="10" oninput="attSplit(this)" placeholder="paste 12.93, 77.61" value="'+(e.lat||'')+'"></td><td><input class="lo" size="10" value="'+(e.lng||'')+'"></td><td><input class="ra" size="4" value="'+(e.radius||RADIUS)+'"></td><td><button class="mini-btn" onclick="attPick(this)">🗺 Pick on map</button> <button class="mini-btn" onclick="attHere(this)">📍 I am at this outlet</button> <button class="mini-btn mini-btn-ok" onclick="attSave(this)">Save</button></td></tr>';}).join('')+'</tbody></table></div></div><div id="attMsg" style="margin-top:8px"></div>';
+   +outs.map(x=>{const c=String(x.number),e=G[c]||{};return '<tr data-c="'+esc(c)+'" data-n="'+esc(x.name)+'"><td style="text-align:left">'+esc(c)+' · '+esc(x.name)+'</td><td><input class="la" size="10" oninput="attSplit(this)" placeholder="paste Google link or lat, lng" value="'+(e.lat||'')+'"></td><td><input class="lo" size="10" value="'+(e.lng||'')+'"></td><td><input class="ra" size="4" value="'+(e.radius||RADIUS)+'"></td><td><button class="mini-btn" style="color:#3FB874;border:1px solid #3FB874" onclick="attG(this)">🔎 Google Maps</button> <button class="mini-btn" onclick="attPick(this)">🗺 Pick on map</button> <button class="mini-btn" onclick="attHere(this)">📍 I am at this outlet</button> <button class="mini-btn mini-btn-ok att-save" onclick="attSave(this)">Save</button></td></tr>';}).join('')+'</tbody></table></div></div><div id="attMsg" style="margin-top:8px"></div>';
 }
 async function codeView(){
   const b=$('attBody'); let outs=[]; if(isMgr()){outs=await outletList();} else outs=[{number:reg.outletCode,name:reg.outletName}];
-  b.innerHTML='<div class="table-wrap" style="padding:18px;text-align:center">Outlet <select id="attOut">'+outs.map(x=>'<option value="'+esc(x.number)+'">'+esc(x.number)+' · '+esc(x.name)+'</option>').join('')+'</select><div id="attCode" style="font:700 64px DM Mono,monospace;letter-spacing:8px;margin:14px 0">······</div><div id="attLeft" style="color:var(--muted)">Keep this screen open at the outlet. Staff type this code to check in/out.</div></div>';
+  b.innerHTML=(isOwner?'<label style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><input type="checkbox" id="attReq"> <span>Require staff to type this code when checking in/out <span style="color:var(--muted)">(stronger against fake GPS; if off, face + location is enough)</span></span></label>':'')+'<div class="table-wrap" style="padding:18px;text-align:center">Outlet <select id="attOut">'+outs.map(x=>'<option value="'+esc(x.number)+'">'+esc(x.number)+' · '+esc(x.name)+'</option>').join('')+'</select><div id="attCode" style="font:700 64px DM Mono,monospace;letter-spacing:8px;margin:14px 0">······</div><div id="attLeft" style="color:var(--muted)">Keep this screen open at the outlet. Staff type this code to check in/out.</div></div>';
+  if(isOwner&&$('attReq')){ const cf=await db.collection('attendance_settings').doc('config').get().catch(()=>null); $('attReq').checked=!!(cf&&cf.exists&&cf.data().requireCode);
+    $('attReq').onchange=async e=>{ try{ await db.collection('attendance_settings').doc('config').set({requireCode:e.target.checked,by:currentUser.email,t:T()}); }catch(x){ e.target.checked=!e.target.checked; alert('Could not save: '+x.message); } }; }
   let prev=null; const gen=()=>{const a=new Uint32Array(1);crypto.getRandomValues(a);return String(a[0]%1000000).padStart(6,'0');};
   const tick=async()=>{ if(!$('attCode')||!$('panel18').classList.contains('active')) return stopCode(); const c=gen();
     try{ await db.collection('attendance_codes').doc($('attOut').value).set({code:c,prev:prev,t:T()}); $('attCode').textContent=c.slice(0,3)+' '+c.slice(3); prev=c; }catch(e){ $('attLeft').textContent='Could not publish code: '+e.message; } };
@@ -9354,7 +9397,7 @@ window.attPick=async btn=>{
   try{await loadLeaflet();}catch(e){return say(e.message);}
   let pt=(isFinite(parseFloat(la.value))&&isFinite(parseFloat(lo.value)))?{lat:+la.value,lng:+lo.value}:null;
   const box=document.createElement('div'); box.style.cssText='position:fixed;inset:0;background:#000d;z-index:9999;display:flex;align-items:center;justify-content:center;padding:10px';
-  box.innerHTML='<div style="background:#fff;color:#111;border-radius:14px;padding:12px;width:min(96vw,760px)"><div style="font-weight:700;margin-bottom:6px">'+esc(row.dataset.n)+' — tap the outlet on the map</div><div style="display:flex;gap:6px;margin-bottom:6px"><input id="attQ" placeholder="Search area / place / address" style="flex:1;padding:6px"><button class="mini-btn" id="attQgo" style="color:#111;border:1px solid #888">Search</button></div><div id="attRes" style="font-size:12px"></div><div id="attMap" style="height:min(58vh,420px);border-radius:10px"></div><div id="attPos" style="font-size:12px;margin:6px 0;color:#555">Tap the exact outlet position</div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="mini-btn" id="attX" style="color:#111;border:1px solid #888">Cancel</button><button class="download-btn" id="attOKm" style="width:auto;padding:8px 16px;color:#059669;border:2px solid #3FB874">Use this &amp; save</button></div></div>';
+  box.innerHTML='<div style="background:#fff;color:#111;border-radius:14px;padding:12px;width:min(96vw,760px)"><div style="font-weight:700;margin-bottom:6px">'+esc(row.dataset.n)+' — tap the outlet on the map</div><div style="display:flex;gap:6px;margin-bottom:6px"><input id="attQ" placeholder="Search area / place / address" style="flex:1;padding:6px"><button class="mini-btn" id="attQgo" style="color:#111;border:1px solid #888">Search</button></div><div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap"><button class="mini-btn" id="attG" style="color:#059669;border:1px solid #3FB874">🔎 Open in Google Maps</button><input id="attPasteLL" placeholder="paste the Google Maps link or lat, lng here" style="flex:1;min-width:180px;padding:6px"><button class="mini-btn" id="attApply" style="color:#111;border:1px solid #888">Apply</button></div><div id="attRes" style="font-size:12px"></div><div id="attMap" style="height:min(58vh,420px);border-radius:10px"></div><div id="attPos" style="font-size:12px;margin:6px 0;color:#555">Tap the exact outlet position</div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="mini-btn" id="attX" style="color:#111;border:1px solid #888">Cancel</button><button class="download-btn" id="attOKm" style="width:auto;padding:8px 16px;color:#059669;border:2px solid #3FB874">Use this &amp; save</button></div></div>';
   document.body.appendChild(box);
   const map=L.map(box.querySelector('#attMap')).setView(pt?[pt.lat,pt.lng]:[12.97,77.59],pt?18:11);
   const osm=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}), sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'});
@@ -9363,13 +9406,16 @@ window.attPick=async btn=>{
   if(pt)place(pt); map.on('click',e=>place(e.latlng));
   const search=async()=>{ const q=box.querySelector('#attQ').value.trim(); if(!q)return; const r=box.querySelector('#attRes'); r.textContent='Searching…';
     try{ const j=await (await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=in&q='+encodeURIComponent(q))).json();
-      r.innerHTML=j.length?j.map((x,i)=>'<div data-i="'+i+'" style="padding:4px;cursor:pointer;border-bottom:1px solid #eee">📍 '+esc(x.display_name)+'</div>').join(''):'Nothing found — try a nearby area name';
+      r.innerHTML=j.length?j.map((x,i)=>'<div data-i="'+i+'" style="padding:4px;cursor:pointer;border-bottom:1px solid #eee">📍 '+esc(x.display_name)+'</div>').join(''):'Not found on this map — use “Open in Google Maps”, then paste its link above';
       r.onclick=e=>{const d=e.target.closest('[data-i]');if(!d)return;const x=j[+d.dataset.i];map.setView([+x.lat,+x.lon],17);r.innerHTML='';};
     }catch(e){r.textContent='Search failed — move the map by hand';} };
-  box.querySelector('#attQgo').onclick=search; box.querySelector('#attQ').onkeydown=e=>{if(e.key==='Enter')search();};
+  box.querySelector('#attQgo').onclick=search;
+  box.querySelector('#attG').onclick=()=>window.open('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(row.dataset.n),'_blank');
+  const apply=()=>{const v=window.attParseLL(box.querySelector('#attPasteLL').value); if(!v){box.querySelector('#attPos').textContent='Could not read a location — paste the full Google Maps link (from the address bar) or "lat, lng"';return;} place(v); map.setView([v.lat,v.lng],18);};
+  box.querySelector('#attApply').onclick=apply; box.querySelector('#attPasteLL').oninput=()=>{if(window.attParseLL(box.querySelector('#attPasteLL').value))apply();}; box.querySelector('#attQ').onkeydown=e=>{if(e.key==='Enter')search();};
   const close=()=>{try{map.remove();}catch(e){}box.remove();};
   box.querySelector('#attX').onclick=close;
-  box.querySelector('#attOKm').onclick=()=>{ if(!pt){box.querySelector('#attPos').textContent='Tap the outlet on the map first';return;} la.value=pt.lat.toFixed(6); lo.value=pt.lng.toFixed(6); close(); row.querySelector('.mini-btn-ok').click(); };
+  box.querySelector('#attOKm').onclick=()=>{ if(!pt){box.querySelector('#attPos').textContent='Tap the outlet on the map first';return;} la.value=pt.lat.toFixed(6); lo.value=pt.lng.toFixed(6); close(); row.querySelector('.att-save').click(); };
   setTimeout(()=>{try{map.invalidateSize();}catch(e){}},250);
 };
 window.attCsvText=()=>{const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"',G=window.__attGeo||{};return '\ufeff'+['Outlet Code,Outlet Name,Latitude,Longitude,Radius (m)'].concat((window.__attOuts||[]).map(o=>{const g=G[o.number]||{};return [q(o.number),q(o.name),g.lat||'',g.lng||'',g.radius||RADIUS].join(',');})).join('\r\n');};
@@ -9384,7 +9430,11 @@ window.attImport=async()=>{
   if(!rows.length)return say('No valid rows found. Each line needs: outlet code, latitude, longitude.'+(bad.length?' Skipped: '+bad.slice(0,8).join(', '):''));
   try{ for(let i=0;i<rows.length;i+=400){const bt=db.batch(); rows.slice(i,i+400).forEach(r=>bt.set(db.collection('outlet_geo').doc(r.code),{code:r.code,name:r.name,lat:r.lat,lng:r.lng,radius:((window.__attGeo||{})[r.code]||{}).radius||RADIUS,cosLat:+Math.cos(r.lat*Math.PI/180).toFixed(6),by:currentUser.email,t:T()})); await bt.commit();}
     await locInto(window.__attLocEl); say('Saved '+rows.length+' outlets ✓'+(bad.length?' · skipped '+bad.length+': '+bad.slice(0,8).join(', '):''),true);
-  }catch(e){ say('Could not save: '+e.message); } }; window.attSplit=el=>{const m=el.value.split(/[\s,]+/).filter(Boolean);if(m.length>=2&&isFinite(m[0])&&isFinite(m[1])){el.value=m[0];el.closest('tr').querySelector('.lo').value=m[1];}}; window.attLocInto=b=>locInto(b).catch(e=>{b.innerHTML='<div style="color:#E15C5C;padding:12px">'+esc(e.message)+'</div>';});
+  }catch(e){ say('Could not save: '+e.message); } }; window.attParseLL=t=>{t=String(t||'');const ok=(a,b)=>isFinite(a)&&isFinite(b)&&Math.abs(a)<=90&&Math.abs(b)<=180;
+  const m=t.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/)||t.match(/[?&](?:q|ll|query|destination)=(-?\d+\.\d+)(?:,|%2C)\s*(-?\d+\.\d+)/)||t.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)||t.match(/^\s*(-?\d{1,3}\.\d+)[\s,;]+(-?\d{1,3}\.\d+)\s*$/);
+  if(!m)return null;const a=+m[1],b=+m[2];return ok(a,b)?{lat:a,lng:b}:null;};
+window.attSplit=el=>{const v=window.attParseLL(el.value);if(v){el.value=v.lat;el.closest('tr').querySelector('.lo').value=v.lng;}};
+window.attG=btn=>window.open('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(btn.closest('tr').dataset.n),'_blank');
 window.attSet=async(u,s)=>{await db.collection('attendance_staff').doc(u).update({status:s,reviewedBy:currentUser.email});staffAdminView();};
 window.attCan=async(u,v)=>{await db.collection('attendance_staff').doc(u).update({canShowCode:v});staffAdminView();};
 window.attReset=async u=>{if(confirm('Delete this registration? The person must register again.')){await db.collection('attendance_staff').doc(u).delete();staffAdminView();}};
