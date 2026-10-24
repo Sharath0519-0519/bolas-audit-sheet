@@ -497,6 +497,44 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 .mini-btn-ok:hover{background:rgba(63,184,116,.1)}
 .mini-btn-no{border:1px solid #E15C5C;color:#E15C5C}
 .mini-btn-no:hover{background:rgba(225,92,92,.1)}
+/* ── Whole app: phone + laptop friendly ── */
+.table-wrap{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+img,video,canvas{max-width:100%}
+@media(max-width:700px){
+  .setup-cards{grid-template-columns:1fr!important}   /* cards that sat side by side now stack on a phone */
+  html,body{max-width:100%;overflow-x:hidden}
+  .mini-btn,.modal-btn{min-height:40px}
+  .ev-btn{width:100%;justify-content:center;min-height:48px}
+  .section-head p{word-break:break-word}
+}
+@media(min-width:1400px){ .main-area .panel{max-width:1500px} }   /* big laptop / desktop screens: keep lines readable */
+/* ── Attendance: phone friendly ── */
+.att-pad{padding:0 15px}
+#panel18 input,#panel18 select,#panel18 textarea,#ownerAttLocWrap input,#ownerAttLocWrap textarea{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:9px 10px;font-size:14px;font-family:inherit;max-width:100%}
+#panel18 details,#ownerAttLocWrap details{margin:0 0 12px}
+.att-ctl label{display:flex;gap:6px;align-items:center}
+@media(max-width:640px){
+  #attNav{overflow-x:auto;flex-wrap:nowrap!important;-webkit-overflow-scrolling:touch;padding-bottom:6px}
+  #attNav .mini-btn{flex:0 0 auto;white-space:nowrap}
+  #panel18 .mini-btn,#ownerAttReqWrap .mini-btn,#ownerAttLocWrap .mini-btn{min-height:42px;font-size:13px;padding:8px 14px;margin:0 4px 6px 0}
+  #panel18 .download-btn{width:100%!important;min-height:54px;font-size:16px}
+  #panel18 input,#panel18 select,#panel18 textarea{font-size:16px}
+  .att-ctl{display:grid!important;grid-template-columns:1fr 1fr;gap:10px}
+  .att-ctl label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+  .att-ctl input{width:100%}
+  .att-cards{display:block;width:100%}
+  .att-cards thead{display:none}
+  .att-cards tbody,.att-cards tr,.att-cards td{display:block;width:auto}
+  .att-cards tr{border-bottom:1px solid var(--border);padding:12px 14px}
+  .att-cards tr:last-child{border-bottom:none}
+  .att-cards td{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:5px 0!important;border:none!important;text-align:right!important;white-space:normal;word-break:break-word}
+  .att-cards td::before{content:attr(data-l);color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;text-align:left;flex:0 0 auto}
+  .att-cards td[data-l=""]::before,.att-cards td[colspan]::before{display:none}
+  .att-cards td[colspan]{justify-content:center}
+  .att-cards td[data-l="Action"]{justify-content:flex-start;flex-wrap:wrap;padding-top:10px!important}
+  .att-cards td[data-l="Action"]::before{flex:0 0 100%}
+  .att-cards input{width:min(55vw,220px)}
+}
 #panel18 .mini-btn:not(.mini-btn-ok):not(.mini-btn-no){color:var(--text);border:1px solid #3A4152}
 #panel18 .download-btn{color:#3FB874;border:2px solid #3FB874;width:auto;padding:12px 18px}
 /* Sales Comparison tab */
@@ -1323,8 +1361,8 @@ textarea.ml-in{min-height:170px;resize:vertical;font-family:'DM Mono',monospace;
 .ev-day.on{border-color:#5B7FE0;color:#5B7FE0;background:rgba(91,127,224,.12)}
 </style>
 <div class="panel" id="panel18">
-  <div class="results-title" style="margin-top:0">🕒 Staff Attendance</div>
-  <div id="attNav" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"></div>
+  <div class="section-head"><span class="dot" style="background:#3FB874"></span><div><h2>Staff Attendance</h2><p>Face + location check-in · hours worked</p></div></div>
+  <div id="attNav" class="att-pad" style="display:flex;gap:8px;margin:10px 0"></div>
   <div id="attBody"></div>
 </div>
 <div class="panel" id="panel17">
@@ -9199,7 +9237,7 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 const isMgr=()=>isOwner||isClusterManager;
 let view='me', reg=null, timer=null, faceReady=null;
 const devId=()=>{try{let d=localStorage.getItem('attDev');if(!d){d=(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random());localStorage.setItem('attDev',d);}return d;}catch(e){return 'nodev';}};
-const dateKey=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+const dateKey=off=>{const d=new Date(Date.now()+330*60000+(off||0)*86400000);return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');};   // India date, same as the Firestore rule
 const hm=t=>t&&t.toDate?t.toDate().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'—';
 const meters=(a,b,c,d)=>{const R=6371000,r=x=>x*Math.PI/180,h=Math.sin(r(c-a)/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(r(d-b)/2)**2;return 2*R*Math.asin(Math.sqrt(h));};
 const say=(m,ok)=>{document.querySelectorAll('[id=attMsg]').forEach(e=>{e.textContent=m;e.style.color=ok?'#3FB874':'#E15C5C';});};
@@ -9273,6 +9311,7 @@ function askCode(){ return new Promise(res=>{ const b=document.createElement('di
 // ---------- staff: register / check in / check out ----------
 async function register(){
   if(!myOutletCode) return say('Choose your outlet first (top bar), then register.');
+  if(!confirm('Your face photo and face data are stored only to mark your attendance. The owner and managers can see them. Continue?'))return;
   say('Loading face check… first time may take a minute',true);
   const r=await faceStep(3,'Register your face').catch(e=>({err:e.message})); if(!r)return say(''); if(r.err)return say(r.err);
   try{ await db.collection('attendance_staff').doc(currentUser.uid).set({uid:currentUser.uid,name:currentUser.displayName||currentUser.email,email:currentUser.email||'',outletCode:myOutletCode,outletName:myOutletName,faces:r.descs.map(d=>({d})),photo:r.thumb,deviceId:devId(),status:'pending',createdAt:T()});
@@ -9289,7 +9328,7 @@ async function mark(kind){
     let code=''; const cfg=await db.collection('attendance_settings').doc('config').get().catch(()=>null);
     if(cfg&&cfg.exists&&cfg.data().requireCode){ code=await askCode(); if(!code) return say('Code needed.'); }
     const ev={t:T(),lat:p.lat,lng:p.lng,acc:p.acc,dist:p.dist,face:+(1-sc).toFixed(2),live:f.live,code,photo:f.thumb,dev:devId(),flags:p.flags};
-    const ref=db.collection('attendance').doc(currentUser.uid+'_'+dateKey());
+    const ref=db.collection('attendance').doc(kind==='in'?currentUser.uid+'_'+dateKey():(window.__attOpenId||currentUser.uid+'_'+dateKey()));
     if(kind==='in') await ref.set({uid:currentUser.uid,name:reg.name,outletCode:reg.outletCode,outletName:reg.outletName,date:dateKey(),in:ev});
     else await ref.update({out:ev});
     window.__attFlash=(kind==='in'?'Checked in':'Checked out')+' ✓ — you were '+p.dist+' m from '+reg.outletName+' (GPS ±'+p.acc+' m, limit '+RADIUS+' m)'; open();
@@ -9297,13 +9336,21 @@ async function mark(kind){
 }
 async function staffView(){
   const b=$('attBody'); const s=await db.collection('attendance_staff').doc(currentUser.uid).get(); reg=s.exists?s.data():null;
-  let h='<div id="attMsg" style="margin:8px 0;font-weight:600"></div>';
+  let h='<div id="attMsg" class="att-pad" style="margin:8px 0;font-weight:600"></div>';
   if(!reg) h+='<div class="table-wrap" style="padding:18px"><p>Register once: your face is saved on this phone\u2019s check and approved by the owner.</p><button class="download-btn" onclick="attReg()">📷 Register my face</button></div>';
   else if(reg.status!=='approved') h+='<div class="table-wrap" style="padding:18px">'+(reg.status==='rejected'?'Your registration was rejected. Ask the owner.':'⏳ Waiting for owner approval…')+'</div>';
-  else{ const d=await db.collection('attendance').doc(currentUser.uid+'_'+dateKey()).get(), a=d.exists?d.data():null;
-    h+='<div class="table-wrap" style="padding:18px"><div>Outlet: <b>'+esc(reg.outletName)+'</b> · Today: In <b>'+hm(a&&a.in&&a.in.t)+'</b> · Out <b>'+hm(a&&a.out&&a.out.t)+'</b>'+(a&&a.in?' · <span style="color:var(--muted)">'+a.in.dist+' m from outlet</span>':'')+'</div><div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">'
-      +(!a?'<button class="download-btn" onclick="attMark(\'in\')">✅ Check in</button>':(!a.out?'<button class="download-btn" onclick="attMark(\'out\')">🏁 Check out</button>':'<span>Done for today ✓</span>'))
-      +(reg.canShowCode?'<button class="download-btn" onclick="attView(\'code\')">🔢 Show outlet code</button>':'')+'</div></div>'; }
+  else if(reg.deviceId!==devId()) h+='<div class="table-wrap" style="padding:18px"><p>This is not your registered phone.</p>'+(reg.pendingDeviceId===devId()?'<p>⏳ Waiting for the owner to approve this phone…</p>':'<button class="download-btn" onclick="attDevReq()">📱 Request to use this phone</button>')+'</div>';
+  else{ const [td,yd]=await Promise.all([db.collection('attendance').doc(currentUser.uid+'_'+dateKey()).get(),db.collection('attendance').doc(currentUser.uid+'_'+dateKey(-1)).get()]);
+    const tdat=td.exists?td.data():null, ydat=yd.exists?yd.data():null;
+    // a shift that started yesterday and is still open (night shift) can be closed today
+    const openY=ydat&&ydat.in&&!ydat.out&&ydat.in.t&&(Date.now()-ydat.in.t.toMillis())<24*3600*1000;
+    let a=tdat, openId=null; if(tdat&&tdat.in&&!tdat.out) openId=td.id; else if(!tdat&&openY){a=ydat;openId=yd.id;}
+    window.__attOpenId=openId;
+    h+='<div class="table-wrap" style="padding:18px"><div>Outlet: <b>'+esc(reg.outletName)+'</b></div><div style="margin-top:8px">'+(openId&&openId!==td.id?'Shift from '+esc(dmy(ydat.date)):'Today')+': In <b>'+hm(a&&a.in&&a.in.t)+'</b> · Out <b>'+hm(a&&a.out&&a.out.t)+'</b>'+(a&&a.in?' · <span style="color:var(--muted)">'+a.in.dist+' m from outlet</span>':'')+'</div><div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">'
+      +(openId?'<button class="download-btn" onclick="attMark(\'out\')">🏁 Check out</button>':(!tdat?'<button class="download-btn" onclick="attMark(\'in\')">✅ Check in</button>':'<span>Done for today ✓</span>'))
+      +(reg.canShowCode?'<button class="download-btn" onclick="attView(\'code\')">🔢 Show outlet code</button>':'')+'</div></div>';
+    if(!(navigator.connection&&navigator.connection.saveData)) loadFace().catch(()=>{});   // warm up the face library in the background so check-in is quick
+  }
   b.innerHTML=h;
   if(window.__attFlash){say(window.__attFlash,true);window.__attFlash=null;}
 }
@@ -9314,17 +9361,18 @@ const hmm=h=>h>0?Math.floor(h+1e-9)+'h '+String(Math.round((h%1)*60)%60).padStar
 const tm=t=>t&&t.toDate?t.toDate().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:false}):'';
 const dmy=d=>String(d||'').split('-').reverse().join('-');
 let recRows=[];
+const flagsOf=a=>[].concat((a.in||{}).flags||[],(a.out||{}).flags||[],a.out&&a.out.manual?['manual check-out'+(a.out.reason?': '+a.out.reason:'')]:[],a.in&&a.in.face<0.65?['low face match']:[]);
 async function recsView(){
   const b=$('attBody'), today=dateKey(), fr=window.__attFrom||today, to=window.__attTo||today;
-  b.innerHTML='<div style="margin:8px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center">From <input type="date" id="attFrom" value="'+fr+'" onchange="window.__attFrom=this.value"> To <input type="date" id="attTo" value="'+to+'" onchange="window.__attTo=this.value"> <button class="mini-btn" onclick="attView(\'recs\')">Show</button> <button class="mini-btn mini-btn-ok" onclick="attExcel()">⬇ Download Excel</button></div><div id="attList">Loading…</div>';
+  b.innerHTML='<div class="att-pad att-ctl" style="margin:8px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end"><label>From<input type="date" id="attFrom" value="'+fr+'" onchange="window.__attFrom=this.value"></label><label>To<input type="date" id="attTo" value="'+to+'" onchange="window.__attTo=this.value"></label><button class="mini-btn" onclick="attView(\'recs\')">Show</button> <button class="mini-btn mini-btn-ok" onclick="attExcel()">⬇ Download Excel</button></div><div id="attList">Loading…</div>';
   const q=await db.collection('attendance').where('date','>=',fr).where('date','<=',to).get();
-  recRows=q.docs.map(x=>x.data()).filter(a=>isOwner||!Array.isArray(p14Assigned)||!p14Assigned.length||p14Assigned.includes(a.outletCode)).sort((a,b)=>(a.date+a.outletName+a.name).localeCompare(b.date+b.outletName+b.name));
-  const cell=e=>e?'<img src="'+e.photo+'" width="36" height="36" style="border-radius:6px;vertical-align:middle"> '+hm(e.t):'—';
-  const flag=a=>[].concat((a.in||{}).flags||[],(a.out||{}).flags||[]).join(', ');
+  recRows=q.docs.map(x=>({...x.data(),_id:x.id})).filter(a=>isOwner||!Array.isArray(p14Assigned)||!p14Assigned.length||p14Assigned.includes(a.outletCode)).sort((a,b)=>(a.date+a.outletName+a.name).localeCompare(b.date+b.outletName+b.name));
+  const cell=e=>e?(e.photo?'<img src="'+e.photo+'" width="36" height="36" style="border-radius:6px;vertical-align:middle"> ':'')+hm(e.t)+(e.manual?' ✎':''):'—';
+  const flag=a=>flagsOf(a).join(', ');
   const tot=recRows.reduce((s2,a)=>s2+hrsOf(a),0);
-  $('attList').innerHTML='<div style="margin:6px 0;font-weight:700">Total working hours: '+hmm(tot)+' ('+tot.toFixed(2)+' h) · '+recRows.length+' check-in'+(recRows.length===1?'':'s')+'</div><div class="table-wrap"><div class="table-scroll"><table><thead><tr><th>Date</th><th style="text-align:left">Outlet</th><th style="text-align:left">Name</th><th>In</th><th>Out</th><th>Hours</th><th>Distance in/out</th><th>Face % in</th><th>Flags</th></tr></thead><tbody>'
-   +recRows.slice(0,500).map(a=>'<tr><td>'+esc(dmy(a.date))+'</td><td style="text-align:left">'+esc(a.outletName)+'</td><td style="text-align:left">'+esc(a.name)+'</td><td>'+cell(a.in)+'</td><td>'+cell(a.out)+'</td><td><b>'+(a.out?hmm(hrsOf(a)):'<span style="color:var(--muted)">not out</span>')+'</b></td><td>'+(a.in?a.in.dist:'—')+' / '+(a.out?a.out.dist:'—')+' m</td><td>'+(a.in?Math.round(a.in.face*100):'—')+'</td><td style="color:#E15C5C">'+esc(flag(a))+'</td></tr>').join('')
-   +(recRows.length?'':'<tr><td colspan="9" style="text-align:center;color:var(--muted)">No attendance in this date range</td></tr>')+'</tbody></table></div></div>';
+  $('attList').innerHTML='<div class="att-pad" style="margin:6px 0;font-weight:700">Total working hours: '+hmm(tot)+' ('+tot.toFixed(2)+' h) · '+recRows.length+' check-in'+(recRows.length===1?'':'s')+'</div><div class="table-wrap"><div class="table-scroll"><table><thead><tr><th>Date</th><th style="text-align:left">Outlet</th><th style="text-align:left">Name</th><th>In</th><th>Out</th><th>Hours</th><th>Distance in/out</th><th>Face % in</th><th>Flags</th><th>Action</th></tr></thead><tbody>'
+   +recRows.slice(0,500).map(a=>'<tr><td>'+esc(dmy(a.date))+'</td><td style="text-align:left">'+esc(a.outletName)+'</td><td style="text-align:left">'+esc(a.name)+'</td><td>'+cell(a.in)+'</td><td>'+cell(a.out)+'</td><td><b>'+(a.out?hmm(hrsOf(a)):'<span style="color:var(--muted)">not out</span>')+'</b></td><td>'+(a.in?a.in.dist:'—')+' / '+(a.out?a.out.dist:'—')+' m</td><td'+(a.in&&a.in.face<0.65?' style="color:#E15C5C;font-weight:700"':'')+'>'+(a.in?Math.round(a.in.face*100):'—')+'</td><td style="color:#E15C5C">'+esc(flag(a))+'</td><td>'+(a.in&&!a.out?'<button class="mini-btn" onclick="attFixOut(\''+a._id+'\')">✎ Set check-out</button>':'')+'</td></tr>').join('')
+   +(recRows.length?'':'<tr><td colspan="10" style="text-align:center;color:var(--muted)">No attendance in this date range</td></tr>')+'</tbody></table></div></div>';
 }
 // Excel: every check-in with hours worked, plus a per-person summary with total hours
 window.attExcel=async()=>{
@@ -9336,7 +9384,7 @@ window.attExcel=async()=>{
   const ws=wb.addWorksheet('Attendance');
   head(ws,['Date','Outlet Code','Outlet','Name','Check-in','Check-out','Hours Worked (h:mm)','Hours (decimal)','Distance in (m)','Distance out (m)','Face match % (in)','Status','Flags'],[12,11,34,24,10,10,14,12,12,12,12,16,26]);
   rows.forEach((a,i)=>{const r=i+2,h=hrsOf(a);
-    [dmy(a.date),a.outletCode,a.outletName,a.name,tm(a.in&&a.in.t),tm(a.out&&a.out.t),h>0?h/24:null,h>0?+h.toFixed(2):null,a.in?a.in.dist:null,a.out?a.out.dist:null,a.in?Math.round(a.in.face*100):null,a.out?'Present':'No check-out',[].concat((a.in||{}).flags||[],(a.out||{}).flags||[]).join(', ')]
+    [dmy(a.date),a.outletCode,a.outletName,a.name,tm(a.in&&a.in.t),tm(a.out&&a.out.t),h>0?h/24:null,h>0?+h.toFixed(2):null,a.in?a.in.dist:null,(a.out&&a.out.dist!=null)?a.out.dist:null,a.in?Math.round(a.in.face*100):null,a.out?'Present':'No check-out',flagsOf(a).join(', ')]
      .forEach((x,j)=>{const c=ws.getCell(r,j+1);c.value=x;c.border=bd;c.alignment={horizontal:(j===2||j===3)?'left':'center'};if(j===6)c.numFmt='[h]:mm';if(j===7)c.numFmt='0.00';});});
   const tr=n+2; ws.getCell(tr,1).value='TOTAL WORKING HOURS';
   for(let j=1;j<=13;j++){const c=ws.getCell(tr,j);c.fill=fill('FFFFF2CC');c.font={bold:true};c.border=bd;c.alignment={horizontal:'center'};}
@@ -9364,7 +9412,7 @@ async function staffAdminView(){
   b.innerHTML='<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th>Photo</th><th style="text-align:left">Name</th><th>Outlet</th><th>Status</th><th>Action</th></tr></thead><tbody>'
    +L.map(s=>'<tr><td><img src="'+s.photo+'" width="44" height="44" style="border-radius:8px"></td><td style="text-align:left">'+esc(s.name)+'</td><td>'+esc(s.outletName)+'</td><td>'+esc(s.status)+(s.canShowCode?' · code':'')+'</td><td>'
    +(s.status!=='approved'?'<button class="mini-btn mini-btn-ok" onclick="attSet(\''+s.uid+'\',\'approved\')">✓ Approve</button> ':'')+(s.status!=='rejected'?'<button class="mini-btn mini-btn-no" onclick="attSet(\''+s.uid+'\',\'rejected\')">✕ Reject</button> ':'')
-   +'<button class="mini-btn" onclick="attCan(\''+s.uid+'\','+(!s.canShowCode)+')">'+(s.canShowCode?'Remove code access':'Allow show-code')+'</button> <button class="mini-btn mini-btn-no" onclick="attReset(\''+s.uid+'\')">Reset phone/face</button></td></tr>').join('')
+   +'<button class="mini-btn" onclick="attCan(\''+s.uid+'\','+(!s.canShowCode)+')">'+(s.canShowCode?'Remove code access':'Allow show-code')+'</button> '+(s.pendingDeviceId?'<button class="mini-btn mini-btn-ok" onclick="attDevOk(\''+s.uid+'\')">📱 Approve new phone</button> ':'')+'<button class="mini-btn mini-btn-no" onclick="attReset(\''+s.uid+'\')">Reset phone/face</button></td></tr>').join('')
    +(L.length?'':'<tr><td colspan="5" style="text-align:center;color:var(--muted)">No registrations yet</td></tr>')+'</tbody></table></div></div>';
 }
 const locView=()=>locInto($('attBody'));
@@ -9373,22 +9421,43 @@ async function locInto(b){
   const G={}; g.docs.forEach(d=>G[d.id]=d.data());
   window.__attOuts=outs; window.__attGeo=G; window.__attLocEl=b;
   const BULK='<details class="table-wrap" style="padding:14px;margin-bottom:12px"><summary style="cursor:pointer;font-weight:700">Advanced: set many outlets from a sheet</summary><div style="height:8px"></div><div style="font-size:12px;color:var(--muted);margin-bottom:10px">1) Download the sheet  2) Fill Latitude and Longitude in Excel  3) Choose the saved file (or paste the rows)  4) Import. Each line: outlet code, latitude, longitude.</div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="mini-btn" onclick="attTpl()">⬇ Download sheet (CSV)</button><input type="file" id="attCsv" accept=".csv,.txt"></div><textarea id="attPaste" rows="3" placeholder="or paste lines like:  001, 12.9345, 77.6116" style="width:100%;margin:10px 0;box-sizing:border-box"></textarea><button class="mini-btn mini-btn-ok" onclick="attImport()">Import &amp; save all</button></details>';
-  b.innerHTML=BULK+'<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th>Latitude</th><th>Longitude</th><th>Radius m</th><th>Action</th></tr></thead><tbody>'
-   +outs.map(x=>{const c=String(x.number),e=G[c]||{};return '<tr data-c="'+esc(c)+'" data-n="'+esc(x.name)+'"><td style="text-align:left">'+esc(c)+' · '+esc(x.name)+'</td><td><input class="la" size="10" oninput="attSplit(this)" placeholder="paste Google link or lat, lng" value="'+(e.lat||'')+'"></td><td><input class="lo" size="10" value="'+(e.lng||'')+'"></td><td><input class="ra" size="4" value="'+(e.radius||RADIUS)+'"></td><td><button class="mini-btn" style="color:#3FB874;border:1px solid #3FB874" onclick="attG(this)">🔎 Google Maps</button> <button class="mini-btn" onclick="attView1(this)">👁 Check saved</button> <button class="mini-btn" onclick="attPick(this)">🗺 Pick on map</button> <button class="mini-btn" onclick="attHere(this)">📍 I am at this outlet</button> <button class="mini-btn mini-btn-ok att-save" onclick="attSave(this)">Save</button></td></tr>';}).join('')+'</tbody></table></div></div><div id="attMsg" style="margin-top:8px"></div>';
+  b.innerHTML=BULK+'<div class="att-pad" style="margin:0 0 10px"><input placeholder="🔍 Search outlet code or name" oninput="attFind(this)" style="width:100%;box-sizing:border-box"></div><div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th>Latitude</th><th>Longitude</th><th>Radius m</th><th>Action</th></tr></thead><tbody>'
+   +outs.map(x=>{const c=String(x.number),e=G[c]||{};return '<tr data-c="'+esc(c)+'" data-n="'+esc(x.name)+'"><td style="text-align:left">'+esc(c)+' · '+esc(x.name)+'</td><td><input class="la" size="10" oninput="attSplit(this)" placeholder="paste Google link or lat, lng" value="'+(e.lat||'')+'"></td><td><input class="lo" size="10" value="'+(e.lng||'')+'"></td><td><input class="ra" size="4" value="'+(e.radius||RADIUS)+'"></td><td><button class="mini-btn" style="color:#3FB874;border:1px solid #3FB874" onclick="attG(this)">🔎 Google Maps</button> <button class="mini-btn" onclick="attView1(this)">👁 Check saved</button> <button class="mini-btn" onclick="attPick(this)">🗺 Pick on map</button> <button class="mini-btn" onclick="attHere(this)">📍 I am at this outlet</button> <button class="mini-btn mini-btn-ok att-save" onclick="attSave(this)">Save</button></td></tr>';}).join('')+'</tbody></table></div></div><div id="attMsg" class="att-pad" style="margin-top:8px"></div>';
 }
 async function codeView(){
   const b=$('attBody'); let outs=[]; if(isMgr()){outs=await outletList();} else outs=[{number:reg.outletCode,name:reg.outletName}];
   b.innerHTML=(isOwner?'<label style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><input type="checkbox" id="attReq"> <span>Require staff to type this code when checking in/out <span style="color:var(--muted)">(stronger against fake GPS; if off, face + location is enough)</span></span></label>':'')+'<div class="table-wrap" style="padding:18px;text-align:center">Outlet <select id="attOut">'+outs.map(x=>'<option value="'+esc(x.number)+'">'+esc(x.number)+' · '+esc(x.name)+'</option>').join('')+'</select><div id="attCode" style="font:700 64px DM Mono,monospace;letter-spacing:8px;margin:14px 0">······</div><div id="attLeft" style="color:var(--muted)">Keep this screen open at the outlet. Staff type this code to check in/out.</div></div>';
-  if(isOwner&&$('attReq')){ const cf=await db.collection('attendance_settings').doc('config').get().catch(()=>null); $('attReq').checked=!!(cf&&cf.exists&&cf.data().requireCode);
-    $('attReq').onchange=async e=>{ try{ await db.collection('attendance_settings').doc('config').set({requireCode:e.target.checked,by:currentUser.email,t:T()}); }catch(x){ e.target.checked=!e.target.checked; alert('Could not save: '+x.message); } }; }
+  let need=false; { const cf=await db.collection('attendance_settings').doc('config').get().catch(()=>null); need=!!(cf&&cf.exists&&cf.data().requireCode); }
+  if(isOwner&&$('attReq')){ $('attReq').checked=need;
+    $('attReq').onchange=async e=>{ try{ await db.collection('attendance_settings').doc('config').set({requireCode:e.target.checked,by:currentUser.email,t:T()}); need=e.target.checked; tick(); }catch(x){ e.target.checked=!e.target.checked; alert('Could not save: '+x.message); } }; }
   let prev=null; const gen=()=>{const a=new Uint32Array(1);crypto.getRandomValues(a);return String(a[0]%1000000).padStart(6,'0');};
-  const tick=async()=>{ if(!$('attCode')||!$('panel18').classList.contains('active')) return stopCode(); const c=gen();
-    try{ await db.collection('attendance_codes').doc($('attOut').value).set({code:c,prev:prev,t:T()}); $('attCode').textContent=c.slice(0,3)+' '+c.slice(3); prev=c; }catch(e){ $('attLeft').textContent='Could not publish code: '+e.message; } };
+  const tick=async()=>{ if(!$('attCode')||!$('panel18').classList.contains('active')) return stopCode();
+    if(!need){ $('attCode').textContent='······'; $('attLeft').textContent='The code is switched OFF — staff do not need it. The owner can switch it on above.'; return; }
+    const c=gen();
+    try{ await db.collection('attendance_codes').doc($('attOut').value).set({code:c,prev:prev,t:T()}); $('attCode').textContent=c.slice(0,3)+' '+c.slice(3); $('attLeft').textContent='Keep this screen open at the outlet. Staff type this code to check in/out.'; prev=c; }catch(e){ $('attLeft').textContent='Could not publish code: '+e.message; } };
   stopCode(); tick(); timer=setInterval(tick,30000); $('attOut').onchange=()=>{prev=null;tick();};
 }
 function stopCode(){ if(timer){clearInterval(timer);timer=null;} }
 
 window.attReg=register; window.attMark=mark;
+window.attFind=el=>{const q=el.value.trim().toLowerCase();document.querySelectorAll('tr[data-c]').forEach(r=>{r.style.display=(!q||r.textContent.toLowerCase().includes(q))?'':'none';});};
+window.attCards=root=>{ if(!root)return; root.querySelectorAll('table').forEach(t=>{ t.classList.add('att-cards'); const th=[...t.querySelectorAll('thead th')].map(x=>x.textContent.trim());
+  t.querySelectorAll('tbody tr').forEach(tr=>[...tr.children].forEach((td,i)=>{ if(!td.hasAttribute('colspan'))td.setAttribute('data-l',th[i]||''); })); }); };
+['attBody','ownerAttReqWrap','ownerAttLocWrap'].forEach(id=>{ const el=document.getElementById(id); if(el)new MutationObserver(()=>attCards(el)).observe(el,{childList:true,subtree:true}); });
+window.attDevReq=async()=>{try{await db.collection('attendance_staff').doc(currentUser.uid).update({pendingDeviceId:devId(),pendingDeviceAt:T()});staffView();}catch(e){say(e.message);}};
+window.attDevOk=async u=>{const d=await db.collection('attendance_staff').doc(u).get();const x=d.data()||{};if(!x.pendingDeviceId)return;await db.collection('attendance_staff').doc(u).update({deviceId:x.pendingDeviceId,pendingDeviceId:firebase.firestore.FieldValue.delete(),pendingDeviceAt:firebase.firestore.FieldValue.delete()});staffAdminView();};
+// owner / manager sets a missing check-out (kept clearly marked as manual)
+window.attFixOut=id=>{
+  const row=recRows.find(r=>r._id===id); if(!row)return;
+  const b=document.createElement('div'); b.style.cssText='position:fixed;inset:0;background:#000c;z-index:9999;display:flex;align-items:center;justify-content:center';
+  b.innerHTML='<div style="background:#fff;color:#111;padding:18px;border-radius:14px;max-width:340px;width:92%"><div style="font-weight:700;margin-bottom:8px">Set check-out for '+esc(row.name)+' ('+esc(dmy(row.date))+')</div><label>Time <input type="time" id="attFixT" style="font-size:18px"></label><br><br><input id="attFixR" placeholder="Reason (e.g. forgot to check out)" style="width:100%;box-sizing:border-box;padding:6px"><div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end"><button class="mini-btn" id="attFixNo" style="color:#111;border:1px solid #888">Cancel</button><button class="download-btn" id="attFixOk" style="width:auto;padding:8px 16px;color:#059669;border:2px solid #3FB874">Save</button></div></div>';
+  document.body.appendChild(b); b.querySelector('#attFixNo').onclick=()=>b.remove();
+  b.querySelector('#attFixOk').onclick=async()=>{
+    const tv=b.querySelector('#attFixT').value; if(!tv)return alert('Choose the time');
+    let dt=new Date(row.date+'T'+tv+':00+05:30'); if(row.in&&row.in.t&&dt.getTime()<=row.in.t.toMillis())dt=new Date(dt.getTime()+86400000);   // earlier than check-in = next day (night shift)
+    try{ await db.collection('attendance').doc(id).update({out:{t:firebase.firestore.Timestamp.fromDate(dt),manual:true,by:currentUser.email,reason:b.querySelector('#attFixR').value.trim().slice(0,100)}}); b.remove(); attView('recs'); }
+    catch(e){ alert('Could not save: '+e.message+' (publish the newest firestore.rules)'); } };
+};
 window.attView1=btn=>{const r=btn.closest('tr'),la=parseFloat(r.querySelector('.la').value),lo=parseFloat(r.querySelector('.lo').value);if(!isFinite(la)||!isFinite(lo))return say('No location saved for this outlet yet');window.open('https://www.google.com/maps?q='+la+','+lo,'_blank');};
 function loadLeaflet(){ return window.L?Promise.resolve():(loadLeaflet.p||(loadLeaflet.p=new Promise((res,rej)=>{
   const c=document.createElement('link');c.rel='stylesheet';c.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';document.head.appendChild(c);
