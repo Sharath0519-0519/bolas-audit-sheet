@@ -497,6 +497,10 @@ td.rk-match{background:#E3F2FD!important;color:#1A5276!important;font-weight:700
 .mini-btn-ok:hover{background:rgba(63,184,116,.1)}
 .mini-btn-no{border:1px solid #E15C5C;color:#E15C5C}
 .mini-btn-no:hover{background:rgba(225,92,92,.1)}
+/* ── Owner dashboard: long lists show the first rows, with “Show all” ── */
+tbody:not(.lim-open) tr.lim-hide{display:none}
+.lim-more{margin:-6px 0 22px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.lim-more button{background:none;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 14px;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;cursor:pointer;min-height:38px}
 /* ── Whole app: phone + laptop friendly ── */
 .table-wrap{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
 img,video,canvas{max-width:100%}
@@ -4779,7 +4783,7 @@ function loadOwnerDashboard() {
   // Outlet locations for Attendance (owner sets each outlet's position + radius here)
   const locWrap = document.getElementById('ownerAttLocWrap');
   if (locWrap && window.attLocInto) {
-    locWrap.innerHTML = `<div class="results-title">📍 Attendance — Outlet Locations</div><p style="color:var(--muted);font-size:12px;margin:6px 0 10px">Stand at the outlet and tap “I am at this outlet”, then Save. Staff can mark attendance only within the radius (100 m).</p><div id="ownerAttLocBody"></div>`;
+    locWrap.innerHTML = `<details><summary class="results-title" style="cursor:pointer;margin-bottom:10px">📍 Attendance — Outlet Locations <span style="font-size:12px;color:var(--muted);font-weight:400">(tap to open)</span></summary><p style="color:var(--muted);font-size:12px;margin:6px 0 10px">Search the outlet, then use Google Maps or Pick on map, and Save. Staff can mark attendance only within the radius (100 m).</p><div id="ownerAttLocBody"></div></details>`;
     window.attLocInto(document.getElementById('ownerAttLocBody'));
   }
 }
@@ -4973,23 +4977,37 @@ async function setClusterManagerFlag(uid, val) {
 function ownerProdFilter() {
   const inp = document.getElementById('ownerProdSearch'), out = document.getElementById('ownerProdSearchCount');
   if (!inp) return;
-  const words = inp.value.toLowerCase().split(/\s+/).filter(Boolean);
+  const LIM = 15, words = inp.value.toLowerCase().split(/\s+/).filter(Boolean), showAll = !!window.__prodAll;
   const squash = t => t.replace(/[^a-z0-9]/g, '');
   let total = 0, shown = 0;
-  document.querySelectorAll('#ownerPackWrap tbody tr, #ownerP1PackWrap tbody tr').forEach(tr => {
-    total++;
-    let ok = true;
-    if (words.length) {
-      const hay = (tr.cells[0] ? tr.cells[0].textContent : '').toLowerCase() + ' ' + (tr.cells[1] ? tr.cells[1].textContent : '').toLowerCase()
-        + ' ' + [...tr.querySelectorAll('input')].map(i => i.value).join(' ');
-      const flat = squash(hay);
-      ok = words.every(w => {
-        const alt = w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w;
-        return hay.includes(w) || hay.includes(alt) || flat.includes(squash(w)) || flat.includes(squash(alt));
-      });
+  ['#ownerPackWrap', '#ownerP1PackWrap'].forEach(sel => {
+    const wrap = document.querySelector(sel); if (!wrap) return;
+    let idx = 0; const rows = wrap.querySelectorAll('tbody tr');
+    rows.forEach(tr => {
+      total++;
+      let ok = true;
+      if (words.length) {
+        const hay = (tr.cells[0] ? tr.cells[0].textContent : '').toLowerCase() + ' ' + (tr.cells[1] ? tr.cells[1].textContent : '').toLowerCase()
+          + ' ' + [...tr.querySelectorAll('input')].map(i => i.value).join(' ');
+        const flat = squash(hay);
+        ok = words.every(w => {
+          const alt = w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w;
+          return hay.includes(w) || hay.includes(alt) || flat.includes(squash(w)) || flat.includes(squash(alt));
+        });
+      }
+      // without a search, only the first LIM products show (new / unconfirmed ones are already sorted to the top)
+      const hide = !ok || (!words.length && !showAll && idx >= LIM);
+      tr.style.display = hide ? 'none' : '';
+      if (ok) { idx++; if (!hide) shown++; }
+    });
+    let bar = wrap.querySelector('.lim-more');
+    if (bar) bar.remove();
+    if (!words.length && rows.length > LIM) {
+      bar = document.createElement('div'); bar.className = 'lim-more';
+      bar.innerHTML = '<span style="color:var(--muted);font-size:12px">Showing ' + (showAll ? rows.length : LIM) + ' of ' + rows.length + '</span><button type="button">' + (showAll ? 'Show fewer' : 'Show all ' + rows.length) + '</button>';
+      bar.querySelector('button').onclick = () => { window.__prodAll = !window.__prodAll; ownerProdFilter(); };
+      const tw = wrap.querySelector('.table-wrap'); if (tw) tw.after(bar);
     }
-    tr.style.display = ok ? '' : 'none';
-    if (ok) shown++;
   });
   if (out) out.textContent = !total ? '' : words.length ? (shown ? `Showing ${shown} of ${total} products` : `No product matches "${inp.value.trim()}" — try fewer words (e.g. just "cashew")`) : `${total} products`;
 }
@@ -5182,6 +5200,17 @@ async function saveP1PackOverride(key) {
   }
 }
 
+function ownerLimitRows(root, n) {
+  window.__limOpen = window.__limOpen || {};
+  root.querySelectorAll('tbody').forEach((tb, i) => {
+    const rows = [...tb.rows]; if (rows.length <= n) return;
+    const key = (root.id || 'x') + ':' + i; rows.slice(n).forEach(r => r.classList.add('lim-hide'));
+    if (window.__limOpen[key]) tb.classList.add('lim-open');
+    const bar = document.createElement('div'); bar.className = 'lim-more';
+    const paint = () => { const open = tb.classList.contains('lim-open'); bar.innerHTML = '<span style="color:var(--muted);font-size:12px">Showing ' + (open ? rows.length : n) + ' of ' + rows.length + '</span><button type="button">' + (open ? 'Show fewer' : 'Show all ' + rows.length) + '</button>'; bar.querySelector('button').onclick = () => { tb.classList.toggle('lim-open'); window.__limOpen[key] = tb.classList.contains('lim-open'); paint(); }; };
+    paint(); const tw = tb.closest('.table-wrap'); if (tw) tw.after(bar);
+  });
+}
 function renderOwnerDashboard() {
   if (ownerLatestUsers === null || ownerLatestActs === null) return; // wait for both to load at least once
   const pendWrap = document.getElementById('ownerPendingWrap');
@@ -5304,7 +5333,7 @@ function renderOwnerDashboard() {
   if (!acts.length) html += `<tr><td colspan="5" style="text-align:center;color:var(--muted)">No activity yet</td></tr>`;
   html += `</tbody></table></div></div>`;
 
-  wrap.innerHTML = html;
+  wrap.innerHTML = html; ownerLimitRows(wrap, 12);
   wrap.querySelectorAll('.mini-btn[data-act]').forEach(b => b.addEventListener('click', () => {
     if (b.dataset.act === 'blocked' && !confirm('Revoke access for this user?')) return;
     setUserStatus(b.dataset.uid, b.dataset.act);
@@ -9348,11 +9377,22 @@ async function staffView(){
     window.__attOpenId=openId;
     h+='<div class="table-wrap" style="padding:18px"><div>Outlet: <b>'+esc(reg.outletName)+'</b></div><div style="margin-top:8px">'+(openId&&openId!==td.id?'Shift from '+esc(dmy(ydat.date)):'Today')+': In <b>'+hm(a&&a.in&&a.in.t)+'</b> · Out <b>'+hm(a&&a.out&&a.out.t)+'</b>'+(a&&a.in?' · <span style="color:var(--muted)">'+a.in.dist+' m from outlet</span>':'')+'</div><div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">'
       +(openId?'<button class="download-btn" onclick="attMark(\'out\')">🏁 Check out</button>':(!tdat?'<button class="download-btn" onclick="attMark(\'in\')">✅ Check in</button>':'<span>Done for today ✓</span>'))
-      +(reg.canShowCode?'<button class="download-btn" onclick="attView(\'code\')">🔢 Show outlet code</button>':'')+'</div></div>';
+      +(reg.canShowCode?'<button class="download-btn" onclick="attView(\'code\')">🔢 Show outlet code</button>':'')+'</div></div><div id="attHist"></div>';
     if(!(navigator.connection&&navigator.connection.saveData)) loadFace().catch(()=>{});   // warm up the face library in the background so check-in is quick
   }
   b.innerHTML=h;
   if(window.__attFlash){say(window.__attFlash,true);window.__attFlash=null;}
+  if($('attHist'))attHistory();
+}
+// every day the person has worked, month by month, with the month's total hours
+async function attHistory(){
+  const el=$('attHist'); if(!el)return; const cur=dateKey().slice(0,7), mon=window.__attMon||cur;
+  const q=await db.collection('attendance').where('uid','==',currentUser.uid).get();
+  const rows=q.docs.map(d=>d.data()).filter(a=>a.date&&a.date.slice(0,7)===mon).sort((a,b)=>b.date.localeCompare(a.date)), tot=rows.reduce((s2,a)=>s2+hrsOf(a),0);
+  const y=+cur.slice(0,4), m=+cur.slice(5,7)-1, opts=[0,1,2,3,4,5].map(i=>{const d=new Date(Date.UTC(y,m-i,1)),v=d.toISOString().slice(0,7);return '<option value="'+v+'"'+(v===mon?' selected':'')+'>'+d.toLocaleString('en',{month:'long',year:'numeric',timeZone:'UTC'})+'</option>';}).join('');
+  el.innerHTML='<div class="att-pad" style="margin:18px 0 6px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b>My attendance history</b><select onchange="attMon(this.value)">'+opts+'</select></div><div class="att-pad" style="margin-bottom:8px">'+rows.length+' day'+(rows.length===1?'':'s')+' · total <b>'+hmm(tot)+'</b></div><div class="table-wrap"><div class="table-scroll"><table><thead><tr><th>Date</th><th>In</th><th>Out</th><th>Hours</th></tr></thead><tbody>'
+   +rows.map(a=>'<tr><td>'+esc(dmy(a.date))+'</td><td>'+hm(a.in&&a.in.t)+'</td><td>'+hm(a.out&&a.out.t)+'</td><td><b>'+(a.out?hmm(hrsOf(a)):'<span style="color:var(--muted)">not out</span>')+'</b></td></tr>').join('')
+   +(rows.length?'':'<tr><td colspan="4" style="text-align:center;color:var(--muted)">No attendance this month</td></tr>')+'</tbody></table></div></div>';
 }
 
 // ---------- owner / cluster manager ----------
@@ -9363,8 +9403,8 @@ const dmy=d=>String(d||'').split('-').reverse().join('-');
 let recRows=[];
 const flagsOf=a=>[].concat((a.in||{}).flags||[],(a.out||{}).flags||[],a.out&&a.out.manual?['manual check-out'+(a.out.reason?': '+a.out.reason:'')]:[],a.in&&a.in.face<0.65?['low face match']:[]);
 async function recsView(){
-  const b=$('attBody'), today=dateKey(), fr=window.__attFrom||today, to=window.__attTo||today;
-  b.innerHTML='<div class="att-pad att-ctl" style="margin:8px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end"><label>From<input type="date" id="attFrom" value="'+fr+'" onchange="window.__attFrom=this.value"></label><label>To<input type="date" id="attTo" value="'+to+'" onchange="window.__attTo=this.value"></label><button class="mini-btn" onclick="attView(\'recs\')">Show</button> <button class="mini-btn mini-btn-ok" onclick="attExcel()">⬇ Download Excel</button></div><div id="attList">Loading…</div>';
+  const b=$('attBody'), today=dateKey(), fr=window.__attFrom||today.slice(0,8)+'01', to=window.__attTo||today;   // opens on this month so earlier days are always visible
+  b.innerHTML='<div class="att-pad att-ctl" style="margin:8px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end"><label>From<input type="date" id="attFrom" value="'+fr+'" onchange="window.__attFrom=this.value"></label><label>To<input type="date" id="attTo" value="'+to+'" onchange="window.__attTo=this.value"></label><button class="mini-btn" onclick="attView(\'recs\')">Show</button> <button class="mini-btn mini-btn-ok" onclick="attExcel()">⬇ Download Excel</button></div><div class="att-pad" style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px"><button class="mini-btn" onclick="attRange(\'today\')">Today</button><button class="mini-btn" onclick="attRange(\'yesterday\')">Yesterday</button><button class="mini-btn" onclick="attRange(\'week\')">This week</button><button class="mini-btn" onclick="attRange(\'month\')">This month</button><button class="mini-btn" onclick="attRange(\'lastmonth\')">Last month</button></div><div id="attList">Loading…</div>';
   const q=await db.collection('attendance').where('date','>=',fr).where('date','<=',to).get();
   recRows=q.docs.map(x=>({...x.data(),_id:x.id})).filter(a=>isOwner||!Array.isArray(p14Assigned)||!p14Assigned.length||p14Assigned.includes(a.outletCode)).sort((a,b)=>(a.date+a.outletName+a.name).localeCompare(b.date+b.outletName+b.name));
   const cell=e=>e?(e.photo?'<img src="'+e.photo+'" width="36" height="36" style="border-radius:6px;vertical-align:middle"> ':'')+hm(e.t)+(e.manual?' ✎':''):'—';
@@ -9440,6 +9480,12 @@ async function codeView(){
 function stopCode(){ if(timer){clearInterval(timer);timer=null;} }
 
 window.attReg=register; window.attMark=mark;
+window.attLocInto=b=>locInto(b).catch(e=>{b.innerHTML='<div style="color:#E15C5C;padding:12px">'+esc(e.message)+'</div>';});   // outlet-location editor, also used inside the Owner Dashboard
+window.attRange=k=>{ const t=dateKey(), d0=new Date(t+'T00:00:00Z'), f=d=>d.toISOString().slice(0,10); let a=t, b=t;
+  if(k==='yesterday'){a=b=dateKey(-1);} else if(k==='week'){a=f(new Date(d0.getTime()-((d0.getUTCDay()+6)%7)*86400000));} else if(k==='month'){a=t.slice(0,8)+'01';}
+  else if(k==='lastmonth'){const y=d0.getUTCFullYear(),m=d0.getUTCMonth();a=f(new Date(Date.UTC(y,m-1,1)));b=f(new Date(Date.UTC(y,m,0)));}
+  window.__attFrom=a; window.__attTo=b; attView('recs'); };
+window.attMon=v=>{window.__attMon=v;attHistory();};
 window.attFind=el=>{const q=el.value.trim().toLowerCase();document.querySelectorAll('tr[data-c]').forEach(r=>{r.style.display=(!q||r.textContent.toLowerCase().includes(q))?'':'none';});};
 window.attCards=root=>{ if(!root)return; root.querySelectorAll('table').forEach(t=>{ t.classList.add('att-cards'); const th=[...t.querySelectorAll('thead th')].map(x=>x.textContent.trim());
   t.querySelectorAll('tbody tr').forEach(tr=>[...tr.children].forEach((td,i)=>{ if(!td.hasAttribute('colspan'))td.setAttribute('data-l',th[i]||''); })); }); };
