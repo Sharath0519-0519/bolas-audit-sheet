@@ -516,6 +516,8 @@ img,video,canvas{max-width:100%}
 .att-pad{padding:0 15px}
 #panel18 input,#panel18 select,#panel18 textarea,#ownerAttLocWrap input,#ownerAttLocWrap textarea{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:9px 10px;font-size:14px;font-family:inherit;max-width:100%}
 #panel18 details,#ownerAttLocWrap details{margin:0 0 12px}
+.chip-a{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:8px 12px;font-size:13px}
+.chip-a.ok{border-color:#3FB874;color:#3FB874}.chip-a.bad{border-color:#E15C5C;color:#E15C5C}
 .att-ctl label{display:flex;gap:6px;align-items:center}
 @media(max-width:640px){
   #attNav{overflow-x:auto;flex-wrap:nowrap!important;-webkit-overflow-scrolling:touch;padding-bottom:6px}
@@ -1061,6 +1063,7 @@ textarea.ml-in{min-height:170px;resize:vertical;font-family:'DM Mono',monospace;
   <div id="ownerOutletReqWrap" style="margin-bottom:28px"></div>
   <div id="ownerAttReqWrap" style="margin-bottom:28px"></div>
   <div id="ownerAttLocWrap" style="margin-bottom:28px"></div>
+  <div id="ownerPlatWrap" style="margin-bottom:28px"></div>
   <div id="ownerProdSearchBar" style="margin-bottom:16px;max-width:560px">
     <label class="pc-label" for="ownerProdSearch">🔍 Search products (Stock Audit &amp; Kernel Report pack sizes below)</label>
     <input type="search" id="ownerProdSearch" class="pc-input" placeholder="e.g. cashew nut" autocomplete="off" spellcheck="false">
@@ -4786,8 +4789,39 @@ function loadOwnerDashboard() {
     locWrap.innerHTML = `<details><summary class="results-title" style="cursor:pointer;margin-bottom:10px">📍 Attendance — Outlet Locations <span style="font-size:12px;color:var(--muted);font-weight:400">(tap to open)</span></summary><p style="color:var(--muted);font-size:12px;margin:6px 0 10px">Search the outlet, then use Google Maps or Pick on map, and Save. Staff can mark attendance only within the radius (100 m).</p><div id="ownerAttLocBody"></div></details>`;
     window.attLocInto(document.getElementById('ownerAttLocBody'));
   }
+  renderOwnerPlatforms();
 }
 
+// ── Owner: sales platforms (add Flipkart, Amazon … when a new one starts selling) ──
+async function renderOwnerPlatforms() {
+  const w = document.getElementById('ownerPlatWrap'); if (!w) return;
+  await p14LoadPlatforms(true);
+  let sug = {}; try { const d = await db.collection('sales_platforms').doc('suggestions').get(); if (d.exists) sug = d.data().names || {}; } catch (e) { }
+  const have = new Set(P14_CH.map(c => c[1].toLowerCase())), sugList = Object.values(sug).filter(x => x && x.name && !have.has(String(x.name).toLowerCase()));
+  const built = [['Walk-in', 'everything else'], ['Swiggy', 'swiggy'], ['Zomato', 'zomato'], ['Ownly', 'ownly'], ['Web Orders', 'payment mode “online”'], ['Tipplr', 'tipplr / tippler']];
+  const row = (n, k, act, dot) => `<tr><td style="text-align:left"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#${dot};margin-right:6px"></span>${escHtml(n)}</td><td style="text-align:left">${escHtml(k)}</td><td>${act}</td></tr>`;
+  w.innerHTML = `<details><summary class="results-title" style="cursor:pointer;margin-bottom:10px">🛒 Sales Platforms <span style="font-size:12px;color:var(--muted);font-weight:400">(${P14_CH.length} platforms · tap to open)</span></summary>
+    <p style="color:var(--muted);font-size:12px;margin:0 0 10px">Every platform is its own column in the Sales Report, charts and Excel. Sales through a platform that is not listed here are counted under Walk-in until you add it. You can add up to 4.</p>
+    <div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Platform</th><th style="text-align:left">Matches</th><th>Action</th></tr></thead><tbody>
+      ${built.map((b, i) => row(b[0], b[1], '<span style="color:var(--muted)">built-in</span>', P14_CH[i][2])).join('')}
+      ${P14_CUSTOM.map((c, i) => row(c.name, c.keys.join(', '), `<button class="mini-btn mini-btn-no" data-rm="${i}">✕ Remove</button>`, P14_CH[P14_BASE + i][2])).join('')}
+    </tbody></table></div></div>
+    ${sugList.length ? `<div style="margin:12px 0 6px;font-weight:700">Seen in uploaded files, not added yet</div><div style="display:flex;gap:8px;flex-wrap:wrap">${sugList.map(x => `<button class="mini-btn" data-sug="${escHtml(x.name)}">➕ ${escHtml(x.name)} (${x.count} invoices)</button>`).join('')}</div>` : ''}
+    <div style="margin-top:14px;font-weight:700">Add a new platform</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <input id="platName" placeholder="Platform name, e.g. Flipkart" style="flex:1 1 180px;min-width:0;padding:9px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text)">
+      <input id="platKeys" placeholder="Words to look for (optional), e.g. flipkart, fk" style="flex:2 1 220px;min-width:0;padding:9px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text)">
+      <button class="mini-btn mini-btn-ok" id="platAdd">➕ Add platform</button></div>
+    <div style="font-size:12px;color:var(--muted);margin-top:6px">The app looks for these words in the invoice's Customer Name and Payment Mode. If you leave them empty, the platform name is used.</div>
+    <div id="platMsg" style="margin-top:8px;font-weight:600"></div></details>`;
+  const msg = (t, ok) => { const m = document.getElementById('platMsg'); if (m) { m.textContent = t; m.style.color = ok ? '#3FB874' : '#E15C5C'; } };
+  w.querySelector('#platAdd').onclick = async () => {
+    try { await p14AddPlatform(w.querySelector('#platName').value, w.querySelector('#platKeys').value.split(',')); await renderOwnerPlatforms(); w.querySelector('details').open = true; msg('Added ✓ — upload the Invoice List again to see it as a column.', true); }
+    catch (e) { msg(e.message || String(e)); } };
+  w.querySelectorAll('[data-sug]').forEach(b => b.onclick = () => { w.querySelector('#platName').value = b.dataset.sug; w.querySelector('#platKeys').value = b.dataset.sug.toLowerCase(); w.querySelector('#platName').focus(); });
+  w.querySelectorAll('[data-rm]').forEach(b => b.onclick = async () => { const c = P14_CUSTOM[+b.dataset.rm]; if (!confirm('Remove ' + c.name + '? Its sales will be counted under Walk-in again.')) return;
+    try { await p14SavePlatforms(P14_CUSTOM.filter((_, i) => i !== +b.dataset.rm)); await renderOwnerPlatforms(); w.querySelector('details').open = true; } catch (e) { msg(e.message || String(e)); } });
+}
 function renderOwnerAttReqs(list) {
   const wrap = document.getElementById('ownerAttReqWrap'); if (!wrap) return;
   list.sort((a, b) => (a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0) - (b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0));
@@ -5816,6 +5850,32 @@ const $14 = id => document.getElementById(id); // must be declared BEFORE the fi
 const p14Sum = a => a.reduce((x, y) => x + y, 0);
 const P14_CH = [['walkin','Walk-in','2E7D6B','E3F3EE'],['swiggy','Swiggy','E8710A','FDEBD9'],['zomato','Zomato','D62839','FBE1E4'],['ownly','Ownly','6F42C1','ECE4F8'],['web','Web Orders','1F6FD1','DEEBFB'],['tipplr','Tipplr','0E9AA7','DDF3F5']];
 const p14Zero = () => P14_CH.map(() => 0);   // one zero per channel — every total array is built from this
+// ── Extra sales platforms the owner can add (Flipkart, Amazon …). They become new columns everywhere (reports, charts, Excel). Max 4 → keeps Excel columns within A–Z. ──
+const P14_BASE = P14_CH.length;
+let P14_CUSTOM = [], p14PlatLoaded = 0, p14Unknown = {};
+const P14_PAL = [['B7791F','FBF0D9'],['0B7285','DAF1F5'],['AD1457','FADCE9'],['5D4037','EADFDB']];
+function p14ApplyCustom(list) {
+  P14_CUSTOM = (Array.isArray(list) ? list : []).filter(c => c && c.name && Array.isArray(c.keys)).slice(0, 4).map(c => ({ name: String(c.name).slice(0, 24), keys: c.keys.map(k => String(k).toLowerCase().trim()).filter(Boolean) }));
+  P14_CH.length = P14_BASE;
+  P14_CUSTOM.forEach((c, i) => P14_CH.push(['x' + i, c.name, P14_PAL[i][0], P14_PAL[i][1]]));
+}
+async function p14LoadPlatforms(force) {
+  if (!force && Date.now() - p14PlatLoaded < 60000) return;
+  try { const d = await db.collection('sales_platforms').doc('config').get(); p14ApplyCustom(d.exists ? d.data().list : []); p14PlatLoaded = Date.now(); } catch (e) { console.warn('Sales platforms not loaded', e); }
+}
+async function p14SavePlatforms(list) {
+  await db.collection('sales_platforms').doc('config').set({ list, by: currentUser.email, at: firebase.firestore.FieldValue.serverTimestamp() });
+  p14ApplyCustom(list); p14PlatLoaded = Date.now();
+  if (p14Data) { const rb = document.getElementById('p14RemoveBtn'); if (rb) rb.click(); }   // data already read has the old columns — it must be read again
+}
+async function p14AddPlatform(name, keys) {
+  await p14LoadPlatforms(true);
+  name = String(name || '').trim(); if (!name) throw new Error('Type the platform name.');
+  if (P14_CUSTOM.length >= 4) throw new Error('You can add up to 4 new platforms. Remove one first.');
+  if (P14_CH.some(c => c[1].toLowerCase() === name.toLowerCase())) throw new Error(name + ' is already a platform.');
+  const k = (keys && keys.length ? keys : [name]).map(x => String(x).toLowerCase().trim()).filter(Boolean);
+  await p14SavePlatforms(P14_CUSTOM.concat([{ name, keys: k }]));
+}
 let p14File = null, p14Data = null, p14Pick = 'ALL';
 // null = see every outlet (owner / normal user). For a cluster manager this becomes the list of outlet codes assigned to him.
 let p14MyOutlets = null;
@@ -6037,6 +6097,8 @@ function p14Channel(name, mode) {
   if (n.includes('zomato')) return 2;
   if (n.includes('ownly')) return 3;
   if (/tippl(e)?r/.test(n)) return 5;   // “Sale Through Tipplr”
+  const md = String(mode || '').toLowerCase();
+  for (let i = 0; i < P14_CUSTOM.length; i++) if (P14_CUSTOM[i].keys.some(k => n.includes(k) || md.includes(k))) return P14_BASE + i;   // platforms added by the owner
   return /online/i.test(String(mode || '')) ? 4 : 0;
 }
 function p14ReadRows(buf) {
@@ -6113,6 +6175,57 @@ function p14XmlDec(s) {
 }
 function p14ColIdx(ref) { let n = 0; for (let i = 0; i < ref.length; i++) { const c = ref.charCodeAt(i); if (c < 65 || c > 90) break; n = n * 26 + c - 64; } return n - 1; }
 function p14Attr(tag, name) { const m = tag.match(new RegExp('(?:^|\\s)' + name + '="([^"]*)"')); return m ? p14XmlDec(m[1]) : null; }
+// ── Parallel reader for very big sheets: row-aligned slices of the sheet XML are read by several background workers at once ──
+function p14ScanBatch(buf, keep, ss, out) {   // runs inside a worker: reads every <row> in buf, pushes ri, cells[] into out
+  let pos = 0, seq = 0;
+  for (;;) {
+    const a = buf.indexOf('<row', pos); if (a < 0) break;
+    const nx = buf.charCodeAt(a + 4); if (nx !== 32 && nx !== 62 && nx !== 47) { pos = a + 4; continue; }
+    const gt = buf.indexOf('>', a); if (gt < 0) break;
+    const tag = buf.slice(a, gt + 1); let body = '', end = gt + 1;
+    if (buf.charCodeAt(gt - 1) !== 47) { const z = buf.indexOf('</row>', gt); if (z < 0) break; body = buf.slice(gt + 1, z); end = z + 6; }
+    pos = end;
+    let ri = seq; const rq = tag.indexOf(' r="'); if (rq >= 0) { const n = +tag.slice(rq + 4, tag.indexOf('"', rq + 4)); if (n) ri = n - 1; } seq = ri + 1;
+    const arr = []; let ci = 0, p = 0;
+    for (;;) {
+      const c0 = body.indexOf('<c', p); if (c0 < 0) break;
+      const ch = body.charCodeAt(c0 + 2); if (ch !== 32 && ch !== 62 && ch !== 47) { p = c0 + 2; continue; }
+      const g2 = body.indexOf('>', c0); if (g2 < 0) break;
+      let c = ci; const cq = body.indexOf(' r="', c0);
+      if (cq >= 0 && cq < g2) { c = 0; for (let k = cq + 4; ; k++) { const cc = body.charCodeAt(k); if (cc < 65 || cc > 90) break; c = c * 26 + cc - 64; } c -= 1; }
+      ci = c + 1;
+      if (body.charCodeAt(g2 - 1) === 47) { p = g2 + 1; continue; }
+      const z2 = body.indexOf('</c>', g2), e2 = z2 < 0 ? body.length : z2; p = e2 + 4;
+      if (!keep.has(c)) continue;
+      const tq = body.indexOf(' t="', c0), t = (tq >= 0 && tq < g2) ? body.slice(tq + 4, body.indexOf('"', tq + 4)) : 'n'; let v;
+      if (t === 'inlineStr') { let s2 = '', mm; const re = /<t\b[^>]*>([\s\S]*?)<\/t>/g, inner = body.slice(g2 + 1, e2); while ((mm = re.exec(inner))) s2 += mm[1]; v = p14XmlDec(s2); }
+      else {
+        const va = body.indexOf('<v>', g2); if (va < 0 || va > e2) continue; const vz = body.indexOf('</v>', va), raw = body.slice(va + 3, (vz < 0 || vz > e2) ? e2 : vz);
+        if (t === 's') v = ss[+raw]; else if (t === 'b') v = raw === '1'; else if (t === 'e') v = ''; else if (t === 'str') v = p14XmlDec(raw); else { v = parseFloat(raw); if (isNaN(v)) v = raw; }
+      }
+      if (v !== undefined) arr[c] = v;
+    }
+    out.push(ri, arr);
+  }
+}
+function p14MakePool(ss, keepArr) {
+  const n = Math.min(6, Math.max(2, (navigator.hardwareConcurrency || 4) - 1));
+  const src = 'const p14XmlDec=' + p14XmlDec.toString() + ';\nconst p14ScanBatch=' + p14ScanBatch.toString() + ';\nlet ss=[],keep=null;\nonmessage=e=>{const m=e.data;if(m.init){ss=m.ss;keep=new Set(m.keep);return;}const out=[];try{p14ScanBatch(m.text,keep,ss,out);postMessage({out});}catch(err){postMessage({err:String(err&&err.message||err)});}};';
+  const url = URL.createObjectURL(new Blob([src], { type: 'application/javascript' })), ws = [];
+  for (let i = 0; i < n; i++) { const w = new Worker(url); w.postMessage({ init: 1, ss, keep: keepArr }); w.busy = false; ws.push(w); }
+  let waiters = [], err = null, total = 0; const queue = [];
+  const pump = () => { for (const w of ws) { if (!w.busy && queue.length) { const job = queue.shift(); w.busy = true; w.job = job; w.postMessage({ text: job.text }); } } };
+  ws.forEach(w => { w.onmessage = e => { const j = w.job; w.busy = false; w.job = null; if (e.data.err) err = e.data.err; else j.apply(e.data.out); j.resolve(); pump(); waiters = waiters.filter(f => !f()); }; w.onerror = e => { err = e.message || 'worker error'; w.busy = false; if (w.job) w.job.resolve(); pump(); }; });
+  const inflight = () => queue.length + ws.filter(w => w.busy).length;
+  return {
+    n,
+    async send(text, apply) {   // waits when every worker is busy, so memory stays small
+      while (inflight() >= n * 2) await new Promise(r => waiters.push(() => { r(); return true; }));
+      const job = { text, apply, resolve() { } }; queue.push(job); total++; pump();   // returns at once, so the next slice is decoded while the workers read this one
+    },
+    async finish() { while (inflight() > 0) await new Promise(r => waiters.push(() => { r(); return true; })); ws.forEach(w => w.terminate()); URL.revokeObjectURL(url); if (err) throw new Error('Could not read the Excel file (' + err + ')'); }
+  };
+}
 async function p14StreamRows(file) {
   const ents = await p14ZipEntries(file);
   // 1. find the first sheet
@@ -6146,12 +6259,12 @@ async function p14StreamRows(file) {
     });
   }
   // 3. sheet rows (streamed, one <row> at a time). Keep the first 30 rows whole to find the header, then only the needed columns.
-  const rows = []; let keep = null, seq = 0, buf = '';
+  const rows = []; let keep = null, seq = 0, buf = '', par = null, parTried = false, noR = false;
   const decide = () => { const f = p14FindHeader(rows); keep = f ? new Set(Object.values(f.col).filter(v => v >= 0)) : new Set(); };
   // Fast row reader: plain indexOf scanning instead of a regex per cell; cells in unneeded columns are skipped without being read.
   const doRow = (tag, body) => {
     let ri = seq; const rq = tag.indexOf(' r="');
-    if (rq >= 0) { const n = +tag.slice(rq + 4, tag.indexOf('"', rq + 4)); if (n) ri = n - 1; }
+    if (rq >= 0) { const n = +tag.slice(rq + 4, tag.indexOf('"', rq + 4)); if (n) ri = n - 1; } else noR = true;
     seq = ri + 1;
     if (keep === null && ri >= 30) decide();
     const arr = []; let ci = 0, p = 0;
@@ -6175,8 +6288,15 @@ async function p14StreamRows(file) {
     }
     rows[ri] = arr;
   };
-  await p14ZipStream(file, sent, t => {
-    buf += t; let pos = 0;
+  const BATCH = window.__p14Batch || 3000000;   // characters per slice handed to a worker
+  const applyRows = out => { for (let i = 0; i < out.length; i += 2) rows[out[i]] = out[i + 1]; };
+  await p14ZipStream(file, sent, async t => {
+    buf += t;
+    if (par) {   // fast path: row-aligned slices go to the workers
+      if (buf.length >= BATCH) { const cut = buf.lastIndexOf('</row>'); if (cut > 0) { const part = buf.slice(0, cut + 6); buf = buf.slice(cut + 6); await par.send(part, applyRows); } }
+      return;
+    }
+    let pos = 0;
     for (;;) {
       const a = buf.indexOf('<row', pos); if (a < 0) { pos = Math.max(pos, buf.length - 4); break; }
       if (a + 4 >= buf.length) { pos = a; break; }
@@ -6187,7 +6307,10 @@ async function p14StreamRows(file) {
       doRow(buf.slice(a, gt + 1), buf.slice(gt + 1, z)); pos = z + 6;
     }
     buf = buf.slice(pos);
+    // once the header is known, a big sheet switches to the parallel reader (only on phones/laptops with 4+ cores, where it is faster)
+    if (keep !== null && !parTried) { parTried = true; if (!noR && !window.__p14NoPar && typeof Worker !== 'undefined' && ((sent.csize > 4e6 && (navigator.hardwareConcurrency || 1) >= 4) || window.__p14Batch)) { try { par = p14MakePool(ss, [...keep]); } catch (e) { par = null; } } }
   });
+  if (par) { try { if (buf.length) await par.send(buf, applyRows); } finally { await par.finish(); } buf = ''; }
   if (keep === null) decide();
   return rows;
 }
@@ -6211,7 +6334,7 @@ function p14Parse(rows) {
   if (h < 0) throw new Error('Could not find the Date Time, Customer Name, Invoice Amount and Payment Mode columns. Is this the Invoice List file?');
   const days = {}, outlets = {}; let n = 0, skipped = 0;
   // A year of invoices has only ~365 different dates, a handful of outlets and channels: work each one out once and reuse it.
-  const dkC = new Map(), ouC = new Map(), chC = new Map();
+  const dkC = new Map(), ouC = new Map(), chC = new Map(), uC = new Map(); p14Unknown = {};
   const dayKey = dv => {
     let k = dkC.get(dv); if (k !== undefined) return k; let y, m, d;
     if (typeof dv === 'number') { const o = XLSX.SSF.parse_date_code(dv); y = o.y; m = o.m; d = o.d; }
@@ -6230,6 +6353,8 @@ function p14Parse(rows) {
     if (!outlets[ou.code]) outlets[ou.code] = { code: ou.code, name: ou.name };
     else if (!outlets[ou.code].name && ou.name) outlets[ou.code].name = ou.name;
     const cn = col.n >= 0 ? r[col.n] : '', ck = cn + '\u0001' + r[col.p]; let k = chC.get(ck); if (k === undefined) { k = p14Channel(cn, r[col.p]); chC.set(ck, k); }
+    if (k === 0 || k === 4) { let u = uC.get(ck); if (u === undefined) { const mt = /sale\s*through\s+([A-Za-z0-9 .&'\-]{2,30})/i.exec(String(cn)); u = mt ? mt[1].trim().replace(/\s+/g, ' ') : ''; uC.set(ck, u); }
+      if (u) { const e = p14Unknown[u.toLowerCase()] || (p14Unknown[u.toLowerCase()] = { name: u, count: 0, total: 0 }); e.count++; e.total += amt; } }
     const od = days[ou.code] || (days[ou.code] = {});
     const e = od[key] || (od[key] = { s: p14Zero(), o: p14Zero() });
     e.s[k] += amt; e.o[k] += 1; n++;
@@ -6423,7 +6548,7 @@ function p14MonthPeriod(D, m) {
 }
 function p14BuildMonthSheets(D, outs) {
   const wb = new ExcelJS.Workbook(); wb.creator = 'Bolas Stock Suite';
-  const multi = outs.length > 1, used = new Set(['summary', 'summary by month']);
+  const multi = outs.length > 1, used = new Set(['summary', 'summary by month', 'day-wise summary']);
   // Summary comes FIRST. One outlet: month by month. Several outlets: 'Summary' = one row per outlet for the whole period,
   // 'Summary by Month' = all selected outlets added together, month by month.
   const addAll = (a, b) => a.map((v, i) => v + b[i]);
@@ -6437,6 +6562,15 @@ function p14BuildMonthSheets(D, outs) {
       return { label: dm.sheet, sub: days, s: outs.reduce((a, o) => addAll(a, o.months[mi].s), p14Zero()), o: outs.reduce((a, o) => addAll(a, o.months[mi].o), p14Zero()) };
     });
     p14Sheet(wb, 'Summary by Month', 'Summary by month — all selected outlets', D.period, 'Month', 'Days sold', mrows, 'GRAND TOTAL', 12, 9, `${outs.length} outlets`);
+  }
+  // Day-wise Summary: every day that had sales, all selected outlets added together, with each platform in its own column
+  if (multi || D.months.length > 1) {
+    const drows = [];
+    D.months.forEach((dm, mi) => dm.rows.forEach((r, k) => {
+      const sS = outs.reduce((a, o) => addAll(a, o.months[mi].rows[k].s), p14Zero()), oO = outs.reduce((a, o) => addAll(a, o.months[mi].rows[k].o), p14Zero());
+      if (p14Sum(oO) > 0) drows.push({ label: r.label, sub: r.sub, s: sS, o: oO });
+    }));
+    p14Sheet(wb, 'Day-wise Summary', multi ? 'Day-wise summary — all selected outlets' : 'Day-wise summary', D.period, 'Date', 'Day', drows, 'TOTAL', 12, 9, multi ? `${outs.length} outlets` : outs[0].label);
   }
   outs.forEach(o => o.months.forEach(m => {
     const nm = p14UniqName(used, multi ? p14TabName(o, p14MonShort(m)) : p14SheetSafe(m.sheet));
@@ -7231,6 +7365,7 @@ $14('p14ProcessBtn').addEventListener('click', async () => {
   $14('p14ErrorBox').classList.remove('visible'); $14('p14ResultsSection').classList.remove('visible'); $14('p14ProcessBtn').disabled = true;
   try {
     if (!p14DirLoaded) await p14LoadDirectory();
+    await p14LoadPlatforms();   // the owner's extra platforms (Flipkart, Amazon …) become columns
     // Big yearly .xlsx files (20 MB+) are streamed; SheetJS silently returns an empty sheet on them.
     const isX = /\.xlsx$/i.test(p14File.name), big = isX && p14File.size > 20 * 1024 * 1024;
     let rows, parsed;
@@ -7251,11 +7386,27 @@ $14('p14ProcessBtn').addEventListener('click', async () => {
     const pm = String((rows[0] && rows[0][0]) || '').match(/from\s+(\S+)\s+to\s+(\S+)/i);
     const label = (months.length === 1 ? months[0].sheet : `${months[0].sheet} to ${months[months.length - 1].sheet}`).replace(/[^a-z0-9]+/gi, '_');
     p14Data = { outlets, months, n: parsed.n, period: pm ? `${pm[1]} to ${pm[2]}` : '', file: `Sales_Report_${label}.xlsx` };
-    p14FillSelect(); p14Render();
+    p14FillSelect(); p14Render(); p14ShowNewPlatforms();
     logActivity('process_file', 14, p14File.name);
   } catch (e) { console.error(e); p14Err(e.message || 'Processing failed.'); }
   $14('p14ProcessBtn').disabled = false;
 });
+// A sale through a platform nobody added yet is counted under Walk-in. Tell the owner (who can add it with one tap); others are told to ask the owner.
+function p14ShowNewPlatforms() {
+  let box = document.getElementById('p14NewPlat');
+  if (!box) { box = document.createElement('div'); box.id = 'p14NewPlat'; box.style.cssText = 'margin:0 0 14px'; const a = $14('p14ResultsSection'); a.parentNode.insertBefore(box, a); }
+  const list = Object.values(p14Unknown).sort((a, b) => b.total - a.total).slice(0, 6);
+  if (!list.length) { box.innerHTML = ''; return; }
+  try {   // everyone who reads a file leaves a note, so the owner finds new platforms later in the Owner Dashboard
+    const upd = {}; list.forEach(x => { upd[x.name.toLowerCase().replace(/[^a-z0-9]/g, '_')] = { name: x.name, count: x.count, total: Math.round(x.total) }; });
+    db.collection('sales_platforms').doc('suggestions').set({ names: upd, by: currentUser.email, at: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(() => { });
+  } catch (e) { }
+  const inr = n => '₹' + Math.round(n).toLocaleString('en-IN');
+  if (!isOwner) { box.innerHTML = '<div class="table-wrap" style="padding:12px 16px;font-size:13px">ℹ️ Sales through <b>' + list.map(x => escHtml(x.name)).join(', ') + '</b> are shown under Walk-in for now. Ask the owner to add it as a platform.</div>'; return; }
+  box.innerHTML = '<div class="table-wrap" style="padding:12px 16px"><div style="font-weight:700;margin-bottom:8px">🆕 New platform found in this file</div>' + list.map((x, i) => '<div style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--border)"><span><b>' + escHtml(x.name) + '</b> · ' + x.count + ' invoices · ' + inr(x.total) + '</span><button class="mini-btn mini-btn-ok" data-i="' + i + '">➕ Add as a platform</button></div>').join('') + '<div style="font-size:12px;color:var(--muted);margin-top:6px">Until you add it, these sales are counted under Walk-in.</div></div>';
+  box.querySelectorAll('button[data-i]').forEach(b => b.onclick = async () => { const x = list[+b.dataset.i]; b.disabled = true;
+    try { await p14AddPlatform(x.name, [x.name.toLowerCase()]); $14('p14ProcessBtn').click(); } catch (e) { b.disabled = false; alert(e.message || String(e)); } });
+}
 $14('p14TypeSel').addEventListener('change', () => { p14TypePick = $14('p14TypeSel').value; if (p14Data) { p14FillSelect(true); p14Render(); } });
 $14('p14OutletSel').addEventListener('change', () => { p14Pick = $14('p14OutletSel').value; if (p14Data) p14Render(); });
 $14('p14DownloadBtn').addEventListener('click', async () => {
@@ -9274,7 +9425,10 @@ const say=(m,ok)=>{document.querySelectorAll('[id=attMsg]').forEach(e=>{e.textCo
 // ---------- face-api (loaded only when needed; models are fetched once, then cached by the browser) ----------
 function loadFace(){ return faceReady||(faceReady=new Promise((res,rej)=>{
   const s=document.createElement('script'); s.src=FACE+'dist/face-api.js';
-  s.onload=async()=>{try{const u=FACE+'model/';await Promise.all([faceapi.nets.tinyFaceDetector.loadFromUri(u),faceapi.nets.faceLandmark68Net.loadFromUri(u),faceapi.nets.faceRecognitionNet.loadFromUri(u)]);res();}catch(e){faceReady=null;rej(e);}};
+  s.onload=async()=>{try{const u=FACE+'model/';await Promise.all([faceapi.nets.tinyFaceDetector.loadFromUri(u),faceapi.nets.faceLandmark68Net.loadFromUri(u),faceapi.nets.faceRecognitionNet.loadFromUri(u)]);
+    // warm-up: run the networks once on a blank picture, so the first real check does not pay the start-up cost
+    try{const c=document.createElement('canvas');c.width=c.height=160;const x=c.getContext('2d');x.fillStyle='#888';x.fillRect(0,0,160,160);await faceapi.detectSingleFace(c,new faceapi.TinyFaceDetectorOptions({inputSize:160,scoreThreshold:0.5}));await faceapi.nets.faceRecognitionNet.computeFaceDescriptor(c);}catch(e){}
+    window.__faceOK=true;paintGps();res();}catch(e){faceReady=null;rej(e);}};
   s.onerror=()=>{faceReady=null;rej(new Error('Could not load the face library — check internet'));}; document.head.appendChild(s);})); }
 const ear=(p,a)=>{const d=(i,j)=>Math.hypot(p[i].x-p[j].x,p[i].y-p[j].y);return (d(a+1,a+5)+d(a+2,a+4))/(2*d(a,a+3));};
 const yaw=p=>(p[30].x-p[0].x)/(p[16].x-p[0].x);
@@ -9287,51 +9441,72 @@ function liveCheck(S,p){
   return null;
 }
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-// Opens the camera (live only) and returns {descs, thumb, live}, {err} or null (cancelled)
-async function faceStep(want, title){
-  await loadFace();
-  const box=document.createElement('div'); box.style.cssText='position:fixed;inset:0;background:#000d;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#fff;font-family:inherit';
-  box.innerHTML='<div style="font-weight:700">'+esc(title)+'</div><video playsinline muted style="width:min(86vw,360px);border-radius:14px;transform:scaleX(-1)"></video><div id="attInst" style="font-size:16px;min-height:24px;text-align:center;padding:0 12px">Look at the camera…</div><div id="attDbg" style="font:12px DM Mono,monospace;opacity:.7"></div><button class="mini-btn mini-btn-no" id="attCancel">Cancel</button>';
-  document.body.appendChild(box); const v=box.querySelector('video'), inst=box.querySelector('#attInst'), dbg=box.querySelector('#attDbg'); let stop=false;
-  const done=r=>{stop=true;try{v.srcObject&&v.srcObject.getTracks().forEach(t=>t.stop());}catch(e){}box.remove();return r;};
-  return new Promise(async(resolve)=>{
+// Fast face check: the camera and the face models start together, the face is read once (and compared at once), then a blink or head-turn proves it is live.
+// Returns {descs, thumb, live, score}, {err} or null (cancelled). enrolled = saved faces to match against (check-in); none when registering.
+async function faceStep(want, title, enrolled){
+  const box=document.createElement('div'); box.style.cssText='position:fixed;inset:0;background:#000;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#fff;font-family:inherit;padding:12px';
+  box.innerHTML='<div style="font-weight:700">'+esc(title)+'</div><div style="position:relative"><video playsinline muted style="width:min(92vw,420px);aspect-ratio:3/4;object-fit:cover;border-radius:22px;transform:scaleX(-1);background:#111"></video><div id="attRing" style="position:absolute;inset:8% 14%;border:3px dashed #ffffff88;border-radius:50%;pointer-events:none"></div></div><div id="attInst" style="font-size:19px;font-weight:700;min-height:52px;text-align:center;padding:0 12px">Starting camera…</div><button class="mini-btn mini-btn-no" id="attCancel">Cancel</button>';
+  document.body.appendChild(box); const v=box.querySelector('video'), inst=box.querySelector('#attInst'), ring=box.querySelector('#attRing'); let stop=false, stream=null;
+  const done=r=>{stop=true;try{stream&&stream.getTracks().forEach(t=>t.stop());}catch(e){}try{v.srcObject=null;}catch(e){}box.remove();return r;};
+  return new Promise(async resolve=>{
     box.querySelector('#attCancel').onclick=()=>resolve(done(null));
-    try{ v.srcObject=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:640,height:480},audio:false}); await v.play(); }catch(e){ return resolve(done({err:'Camera blocked — allow camera access for this site'})); }
     try{
-      const opt=new faceapi.TinyFaceDetectorOptions({inputSize:224,scoreThreshold:0.4}), descs=[], ears=[]; let thumb='', phase=0, S=null, t0=Date.now();
+      inst.textContent=window.__faceOK?'Starting camera…':'Getting the face check ready… (first time only)';
+      const camP=navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:480},height:{ideal:640}},audio:false});   // camera and models load at the same time
+      try{ await loadFace(); }catch(e){ camP.then(st=>st.getTracks().forEach(t=>t.stop())).catch(()=>{}); return resolve(done({err:e.message})); }
+      try{ stream=await camP; }catch(e){ return resolve(done({err:'Camera blocked — allow camera access for this site'})); }
+      if(stop){ stream.getTracks().forEach(t=>t.stop()); return; }
+      v.srcObject=stream; await v.play();
+      const opt=new faceapi.TinyFaceDetectorOptions({inputSize:160,scoreThreshold:0.5}), descs=[], ears=[], frame=()=>new Promise(r=>requestAnimationFrame(r));
+      let thumb='', phase=0, S2=null, t0=Date.now(), bad=0, lastMatch=1;
       const grab=()=>{const c=document.createElement('canvas');c.width=c.height=160;const m=Math.min(v.videoWidth,v.videoHeight);c.getContext('2d').drawImage(v,(v.videoWidth-m)/2,(v.videoHeight-m)/2,m,m,0,0,160,160);return c.toDataURL('image/jpeg',0.6);};
+      inst.textContent='Look at the camera';
       while(!stop){
-        if(Date.now()-t0>(phase?25000:45000)) return resolve(done({err:phase?'Blink check not detected — blink slowly or turn your head, and try again':'Timed out — face the camera in good light and try again'}));
-        // step 1 needs the (slow) face fingerprint; step 2 only tracks the eyes/head, so it runs fast enough to catch a blink
-        let f=phase===0?await faceapi.detectSingleFace(v,opt).withFaceLandmarks().withFaceDescriptor():await faceapi.detectSingleFace(v,opt).withFaceLandmarks();
-        if(!f){inst.textContent='Face not found — look at the camera';await sleep(100);continue;}
-        const p=f.landmarks.positions; dbg.textContent='eyes '+((ear(p,36)+ear(p,42))/2).toFixed(2)+' · head '+yaw(p).toFixed(2);
+        if(Date.now()-t0>(phase?12000:25000)) return resolve(done({err:phase?'Blink not seen — blink slowly or turn your head, then try again':'Face not clear — hold the phone at eye level in good light and try again'}));
+        // the slow face read happens once; everything else only tracks eyes/head, which is quick enough to catch a blink
+        const f=(phase===0&&ears.length>=2)?await faceapi.detectSingleFace(v,opt).withFaceLandmarks().withFaceDescriptor():await faceapi.detectSingleFace(v,opt).withFaceLandmarks();
+        if(!f){inst.textContent='Look at the camera';await frame();continue;}
+        const p=f.landmarks.positions, y=yaw(p), e=(ear(p,36)+ear(p,42))/2;
         if(phase===0){
-          if(Math.abs(yaw(p)-0.5)>0.15){inst.textContent='Face the camera straight';await sleep(100);continue;}
-          descs.push(Array.from(f.descriptor).map(x=>+x.toFixed(4))); ears.push((ear(p,36)+ear(p,42))/2); thumb=grab(); inst.textContent='Hold still… '+descs.length+'/'+want;
-          if(descs.length>=want){phase=1;S={closed:false,base:Math.max(0.15,median(ears))};t0=Date.now();inst.textContent='Now BLINK your eyes (or turn your head slightly)';} else await sleep(400);
-        } else { const r=liveCheck(S,p); if(r) return resolve(done({descs,thumb,live:r})); }
+          if(Math.abs(y-0.5)>0.15){inst.textContent='Face the camera straight';await frame();continue;}
+          ears.push(e); if(!f.descriptor){await frame();continue;}     // the first 2 frames just steady the picture and measure your open eyes
+          const d=Array.from(f.descriptor);
+          if(enrolled){ lastMatch=faceDist(d,enrolled); if(lastMatch>MATCH){ if(++bad>=4) return resolve(done({err:'Face does not match your registration. Try again in better light.'})); inst.textContent='Hold still…'; await frame(); continue; } }
+          descs.push(d.map(x=>+x.toFixed(4))); thumb=grab(); ring.style.border='4px solid #3FB874';
+          if(descs.length<want){inst.textContent='Hold still… '+descs.length+'/'+want;await new Promise(r=>setTimeout(r,250));continue;}
+          phase=1; S2={closed:false,base:Math.max(0.15,median(ears))}; t0=Date.now(); inst.textContent='Now BLINK (or turn your head)';
+        } else { const r=liveCheck(S2,p); if(r) return resolve(done({descs,thumb,live:r,score:enrolled?+(1-lastMatch).toFixed(2):undefined})); await frame(); }
       }
     }catch(e){ return resolve(done({err:'Face check error: '+(e.message||e)})); }
   });
 }
 const faceDist=(d,list)=>Math.min(...list.map(r=>{const a=Array.isArray(r)?r:r.d;return Math.hypot(...a.map((x,i)=>x-d[i]));}));
 
-// ---------- GPS: several readings, accuracy and sanity checks ----------
-function gps(){ return new Promise((res,rej)=>{ if(!navigator.geolocation)return rej({message:'No GPS on this device'}); const S=[];
-  const id=navigator.geolocation.watchPosition(p=>S.push(p.coords),e=>{navigator.geolocation.clearWatch(id);rej(e);},{enableHighAccuracy:true,maximumAge:0,timeout:15000});
-  setTimeout(()=>{navigator.geolocation.clearWatch(id);S.length?res(S):rej({message:'No GPS reading — switch on location'});},7000); }); }
+// ---------- GPS: kept warm in the background so check-in never waits for a fix ----------
+let gpsW=null, gpsS=[], gpsErr='';
+function gpsWarm(){ if(gpsW!=null||!navigator.geolocation)return;
+  gpsW=navigator.geolocation.watchPosition(p=>{gpsS.push({t:Date.now(),lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy});gpsS=gpsS.slice(-15);gpsErr='';paintGps();},
+    e=>{gpsErr=e.code===1?'Location is blocked — allow it in the browser settings':'No GPS signal';paintGps();},{enableHighAccuracy:true,maximumAge:0,timeout:30000}); }
+function gpsStop(){ if(gpsW!=null){navigator.geolocation.clearWatch(gpsW);gpsW=null;} }
+document.addEventListener('visibilitychange',()=>{ if(document.hidden)gpsStop(); else if($('panel18')&&$('panel18').classList.contains('active')&&reg&&reg.status==='approved')gpsWarm(); });
+function bestFix(){ const now=Date.now(), rec=gpsS.filter(g=>now-g.t<10000); if(!rec.length)return null; const lim=Math.min(...rec.map(g=>g.acc))*1.5+5, b=rec.filter(g=>g.acc<=lim).pop(), flags=[];   // the NEWEST good reading, so moving away is noticed at once
+  if(rec.length>=3&&rec.every(c=>c.lat===rec[0].lat&&c.lng===rec[0].lng))flags.push('gps-frozen'); if(b.acc<=1)flags.push('gps-too-perfect'); return {...b,flags}; }
+async function getFix(){ const t0=Date.now(); gpsWarm();
+  while(Date.now()-t0<8000){ const f=bestFix(); if(f&&f.acc<=MAX_ACC)return f; await sleep(120); }
+  throw new Error(gpsErr||'GPS is weak. Go outside or near a window and try again.'); }
+const geoC={}, cfgC={t:0,v:{}};
+async function getGeo(code){ if(geoC[code])return geoC[code]; const g=await db.collection('outlet_geo').doc(code).get(); if(!g.exists)throw new Error('The owner has not set this outlet\u2019s location yet.'); return geoC[code]=g.data(); }
+async function getCfg(){ if(Date.now()-cfgC.t<60000)return cfgC.v; const c=await db.collection('attendance_settings').doc('config').get().catch(()=>null); cfgC.v=(c&&c.exists)?c.data():{}; cfgC.t=Date.now(); return cfgC.v; }
 async function place(code){
-  say('Checking your location… stand still for a few seconds',true);
-  const S=await gps().catch(e=>{throw new Error('Location: '+(e.message||'blocked — allow location'));}), b=S.reduce((m,c)=>c.accuracy<m.accuracy?c:m,S[0]), flags=[];
-  if(b.accuracy>MAX_ACC) throw new Error('GPS is weak (±'+Math.round(b.accuracy)+' m). Go outside / near a window and try again.');
-  if(S.length>=3&&S.every(c=>c.latitude===S[0].latitude&&c.longitude===S[0].longitude)) flags.push('gps-frozen');
-  if(b.accuracy<=1) flags.push('gps-too-perfect');
-  const g=await db.collection('outlet_geo').doc(code).get(); if(!g.exists) throw new Error('The owner has not set this outlet\u2019s location yet.');
-  const o=g.data(), d=Math.round(meters(b.latitude,b.longitude,o.lat,o.lng)), r=o.radius||RADIUS;
+  const o=await getGeo(code), f=await getFix(), d=Math.round(meters(f.lat,f.lng,o.lat,o.lng)), r=o.radius||RADIUS;
   if(d>r) throw new Error('You are '+d+' m from the outlet. Attendance works only within '+r+' m.');
-  return {lat:+b.latitude.toFixed(6),lng:+b.longitude.toFixed(6),acc:Math.round(b.accuracy),dist:d,flags};
+  return {lat:+f.lat.toFixed(6),lng:+f.lng.toFixed(6),acc:Math.round(f.acc),dist:d,flags:f.flags};
 }
+// live status chips: how far you are from the outlet, and whether the face check is ready
+function paintGps(){ const el=$('attChips'); if(!el||!reg)return; const o=geoC[reg.outletCode], f=bestFix(); let g;
+  if(gpsErr&&!f) g='<span class="chip-a bad">📍 '+esc(gpsErr)+'</span>'; else if(!f||!o) g='<span class="chip-a">📍 Finding your location…</span>';
+  else { const d=Math.round(meters(f.lat,f.lng,o.lat,o.lng)), ok=d<=(o.radius||RADIUS); g='<span class="chip-a '+(ok?'ok':'bad')+'">📍 '+(ok?d+' m from outlet ✓':d+' m away — go to the outlet')+'</span>'; }
+  el.innerHTML=g+'<span class="chip-a '+(window.__faceOK?'ok':'')+'">🙂 Face check '+(window.__faceOK?'ready ✓':'loading…')+'</span>'; }
 function askCode(){ return new Promise(res=>{ const b=document.createElement('div'); b.style.cssText='position:fixed;inset:0;background:#000c;z-index:9999;display:flex;align-items:center;justify-content:center';
   b.innerHTML='<div style="background:#fff;color:#111;padding:20px;border-radius:14px;text-align:center;max-width:320px"><div style="font-weight:700;margin-bottom:10px">Enter the 6-digit code shown on the outlet manager\u2019s screen</div><input id="attCodeIn" inputmode="numeric" maxlength="6" style="font:700 28px DM Mono,monospace;letter-spacing:6px;text-align:center;width:11ch"><div style="margin-top:12px;display:flex;gap:8px;justify-content:center"><button class="download-btn" id="attOk" style="color:#059669;border:2px solid #3FB874;width:auto;padding:10px 20px">OK</button><button class="mini-btn mini-btn-no" id="attNo">Cancel</button></div></div>';
   document.body.appendChild(b); const i=b.querySelector('#attCodeIn'); i.focus(); const fin=v=>{b.remove();res(v);};
@@ -9350,19 +9525,18 @@ async function register(){
 async function mark(kind){
   try{
     if(reg.deviceId!==devId()) return say('This is not your registered phone. Ask the owner to reset your registration.');
-    const p=await place(reg.outletCode);
-    say('Loading face check…',true);
-    const f=await faceStep(1,kind==='in'?'Check in':'Check out'); if(!f)return say(''); if(f.err)return say(f.err);
-    const sc=faceDist(f.descs[0],reg.faces); if(sc>MATCH) return say('Face does not match your registration. Try again in better light.');
-    let code=''; const cfg=await db.collection('attendance_settings').doc('config').get().catch(()=>null);
-    if(cfg&&cfg.exists&&cfg.data().requireCode){ code=await askCode(); if(!code) return say('Code needed.'); }
-    const ev={t:T(),lat:p.lat,lng:p.lng,acc:p.acc,dist:p.dist,face:+(1-sc).toFixed(2),live:f.live,code,photo:f.thumb,dev:devId(),flags:p.flags};
+    const [p,cfg]=await Promise.all([place(reg.outletCode),getCfg()]);   // location is checked first, so a wrong place is refused before the camera even opens
+    const f=await faceStep(1,kind==='in'?'Check in':'Check out',reg.faces); if(!f)return say(''); if(f.err)return say(f.err);
+    let code=''; if(cfg.requireCode){ code=await askCode(); if(!code) return say('Code needed.'); }
+    const ev={t:T(),lat:p.lat,lng:p.lng,acc:p.acc,dist:p.dist,face:f.score,live:f.live,code,photo:f.thumb,dev:devId(),flags:p.flags};
     const ref=db.collection('attendance').doc(kind==='in'?currentUser.uid+'_'+dateKey():(window.__attOpenId||currentUser.uid+'_'+dateKey()));
     if(kind==='in') await ref.set({uid:currentUser.uid,name:reg.name,outletCode:reg.outletCode,outletName:reg.outletName,date:dateKey(),in:ev});
     else await ref.update({out:ev});
+    navigator.vibrate&&navigator.vibrate(80);
     window.__attFlash=(kind==='in'?'Checked in':'Checked out')+' ✓ — you were '+p.dist+' m from '+reg.outletName+' (GPS ±'+p.acc+' m, limit '+RADIUS+' m)'; open();
   }catch(e){ say(/permission/i.test(e.message||'')?'Rejected: you may be outside the outlet area, or the code is wrong/expired (if the owner requires it), or the attendance rules are not published.':(e.message||String(e))); }
 }
+
 async function staffView(){
   const b=$('attBody'); const s=await db.collection('attendance_staff').doc(currentUser.uid).get(); reg=s.exists?s.data():null;
   let h='<div id="attMsg" class="att-pad" style="margin:8px 0;font-weight:600"></div>';
@@ -9375,14 +9549,16 @@ async function staffView(){
     const openY=ydat&&ydat.in&&!ydat.out&&ydat.in.t&&(Date.now()-ydat.in.t.toMillis())<24*3600*1000;
     let a=tdat, openId=null; if(tdat&&tdat.in&&!tdat.out) openId=td.id; else if(!tdat&&openY){a=ydat;openId=yd.id;}
     window.__attOpenId=openId;
-    h+='<div class="table-wrap" style="padding:18px"><div>Outlet: <b>'+esc(reg.outletName)+'</b></div><div style="margin-top:8px">'+(openId&&openId!==td.id?'Shift from '+esc(dmy(ydat.date)):'Today')+': In <b>'+hm(a&&a.in&&a.in.t)+'</b> · Out <b>'+hm(a&&a.out&&a.out.t)+'</b>'+(a&&a.in?' · <span style="color:var(--muted)">'+a.in.dist+' m from outlet</span>':'')+'</div><div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">'
+    h+='<div id="attChips" class="att-pad" style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px"></div><div class="table-wrap" style="padding:18px"><div>Outlet: <b>'+esc(reg.outletName)+'</b></div><div style="margin-top:8px">'+(openId&&openId!==td.id?'Shift from '+esc(dmy(ydat.date)):'Today')+': In <b>'+hm(a&&a.in&&a.in.t)+'</b> · Out <b>'+hm(a&&a.out&&a.out.t)+'</b>'+(a&&a.in?' · <span style="color:var(--muted)">'+a.in.dist+' m from outlet</span>':'')+'</div><div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">'
       +(openId?'<button class="download-btn" onclick="attMark(\'out\')">🏁 Check out</button>':(!tdat?'<button class="download-btn" onclick="attMark(\'in\')">✅ Check in</button>':'<span>Done for today ✓</span>'))
       +(reg.canShowCode?'<button class="download-btn" onclick="attView(\'code\')">🔢 Show outlet code</button>':'')+'</div></div><div id="attHist"></div>';
-    if(!(navigator.connection&&navigator.connection.saveData)) loadFace().catch(()=>{});   // warm up the face library in the background so check-in is quick
+    gpsWarm(); getGeo(reg.outletCode).then(paintGps).catch(()=>{}); getCfg();   // location, outlet position and settings are ready before you tap
+    if(!(navigator.connection&&navigator.connection.saveData)) loadFace().then(paintGps).catch(()=>{});   // face check warmed up in the background
   }
   b.innerHTML=h;
   if(window.__attFlash){say(window.__attFlash,true);window.__attFlash=null;}
   if($('attHist'))attHistory();
+  paintGps();
 }
 // every day the person has worked, month by month, with the month's total hours
 async function attHistory(){
@@ -9573,7 +9749,7 @@ function paintNav(){ const N=[['me','My attendance']].concat(isMgr()?[['recs','R
   $('attNav').innerHTML=N.map(n=>'<button class="mini-btn" style="'+(n[0]===view?'background:var(--accent,#3FB874);color:#fff':'')+'" onclick="attView(\''+n[0]+'\')">'+n[1]+'</button>').join(''); }
 let first=true;
 function open(){ if(!currentUser)return; if(first){first=false;if(isMgr())view='recs';} if(view==='code'&&!isMgr()&&!(reg&&reg.canShowCode))view='me'; attView(view); }
-const prev=switchTab; switchTab=function(n){prev(n); if(n===18)open(); else stopCode();};
+const prev=switchTab; switchTab=function(n){prev(n); if(n===18)open(); else {stopCode();gpsStop();}};
 })();
 </script>
 
@@ -9919,4 +10095,58 @@ function bellGo() {
 }
 </script>
 
+
+<style id="uiRefresh">
+/* ══ Professional UI refresh — brighter text, one clean typeface, clearer controls (loaded last, so it applies everywhere) ══ */
+:root{
+  --bg:#0B0D12; --surface:#141922; --surface2:#1C222D; --border:#2E3645;
+  --text:#F5F7FB; --muted:#AAB3C5;
+  --t1:#6E8EF3; --t2:#6E8EF3; --t3:#6E8EF3; --brand1:#6E8EF3; --brand2:#8FA8F5;
+  --success:#4CC983; --warning:#E8A94F; --danger:#F27676; --accent3:#F27676;
+  --ui:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+}
+html{font-size:16px;-webkit-text-size-adjust:100%}
+body{font-family:var(--ui);font-size:15px;line-height:1.5;color:var(--text);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-variant-numeric:tabular-nums}
+body,body *:not(code):not(pre):not(.keep-mono):not(#codeDigits):not(#attCode){font-family:var(--ui)!important}   /* the coding font made labels and notes hard to read */
+button,input,select,textarea{font-family:var(--ui)!important}
+
+/* headings and text */
+.section-head h2{font-size:22px;font-weight:800;letter-spacing:-.01em}
+.section-head p{font-size:14px;line-height:1.55;color:var(--muted)}
+.results-title{font-size:18px;font-weight:700;letter-spacing:-.005em}
+label{font-size:11.5px;letter-spacing:.08em;font-weight:500;color:var(--muted)}
+[style*="font-size:10px"]{font-size:12px!important}
+[style*="font-size:11px"]{font-size:12.5px!important}
+[style*="font-size:12px"]{font-size:13px!important}
+
+/* tables */
+th{font-size:11.5px;letter-spacing:.06em;font-weight:700;color:#C6CEDC;padding:11px 10px}
+td{font-size:14px;font-weight:600;color:var(--text)}
+tbody tr:hover td{background:rgba(110,142,243,.08)}
+
+/* inputs: clearer edge, readable placeholder, obvious focus */
+input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]),select,textarea{background:var(--surface2);color:var(--text);border:1px solid #3A4355;border-radius:10px;font-size:14.5px}
+input::placeholder,textarea::placeholder{color:#8D97AB;opacity:1}
+input:not([type=checkbox]):not([type=radio]):not([type=file]):focus,select:focus,textarea:focus{border-color:var(--t1);box-shadow:0 0 0 3px rgba(110,142,243,.28);outline:none}
+:focus-visible{outline:2px solid #8FA8F5;outline-offset:2px}
+
+/* buttons */
+button{transition:background-color .15s,border-color .15s,color .15s,box-shadow .15s,transform .05s}
+button:active{transform:translateY(1px)}
+.mini-btn{font-size:12.5px;font-weight:700;border-radius:10px;padding:7px 13px;letter-spacing:.01em}
+.download-btn,.modal-btn,.ev-btn{font-weight:700;letter-spacing:.01em;border-radius:12px}
+.download-btn:hover,.modal-btn:hover{filter:brightness(1.12)}
+
+/* surfaces: a little depth so cards stand out from the page */
+.card,.setup-card,.table-wrap,.dash-card{border-color:var(--border);box-shadow:0 10px 30px rgba(0,0,0,.26)}
+.sidebar{background:linear-gradient(180deg,#151A23,#10141B)}
+.tab-label{font-size:14px;font-weight:600}
+.tab{color:var(--text)}
+
+/* small details */
+::selection{background:rgba(110,142,243,.42)}
+*{scrollbar-width:thin;scrollbar-color:#3A4355 transparent}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#3A4355;border-radius:8px}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
 </body>
