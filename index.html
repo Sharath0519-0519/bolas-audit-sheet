@@ -537,8 +537,8 @@ img,video,canvas{max-width:100%}
   .att-cards td::before{content:attr(data-l);color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;text-align:left;flex:0 0 auto}
   .att-cards td[data-l=""]::before,.att-cards td[colspan]::before{display:none}
   .att-cards td[colspan]{justify-content:center}
-  .att-cards td[data-l="Action"]{justify-content:flex-start;flex-wrap:wrap;padding-top:10px!important}
-  .att-cards td[data-l="Action"]::before{flex:0 0 100%}
+  .att-cards td[data-l="Action"]:has(button){justify-content:flex-start;flex-wrap:wrap;padding-top:10px!important}
+  .att-cards td[data-l="Action"]:has(button)::before{flex:0 0 100%}
   .att-cards input{width:min(55vw,220px)}
 }
 #panel18 .mini-btn:not(.mini-btn-ok):not(.mini-btn-no){color:var(--text);border:1px solid #3A4152}
@@ -5234,6 +5234,8 @@ async function saveP1PackOverride(key) {
   }
 }
 
+// name on top, the Google / login e-mail below it — so two people with the same display name can be told apart
+const whoCell = a => '<div class="who-wrap"><div style="font-weight:700">' + escHtml(a.name || '—') + '</div>' + (a.email ? '<div class="who-mail">' + escHtml(typeof emailLabel === 'function' ? emailLabel(a.email) : a.email) + '</div>' : '') + '</div>';
 function ownerLimitRows(root, n) {
   window.__limOpen = window.__limOpen || {};
   root.querySelectorAll('tbody').forEach((tb, i) => {
@@ -5354,7 +5356,7 @@ function renderOwnerDashboard() {
   html += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Downloaded By</th><th style="text-align:left">Report</th><th style="text-align:left">Outlet</th><th style="text-align:left">File</th><th>When</th></tr></thead><tbody>`;
   dls.forEach(a => {
     const o = dlOutlet(a), rep = a.report || PANEL_NAMES[a.panel] || a.panel;
-    html += `<tr><td style="text-align:left">${escHtml(a.name || a.email || '—')}</td><td style="text-align:left">${escHtml(rep)}</td><td style="text-align:left">${o ? escHtml(o) : '<span style="color:var(--muted)">— (not outlet-specific)</span>'}</td><td style="text-align:left">${escHtml(a.detail || '—')}</td><td>${fmtTs(a.ts)}</td></tr>`;
+    html += `<tr><td style="text-align:left">${whoCell(a)}</td><td style="text-align:left">${escHtml(rep)}</td><td style="text-align:left">${o ? escHtml(o) : '<span style="color:var(--muted)">— (not outlet-specific)</span>'}</td><td style="text-align:left">${escHtml(a.detail || '—')}</td><td>${fmtTs(a.ts)}</td></tr>`;
   });
   if (!dls.length) html += `<tr><td colspan="5" style="text-align:center;color:var(--muted)">No downloads yet</td></tr>`;
   html += `</tbody></table></div></div>`;
@@ -5362,7 +5364,7 @@ function renderOwnerDashboard() {
   html += `<div class="results-title" style="margin-top:24px">Recent Activity</div>`;
   html += `<div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Who</th><th>Action</th><th>Panel</th><th style="text-align:left">Detail</th><th>When</th></tr></thead><tbody>`;
   acts.forEach(a => {
-    html += `<tr><td style="text-align:left">${escHtml(a.name || a.email || '—')}</td><td>${escHtml(actionLabel(a.action))}</td><td>${escHtml(PANEL_NAMES[a.panel] || a.panel)}</td><td style="text-align:left">${escHtml(a.detail || '—')}</td><td>${fmtTs(a.ts)}</td></tr>`;
+    html += `<tr><td style="text-align:left">${whoCell(a)}</td><td>${escHtml(actionLabel(a.action))}</td><td>${escHtml(PANEL_NAMES[a.panel] || a.panel)}</td><td style="text-align:left">${escHtml(a.detail || '—')}</td><td>${fmtTs(a.ts)}</td></tr>`;
   });
   if (!acts.length) html += `<tr><td colspan="5" style="text-align:center;color:var(--muted)">No activity yet</td></tr>`;
   html += `</tbody></table></div></div>`;
@@ -8705,6 +8707,7 @@ function p3ExitCountModeIfActive(){
 }
 function p3CmRender(){
   if (!p3AuditRows.length) return;
+  if (p3CmIndex >= p3AuditRows.length) p3CmIndex = p3AuditRows.length - 1; if (p3CmIndex < 0) p3CmIndex = 0;   // a new, shorter file must not leave the counter past the end
   const r = p3AuditRows[p3CmIndex];
   document.getElementById('cmProgressTxt').textContent = `Item ${p3CmIndex+1} of ${p3AuditRows.length}`;
   const unfilled = p3AuditRows.filter(x=>x.storeCount===null && x.rackCount===null).length;
@@ -8729,7 +8732,7 @@ function p3CmRenderResult(r){
   el.innerHTML = `<span class="remark-pill" style="background:${bg};color:${fg};font-size:14px;padding:6px 16px">${remark}</span>`;
 }
 function p3CmOnInput(){
-  const r = p3AuditRows[p3CmIndex];
+  const r = p3AuditRows[p3CmIndex]; if (!r) return;
   const sv = document.getElementById('cmStoreInput').value, rv = document.getElementById('cmRackInput').value;
   r.storeCount = sv===''?null:Math.max(0,parseInt(sv,10)||0);
   r.rackCount = rv===''?null:Math.max(0,parseInt(rv,10)||0);
@@ -8760,7 +8763,7 @@ function p3CmJumpUnfilled(){
   if (el) {
     const prevHTML = el.innerHTML;
     el.innerHTML = `<span style="color:#3FB874;font-family:'DM Mono',monospace;font-size:12px">✓ Every item has a count — nothing left to jump to</span>`;
-    setTimeout(() => { if (document.getElementById('cmResult')) p3CmRenderResult(p3AuditRows[p3CmIndex]); }, 1800);
+    setTimeout(() => { if (document.getElementById('cmResult') && p3AuditRows[p3CmIndex]) p3CmRenderResult(p3AuditRows[p3CmIndex]); }, 1800);   // the rows may have been cleared meanwhile
   }
 }
 </script>
@@ -9665,7 +9668,7 @@ window.attMon=v=>{window.__attMon=v;attHistory();};
 window.attFind=el=>{const q=el.value.trim().toLowerCase();document.querySelectorAll('tr[data-c]').forEach(r=>{r.style.display=(!q||r.textContent.toLowerCase().includes(q))?'':'none';});};
 window.attCards=root=>{ if(!root)return; root.querySelectorAll('table').forEach(t=>{ t.classList.add('att-cards'); const th=[...t.querySelectorAll('thead th')].map(x=>x.textContent.trim());
   t.querySelectorAll('tbody tr').forEach(tr=>[...tr.children].forEach((td,i)=>{ if(!td.hasAttribute('colspan'))td.setAttribute('data-l',th[i]||''); })); }); };
-['attBody','ownerAttReqWrap','ownerAttLocWrap'].forEach(id=>{ const el=document.getElementById(id); if(el)new MutationObserver(()=>attCards(el)).observe(el,{childList:true,subtree:true}); });
+['attBody','ownerAttReqWrap','ownerAttLocWrap','ownerDashWrap'].forEach(id=>{ const el=document.getElementById(id); if(el)new MutationObserver(()=>attCards(el)).observe(el,{childList:true,subtree:true}); });
 window.attDevReq=async()=>{try{await db.collection('attendance_staff').doc(currentUser.uid).update({pendingDeviceId:devId(),pendingDeviceAt:T()});staffView();}catch(e){say(e.message);}};
 window.attDevOk=async u=>{const d=await db.collection('attendance_staff').doc(u).get();const x=d.data()||{};if(!x.pendingDeviceId)return;await db.collection('attendance_staff').doc(u).update({deviceId:x.pendingDeviceId,pendingDeviceId:firebase.firestore.FieldValue.delete(),pendingDeviceAt:firebase.firestore.FieldValue.delete()});staffAdminView();};
 // owner / manager sets a missing check-out (kept clearly marked as manual)
@@ -9794,6 +9797,8 @@ const prev=switchTab; switchTab=function(n){prev(n); if(n===18)open(); else {sto
       <div class="ml-attach" id="mailAttach"></div>
       <input type="file" id="mailFile" accept=".xlsx,.xls,.csv,.pdf" style="display:none">
 
+      <label class="ml-lbl" for="mailFrom" id="mailFromLbl">Send from</label>
+      <select class="ml-in" id="mailFrom"></select>
       <div class="ml-route" id="mailRoute"></div>
       <div class="ml-status" id="mailStatus" role="alert"></div>
 
@@ -9928,13 +9933,23 @@ const prev=switchTab; switchTab=function(n){prev(n); if(n===18)open(); else {sto
     try { localStorage.setItem(LS_RECENT, JSON.stringify(r.slice(0, 12))); } catch (e) { }
   }
   function say(t, kind) { const s = $m('mailStatus'); s.textContent = t || ''; s.className = 'ml-status' + (t ? ' show ' + kind : ''); }
+  const isGoogleUser = () => !!(currentUser && (currentUser.providerData || []).some(p => p.providerId === 'google.com'));
   function updateRoute() {
-    $m('mailRoute').textContent = MAIL.cfg.apiUrl ? 'Sending through the Mail API · up to about 18 MB' : 'Sending through Firebase Trigger Email · files up to about 700 KB';
+    const sel = $m('mailFrom'), gm = sel && sel.value === 'gmail' && isGoogleUser();
+    $m('mailRoute').textContent = gm ? 'Sent from your own Google account (' + (currentUser.email || '') + ') · files up to about 18 MB · Google may ask you to allow this once'
+      : (MAIL.cfg.apiUrl ? 'Sending through the company Mail API · up to about 18 MB' : 'Sending through Firebase Trigger Email · files up to about 700 KB');
   }
+  function fillFrom() {   // people who signed in with Google can send from their own account; ID/password staff use the company mail
+    const sel = $m('mailFrom'), g = isGoogleUser(); let pref = 'gmail'; try { pref = localStorage.getItem('bolasMailFrom') || 'gmail'; } catch (e) { }
+    sel.innerHTML = (g ? '<option value="gmail">My own Google account — ' + esc(currentUser.email || '') + '</option>' : '') + '<option value="company">Company mail (shared sender)</option>';
+    sel.value = g && pref === 'gmail' ? 'gmail' : 'company'; sel.style.display = $m('mailFromLbl').style.display = g ? '' : 'none'; updateRoute();
+  }
+  $m('mailFrom').addEventListener('change', () => { try { localStorage.setItem('bolasMailFrom', $m('mailFrom').value); } catch (e) { } updateRoute(); });
 
   function mailOpen(src) {
     if (src) MAIL.cur = src; else if (MAIL.last) MAIL.cur = MAIL.last;
     MAIL.t = {}; say('');
+    fillFrom();
     mailSnackHide();
     const c = MAIL.cur;
     $m('mailReport').value = c ? (c.report || reportFromName(c.name, c.tab)) : '';
@@ -9987,6 +10002,29 @@ const prev=switchTab; switchTab=function(n){prev(n); if(n===18)open(); else {sto
   const blobToB64 = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(new Error('Could not read the file.')); r.readAsDataURL(blob); });
   const realReplyTo = () => { const e = (typeof currentUser !== 'undefined' && currentUser && currentUser.email) || ''; return typeof emailToLoginId === 'function' && emailToLoginId(e) ? '' : e; };
 
+  // ── Send from the person's own Google account (Gmail API). The popup asks for permission once; the access token lasts about an hour. ──
+  let gmTok = null, gmExp = 0;
+  function gmailToken() {   // must be called straight from the Send tap so the browser allows the permission window
+    if (gmTok && Date.now() < gmExp) return Promise.resolve(gmTok);
+    const prov = new firebase.auth.GoogleAuthProvider(); prov.addScope('https://www.googleapis.com/auth/gmail.send'); prov.setCustomParameters({ login_hint: currentUser.email || '' });
+    return currentUser.reauthenticateWithPopup(prov).then(r => { gmTok = r.credential && r.credential.accessToken; gmExp = Date.now() + 50 * 60000; if (!gmTok) throw new Error('Google did not give permission to send mail.'); return gmTok; });
+  }
+  const utf8b64 = str => { const by = new TextEncoder().encode(str); let bin = ''; for (let i = 0; i < by.length; i += 0x8000) bin += String.fromCharCode.apply(null, by.subarray(i, i + 0x8000)); return btoa(bin); };
+  const b64Wrap = b => (b.match(/.{1,76}/g) || ['']).join('\r\n');
+  const hdr = t => /^[\x20-\x7e]*$/.test(t) ? t : '=?UTF-8?B?' + utf8b64(t) + '?=';
+  function buildMime(p, fromName, fromEmail) {
+    const bd = 'bolas_' + Math.random().toString(36).slice(2), alt = 'alt_' + Math.random().toString(36).slice(2);
+    const head = ['From: ' + (fromName ? hdr(fromName) + ' ' : '') + '<' + fromEmail + '>', 'To: ' + p.to.split(',').join(', '), p.cc ? 'Cc: ' + p.cc.split(',').join(', ') : '', 'Subject: ' + hdr(p.subject), 'MIME-Version: 1.0', 'Content-Type: multipart/mixed; boundary="' + bd + '"'].filter(Boolean).join('\r\n');
+    const parts = ['Content-Type: multipart/alternative; boundary="' + alt + '"\r\n\r\n--' + alt + '\r\nContent-Type: text/plain; charset="UTF-8"\r\nContent-Transfer-Encoding: base64\r\n\r\n' + b64Wrap(utf8b64(p.text)) + '\r\n--' + alt + '\r\nContent-Type: text/html; charset="UTF-8"\r\nContent-Transfer-Encoding: base64\r\n\r\n' + b64Wrap(utf8b64(p.html)) + '\r\n--' + alt + '--'];
+    p.attachments.forEach(a => parts.push('Content-Type: ' + a.mimeType + '; name="' + hdr(a.filename) + '"\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename="' + hdr(a.filename) + '"\r\n\r\n' + b64Wrap(a.contentBase64)));
+    return head + '\r\n\r\n--' + bd + '\r\n' + parts.join('\r\n--' + bd + '\r\n') + '\r\n--' + bd + '--\r\n';
+  }
+  async function sendViaGmail(p, token) {
+    const raw = buildMime(p, (currentUser.displayName || '').replace(/[\r\n"]/g, ''), currentUser.email);
+    const res = await fetch('https://www.googleapis.com/upload/gmail/v1/users/me/messages/send?uploadType=media', { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'message/rfc822' }, body: new Blob([raw]) });
+    if (!res.ok) { let t = ''; try { t = (await res.json()).error.message; } catch (e) { } gmTok = null; throw new Error(res.status === 401 || res.status === 403 ? 'Gmail did not allow this: ' + (t || 'permission was not given') + (/not been used|disabled/i.test(t) ? ' — the owner must enable the Gmail API in Google Cloud.' : '') : 'Gmail error ' + res.status + ': ' + t); }
+    return 'sent';
+  }
   async function sendViaApi(p) {
     const res = await fetch(MAIL.cfg.apiUrl, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ token: MAIL.cfg.token || '' }, p)) });
     const txt = await res.text(); let j = null;
@@ -10025,9 +10063,11 @@ const prev=switchTab; switchTab=function(n){prev(n); if(n===18)open(); else {sto
     if (!subject) return say('The subject is empty.', 'err');
     if (!MAIL.cur || !MAIL.cur.blob) return say('Attach the report first.', 'err');
     const size = MAIL.cur.blob.size;
-    if (MAIL.cfg.apiUrl && size > MAX_API) return say('This file is ' + fmtSize(size) + ' — too big to e-mail (limit about 18 MB).', 'err');
+    const useGmail = $m('mailFrom').value === 'gmail' && isGoogleUser();
+    if ((useGmail || MAIL.cfg.apiUrl) && size > MAX_API) return say('This file is ' + fmtSize(size) + ' — too big to e-mail (limit about 18 MB).', 'err');
 
     MAIL.sending = true; const btn = $m('mailSendBtn'); btn.disabled = true; btn.textContent = 'Sending…'; say('Sending to ' + to.join(', ') + '…', 'wait');
+    const tokP = useGmail ? gmailToken() : null; if (tokP) tokP.catch(() => { });   // opens Google's permission window right now, while the tap is fresh
     try {
       const b64 = await blobToB64(MAIL.cur.blob), fname = MAIL.cur.name, ext = extOf(fname);
       const payload = {
@@ -10035,7 +10075,7 @@ const prev=switchTab; switchTab=function(n){prev(n); if(n===18)open(); else {sto
         html: '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:14px;line-height:1.55;color:#1c2330">' + esc(body).replace(/\n/g, '<br>') + '</div>',
         attachments: [{ filename: fname, mimeType: MIME[ext] || 'application/octet-stream', contentBase64: b64 }]
       };
-      const how = MAIL.cfg.apiUrl ? await sendViaApi(payload) : await sendViaFirestore(payload, size);
+      const how = useGmail ? await sendViaGmail(payload, await tokP) : (MAIL.cfg.apiUrl ? await sendViaApi(payload) : await sendViaFirestore(payload, size));
       remember(to.concat(cc));
       if (typeof logActivity === 'function') logActivity('email_report', (MAIL.cur.tab || 6), (subject + ' → ' + to.join(', ')).slice(0, 190));
       if (how === 'sent') say('✓ Sent to ' + to.join(', ') + '. Subject: ' + subject, 'ok');
@@ -10044,7 +10084,7 @@ const prev=switchTab; switchTab=function(n){prev(n); if(n===18)open(); else {sto
       setTimeout(() => { if ($m('mailModal').classList.contains('open') && !MAIL.sending) { btn.disabled = false; btn.textContent = '✉ Send email'; } }, 2500);
     } catch (e) {
       console.error('mailSend failed:', e);
-      say("Couldn't send: " + (e.code === 'permission-denied' ? 'Firestore does not allow writing to the “mail” collection yet (add a rule), or use the Mail API link.' : (e.message || e)), 'err');
+      say("Couldn't send: " + (e.code === 'auth/popup-blocked' ? 'Your browser blocked the Google permission window. Allow pop-ups for this site, then press Send again.' : e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request' ? 'The Google permission window was closed. Press Send again and tap Allow.' : e.code === 'auth/user-mismatch' ? 'Choose the same Google account you signed in with.' : e.code === 'permission-denied' ? 'Firestore does not allow writing to the “mail” collection yet (add a rule), or use the Mail API link.' : (e.message || e)), 'err');
       btn.disabled = false; btn.textContent = '✉ Send email';
     }
     MAIL.sending = false;
@@ -10148,5 +10188,52 @@ button:active{transform:translateY(1px)}
 *{scrollbar-width:thin;scrollbar-color:#3A4355 transparent}
 ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#3A4355;border-radius:8px}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* e-mail line under a person's name */
+.who-mail{color:var(--muted);font-size:12px;font-weight:500;word-break:break-all;line-height:1.3;margin-top:2px}
+@media(max-width:640px){.att-cards .who-wrap{text-align:right;min-width:0;flex:1}}
+/* ══ Polish layer — depth, colour accents and gentle motion, so the app feels modern and attractive ══ */
+body{background:radial-gradient(900px 520px at 88% -8%,rgba(110,142,243,.16),transparent 62%),radial-gradient(760px 520px at -8% 108%,rgba(168,120,255,.11),transparent 62%),var(--bg);background-attachment:fixed}
+/* sidebar */
+.sidebar{background:linear-gradient(180deg,#171C27 0%,#11151D 100%);box-shadow:8px 0 30px rgba(0,0,0,.25)}
+.sidebar-logo .suite-icon{background:linear-gradient(135deg,#6E8EF3,#A878FF)!important;box-shadow:0 8px 22px rgba(110,142,243,.45);border-radius:14px}
+.sidebar-logo h1{letter-spacing:-.01em}
+.tab{transition:background-color .18s,color .18s,transform .18s,box-shadow .18s}
+.tab:hover{background:rgba(255,255,255,.06);color:#fff;transform:translateX(2px)}
+.tab.active{background:linear-gradient(90deg,rgba(110,142,243,.28),rgba(110,142,243,.05));color:#fff;box-shadow:inset 3px 0 0 var(--t1),0 6px 16px rgba(0,0,0,.18)}
+.tab .tab-icon{width:28px;height:28px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);flex:0 0 auto}
+.tab .tab-icon svg{width:16px!important;height:16px!important}
+.tab{padding-top:9px;padding-bottom:9px}
+.tab.active .tab-icon{background:rgba(110,142,243,.3);color:#fff}
+.hello-chip{background:linear-gradient(135deg,rgba(110,142,243,.24),rgba(168,120,255,.16));border-color:rgba(110,142,243,.45);color:#fff}
+/* top bar and page titles */
+.topbar{backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.section-head h2{background:linear-gradient(90deg,#FFFFFF,#C7D4FF);-webkit-background-clip:text;background-clip:text;color:transparent}
+.section-head .dot{width:5px!important;height:34px!important;border-radius:4px!important;box-shadow:0 0 16px currentColor}
+/* cards */
+.setup-card,.card,.table-wrap{border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,0) 60%),var(--surface)}
+.setup-card:has(.dash-card-icon){transition:transform .2s,box-shadow .2s,border-color .2s;cursor:pointer}
+.setup-card:has(.dash-card-icon):hover{transform:translateY(-3px);border-color:rgba(110,142,243,.55);box-shadow:0 18px 40px rgba(0,0,0,.4),0 0 0 1px rgba(110,142,243,.2)}
+.dash-card-icon{background:linear-gradient(135deg,rgba(110,142,243,.32),rgba(168,120,255,.22))!important;border-radius:13px!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 6px 16px rgba(0,0,0,.25)}
+.card{transition:transform .18s,box-shadow .18s}.card:hover{transform:translateY(-2px);box-shadow:0 14px 32px rgba(0,0,0,.35)}
+/* upload areas */
+.upload-zone{background:linear-gradient(180deg,rgba(110,142,243,.08),rgba(110,142,243,0) 70%),var(--surface);border-color:rgba(110,142,243,.38)}
+.upload-zone:hover,.upload-zone.drag-over{box-shadow:0 0 0 4px rgba(110,142,243,.14),0 18px 40px rgba(0,0,0,.35)}
+.upload-icon{background:linear-gradient(135deg,rgba(110,142,243,.3),rgba(168,120,255,.2))!important;border-radius:16px!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
+/* tables */
+.table-wrap thead th{background:linear-gradient(180deg,#232A38,#1B212C);border-bottom:1px solid #394154}
+.table-wrap tbody tr:nth-child(even) td{background:rgba(255,255,255,.022)}
+.table-wrap tbody tr:hover td{background:rgba(110,142,243,.1)}
+/* buttons and chips */
+.download-btn:not([disabled]):hover,.modal-btn:not([disabled]):hover{box-shadow:0 10px 26px rgba(0,0,0,.4);transform:translateY(-1px)}
+.download-btn[disabled],.modal-btn[disabled]{opacity:.55}
+.pill,.badge{border-radius:999px;font-weight:700}
+/* pop-up windows */
+.modal-box{border-radius:20px;border:1px solid #394154;box-shadow:0 34px 90px rgba(0,0,0,.6)}
+/* sign-in screen */
+#authGate{background:radial-gradient(900px 520px at 50% -12%,rgba(110,142,243,.3),transparent 62%),radial-gradient(700px 480px at 100% 110%,rgba(168,120,255,.18),transparent 60%),var(--bg)}
+/* gentle motion when a screen opens */
+@keyframes panelIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.panel.active{animation:panelIn .3s ease both}
 </style>
 </body>
