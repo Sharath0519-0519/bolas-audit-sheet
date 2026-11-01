@@ -17,8 +17,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 <style>
 :root {
   --bg:#0A0C10; --surface:#12151B; --surface2:#191D25; --border:#242933;
@@ -1544,6 +1542,41 @@ textarea.ml-in{min-height:170px;resize:vertical;font-family:'DM Mono',monospace;
   </div>
 </div>
 
+<script>
+// ══ Speed layer (older phones): reused formatters, fast-mode detection, Excel libraries loaded only when needed ══
+(function(){
+  // making a new date/number formatter for every table cell was the main cause of slow, "hanging" screens
+  const nfC=new Map(), dfC=new Map(), oN=Number.prototype.toLocaleString, oDS=Date.prototype.toLocaleString, oDD=Date.prototype.toLocaleDateString, oDT=Date.prototype.toLocaleTimeString;
+  const key=(l,o)=>(Array.isArray(l)?l.join(','):String(l||''))+'|'+(o?JSON.stringify(o):'');
+  const has=(o,ks)=>!!o&&ks.some(k=>k in o), DATE=['weekday','year','month','day','dateStyle'], TIME=['hour','minute','second','timeStyle'];
+  const dtf=(l,o)=>{const k=key(l,o);let f=dfC.get(k);if(!f){f=new Intl.DateTimeFormat(l,o);dfC.set(k,f);}return f;};
+  Number.prototype.toLocaleString=function(l,o){ try{ const k=key(l,o); let f=nfC.get(k); if(!f){f=new Intl.NumberFormat(l,o);nfC.set(k,f);} return f.format(this); }catch(e){ return oN.call(this,l,o); } };
+  Date.prototype.toLocaleString=function(l,o){ try{ if(has(o,DATE.concat(TIME))) return dtf(l,o).format(this); }catch(e){} return oDS.call(this,l,o); };
+  Date.prototype.toLocaleDateString=function(l,o){ try{ if(has(o,DATE)) return dtf(l,o).format(this); }catch(e){} return oDD.call(this,l,o); };
+  Date.prototype.toLocaleTimeString=function(l,o){ try{ if(has(o,TIME)) return dtf(l,o).format(this); }catch(e){} return oDT.call(this,l,o); };
+  // fast mode: fewer visual effects on weak phones (automatic; can be switched in Settings)
+  let m=null; try{ m=localStorage.getItem('bolasLite'); }catch(e){}
+  const low=(navigator.deviceMemory&&navigator.deviceMemory<=3)||(navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=4)||(navigator.connection&&navigator.connection.saveData);
+  window.__lite=m==='1'||(m!=='0'&&!!low); document.documentElement.classList.toggle('lite',window.__lite);
+  // Excel libraries (about 2 MB) are fetched when first needed, not at start
+  const URLS=['https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js','https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js']; let lp=null;
+  window.libsReady=()=>typeof XLSX!=='undefined'&&typeof ExcelJS!=='undefined';
+  window.loadLibs=()=>lp||(lp=Promise.all(URLS.map(u=>new Promise((res,rej)=>{const sc=document.createElement('script');sc.src=u;sc.onload=res;sc.onerror=()=>{lp=null;rej(new Error('Could not load the Excel tools — check your internet and try again.'));};document.head.appendChild(sc);}))));
+  addEventListener('load',()=>{ if(!window.__lite)(window.requestIdleCallback||setTimeout)(()=>loadLibs().catch(()=>{}),{timeout:5000}); });   // strong phones fetch them quietly after start
+  const NEED=/download|excel|generate|save|send|share|import|upload|process|export|email|csv|pdf|audit|report|sheet|browse/i;
+  const note=on=>{ let n=document.getElementById('libNote'); if(!n){ n=document.createElement('div'); n.id='libNote'; n.textContent='Preparing the Excel tools… one moment'; n.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1C222D;color:#F5F7FB;border:1px solid #3A4355;border-radius:999px;padding:10px 18px;font:600 13px system-ui,sans-serif;z-index:99999;box-shadow:0 10px 30px rgba(0,0,0,.5)'; document.body.appendChild(n); } n.style.display=on?'block':'none'; };
+  document.addEventListener('dragenter',()=>{ if(!libsReady())loadLibs().catch(()=>{}); },true);
+  document.addEventListener('click',e=>{ if(libsReady()||e.__replayed)return; const t=e.target.closest&&e.target.closest('button,[onclick],label,.upload-zone'); if(!t||!NEED.test((t.textContent||'')+' '+(t.id||'')))return;
+    e.stopImmediatePropagation(); e.preventDefault(); t.setAttribute('aria-busy','true'); note(true);
+    loadLibs().then(()=>{ t.removeAttribute('aria-busy'); note(false); const ev=new MouseEvent('click',{bubbles:true,cancelable:true}); ev.__replayed=true; t.dispatchEvent(ev); }).catch(err=>{ t.removeAttribute('aria-busy'); note(false); alert(err.message); }); },true);
+  document.addEventListener('change',e=>{ const t=e.target; if(libsReady()||!t||t.type!=='file'||e.__replayed)return; e.stopImmediatePropagation();
+    loadLibs().then(()=>{ const ev=new Event('change',{bubbles:true}); ev.__replayed=true; t.dispatchEvent(ev); }).catch(err=>alert(err.message)); },true);
+  // Settings: switch for fast mode
+  addEventListener('DOMContentLoaded',()=>{ const p=document.getElementById('panel7'); if(!p)return; const d=document.createElement('div'); d.className='setup-card'; d.style.marginTop='14px';
+    d.innerHTML='<label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:14px;letter-spacing:0;color:var(--text)"><input type="checkbox" id="liteToggle" style="margin-top:3px"><span><b>Fast mode</b> — smoother on older phones<br><span style="color:var(--muted);font-size:12.5px;font-weight:400">Turns off animations and some visual effects. It is switched on automatically on weaker phones.</span></span></label>';
+    p.appendChild(d); const c=document.getElementById('liteToggle'); c.checked=!!window.__lite; c.onchange=()=>{ try{ localStorage.setItem('bolasLite',c.checked?'1':'0'); }catch(e){} window.__lite=c.checked; document.documentElement.classList.toggle('lite',c.checked); }; });
+})();
+</script>
 <script>
 // ══════════════════════════════════════════════════════════════
 // SHARED ICON MARKUP (kept as constants so the empty/loaded states
@@ -4787,7 +4820,8 @@ function loadOwnerDashboard() {
   const locWrap = document.getElementById('ownerAttLocWrap');
   if (locWrap && window.attLocInto) {
     locWrap.innerHTML = `<details><summary class="results-title" style="cursor:pointer;margin-bottom:10px">📍 Attendance — Outlet Locations <span style="font-size:12px;color:var(--muted);font-weight:400">(tap to open)</span></summary><p style="color:var(--muted);font-size:12px;margin:6px 0 10px">Search the outlet, then use Google Maps or Pick on map, and Save. Staff can mark attendance only within the radius (100 m).</p><div id="ownerAttLocBody"></div></details>`;
-    window.attLocInto(document.getElementById('ownerAttLocBody'));
+    const det = locWrap.querySelector('details');
+    det.addEventListener('toggle', () => { if (det.open && !det.dataset.loaded) { det.dataset.loaded = '1'; window.attLocInto(document.getElementById('ownerAttLocBody')); } });   // built only when opened
   }
   renderOwnerPlatforms();
 }
@@ -6290,9 +6324,11 @@ async function p14StreamRows(file) {
     }
     rows[ri] = arr;
   };
+  let chars = 0, lastPaint = 0;
   const BATCH = window.__p14Batch || 3000000;   // characters per slice handed to a worker
   const applyRows = out => { for (let i = 0; i < out.length; i += 2) rows[out[i]] = out[i + 1]; };
   await p14ZipStream(file, sent, async t => {
+    chars += t.length; if (Date.now() - lastPaint > 250) { lastPaint = Date.now(); const pb = document.getElementById('p14ProcessBtn'); if (pb) pb.textContent = 'Reading… ' + Math.round(chars / 1e6) + ' MB read'; }
     buf += t;
     if (par) {   // fast path: row-aligned slices go to the workers
       if (buf.length >= BATCH) { const cut = buf.lastIndexOf('</row>'); if (cut > 0) { const part = buf.slice(0, cut + 6); buf = buf.slice(cut + 6); await par.send(part, applyRows); } }
@@ -7362,10 +7398,13 @@ $14('p14RemoveBtn').addEventListener('click', () => {
   $14('p14ZoneTitle').textContent = 'Drop your Invoice List here';
   $14('p14ZoneSub').innerHTML = 'Drag & drop or <span class="hl1">click to browse</span> · Daily, monthly or yearly · .xls and .xlsx';
 });
+const p14Label = async t => { const b = document.getElementById('p14ProcessBtn'); if (b) { if (!window.__p14BtnTxt) window.__p14BtnTxt = b.textContent; b.textContent = t; } await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0))); };
 $14('p14ProcessBtn').addEventListener('click', async () => {
   if (!p14File) return;
+  window.__p14BtnTxt = null;
   $14('p14ErrorBox').classList.remove('visible'); $14('p14ResultsSection').classList.remove('visible'); $14('p14ProcessBtn').disabled = true;
   try {
+    await p14Label('Reading file…');
     if (!p14DirLoaded) await p14LoadDirectory();
     await p14LoadPlatforms();   // the owner's extra platforms (Flipkart, Amazon …) become columns
     // Big yearly .xlsx files (20 MB+) are streamed; SheetJS silently returns an empty sheet on them.
@@ -7374,7 +7413,7 @@ $14('p14ProcessBtn').addEventListener('click', async () => {
     if (big) {
       try { rows = await p14StreamRows(p14File); }
       catch (se) { console.warn('Streaming read failed, trying the normal reader', se); try { rows = p14ReadRows(await p14File.arrayBuffer()); } catch (e2) { throw se; } }
-      parsed = p14Parse(rows);
+      await p14Label('Calculating…'); parsed = p14Parse(rows);
     } else {
       rows = p14ReadRows(await p14File.arrayBuffer());
       try { parsed = p14Parse(rows); }
@@ -7388,10 +7427,10 @@ $14('p14ProcessBtn').addEventListener('click', async () => {
     const pm = String((rows[0] && rows[0][0]) || '').match(/from\s+(\S+)\s+to\s+(\S+)/i);
     const label = (months.length === 1 ? months[0].sheet : `${months[0].sheet} to ${months[months.length - 1].sheet}`).replace(/[^a-z0-9]+/gi, '_');
     p14Data = { outlets, months, n: parsed.n, period: pm ? `${pm[1]} to ${pm[2]}` : '', file: `Sales_Report_${label}.xlsx` };
-    p14FillSelect(); p14Render(); p14ShowNewPlatforms();
+    await p14Label('Building the report…'); p14FillSelect(); p14Render(); p14ShowNewPlatforms();
     logActivity('process_file', 14, p14File.name);
   } catch (e) { console.error(e); p14Err(e.message || 'Processing failed.'); }
-  $14('p14ProcessBtn').disabled = false;
+  { const b = $14('p14ProcessBtn'); b.disabled = false; if (window.__p14BtnTxt) b.textContent = window.__p14BtnTxt; window.__p14BtnTxt = null; }
 });
 // A sale through a platform nobody added yet is counted under Walk-in. Tell the owner (who can add it with one tap); others are told to ask the owner.
 function p14ShowNewPlatforms() {
@@ -9640,8 +9679,18 @@ async function locInto(b){
   const G={}; g.docs.forEach(d=>G[d.id]=d.data());
   window.__attOuts=outs; window.__attGeo=G; window.__attLocEl=b;
   const BULK='<details class="table-wrap" style="padding:14px;margin-bottom:12px"><summary style="cursor:pointer;font-weight:700">Advanced: set many outlets from a sheet</summary><div style="height:8px"></div><div style="font-size:12px;color:var(--muted);margin-bottom:10px">1) Download the sheet  2) Fill Latitude and Longitude in Excel  3) Choose the saved file (or paste the rows)  4) Import. Each line: outlet code, latitude, longitude.</div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="mini-btn" onclick="attTpl()">⬇ Download sheet (CSV)</button><input type="file" id="attCsv" accept=".csv,.txt"></div><textarea id="attPaste" rows="3" placeholder="or paste lines like:  001, 12.9345, 77.6116" style="width:100%;margin:10px 0;box-sizing:border-box"></textarea><button class="mini-btn mini-btn-ok" onclick="attImport()">Import &amp; save all</button></details>';
-  b.innerHTML=BULK+'<div class="att-pad" style="margin:0 0 10px"><input placeholder="🔍 Search outlet code or name" oninput="attFind(this)" style="width:100%;box-sizing:border-box"></div><div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th>Latitude</th><th>Longitude</th><th>Radius m</th><th>Action</th></tr></thead><tbody>'
-   +outs.map(x=>{const c=String(x.number),e=G[c]||{};return '<tr data-c="'+esc(c)+'" data-n="'+esc(x.name)+'"><td style="text-align:left">'+esc(c)+' · '+esc(x.name)+'</td><td><input class="la" size="10" oninput="attSplit(this)" placeholder="paste Google link or lat, lng" value="'+(e.lat||'')+'"></td><td><input class="lo" size="10" value="'+(e.lng||'')+'"></td><td><input class="ra" size="4" value="'+(e.radius||RADIUS)+'"></td><td><button class="mini-btn" style="color:#3FB874;border:1px solid #3FB874" onclick="attG(this)">🔎 Google Maps</button> <button class="mini-btn" onclick="attView1(this)">👁 Check saved</button> <button class="mini-btn" onclick="attPick(this)">🗺 Pick on map</button> <button class="mini-btn" onclick="attHere(this)">📍 I am at this outlet</button> <button class="mini-btn mini-btn-ok att-save" onclick="attSave(this)">Save</button></td></tr>';}).join('')+'</tbody></table></div></div><div id="attMsg" class="att-pad" style="margin-top:8px"></div>';
+  const rowHtml=x=>{const c=String(x.number),e=G[c]||{};return '<tr data-c="'+esc(c)+'" data-n="'+esc(x.name)+'"><td style="text-align:left">'+esc(c)+' · '+esc(x.name)+'</td><td><input class="la" size="10" oninput="attSplit(this)" placeholder="paste Google link or lat, lng" value="'+(e.lat||'')+'"></td><td><input class="lo" size="10" value="'+(e.lng||'')+'"></td><td><input class="ra" size="4" value="'+(e.radius||RADIUS)+'"></td><td><button class="mini-btn" style="color:#3FB874;border:1px solid #3FB874" onclick="attG(this)">🔎 Google Maps</button> <button class="mini-btn" onclick="attView1(this)">👁 Check saved</button> <button class="mini-btn" onclick="attPick(this)">🗺 Pick on map</button> <button class="mini-btn" onclick="attHere(this)">📍 I am at this outlet</button> <button class="mini-btn mini-btn-ok att-save" onclick="attSave(this)">Save</button></td></tr>';};
+  b.innerHTML=BULK+'<div class="att-pad" style="margin:0 0 10px"><input placeholder="🔍 Search outlet code or name" oninput="attFind(this)" style="width:100%;box-sizing:border-box"></div><div class="table-wrap"><div class="table-scroll"><table><thead><tr><th style="text-align:left">Outlet</th><th>Latitude</th><th>Longitude</th><th>Radius m</th><th>Action</th></tr></thead><tbody></tbody></table></div></div><div id="attMore" class="att-pad" style="margin:10px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap"></div><div id="attMsg" class="att-pad" style="margin-top:8px"></div>';
+  // only a few outlets are drawn at a time, so the screen opens quickly on older phones
+  const tb=b.querySelector('tbody'), more=b.querySelector('#attMore'), st={n:0,q:''}, STEP=12;
+  const bar=()=>{ if(st.q){ more.innerHTML='<span class="muted" style="color:var(--muted);font-size:12.5px">'+tb.rows.length+' match'+(tb.rows.length===1?'':'es')+'</span>'; return; }
+    more.innerHTML=st.n<outs.length?'<span style="color:var(--muted);font-size:12.5px">Showing '+st.n+' of '+outs.length+'</span><button class="mini-btn" id="attMoreBtn">Show '+Math.min(25,outs.length-st.n)+' more</button><button class="mini-btn" id="attAllBtn">Show all</button>':'<span style="color:var(--muted);font-size:12.5px">All '+outs.length+' outlets shown</span>';
+    const mb=more.querySelector('#attMoreBtn'), ab=more.querySelector('#attAllBtn'); if(mb)mb.onclick=()=>add(25); if(ab)ab.onclick=()=>add(outs.length); };
+  const add=k=>{ const from=st.n; st.n=Math.min(outs.length,st.n+k); tb.insertAdjacentHTML('beforeend',outs.slice(from,st.n).map(rowHtml).join('')); bar(); };
+  window.attFind=el=>{ st.q=el.value.trim().toLowerCase();
+    if(!st.q){ tb.innerHTML=''; st.n=0; add(STEP); return; }
+    tb.innerHTML=outs.filter(x=>(String(x.number)+' '+x.name).toLowerCase().includes(st.q)).slice(0,40).map(rowHtml).join(''); bar(); };
+  add(STEP);
 }
 async function codeView(){
   const b=$('attBody'); let outs=[]; if(isMgr()){outs=await outletList();} else outs=[{number:reg.outletCode,name:reg.outletName}];
@@ -10192,6 +10241,15 @@ button:active{transform:translateY(1px)}
 /* e-mail line under a person's name */
 .who-mail{color:var(--muted);font-size:12px;font-weight:500;word-break:break-all;line-height:1.3;margin-top:2px}
 @media(max-width:640px){.att-cards .who-wrap{text-align:right;min-width:0;flex:1}}
+button[aria-busy="true"],[aria-busy="true"]{opacity:.6;cursor:progress}
+/* ══ Fast mode (older phones): no animations, blur, glow or gradients ══ */
+html.lite *,html.lite *::before,html.lite *::after{animation:none!important;transition:none!important}
+html.lite body{background:var(--bg)!important}
+html.lite .topbar{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+html.lite .sidebar,html.lite .setup-card,html.lite .card,html.lite .table-wrap,html.lite .modal-box,html.lite .dash-card-icon,html.lite .upload-icon,html.lite .tab.active,html.lite .sidebar-logo .suite-icon{box-shadow:none!important}
+html.lite .setup-card,html.lite .card,html.lite .table-wrap,html.lite .upload-zone{background-image:none!important}
+html.lite .setup-card:has(.dash-card-icon):hover,html.lite .card:hover,html.lite .tab:hover,html.lite .download-btn:hover{transform:none!important}
+html.lite .section-head h2{background:none!important;color:var(--text)!important;-webkit-text-fill-color:var(--text)}
 /* ══ Polish layer — depth, colour accents and gentle motion, so the app feels modern and attractive ══ */
 body{background:radial-gradient(900px 520px at 88% -8%,rgba(110,142,243,.16),transparent 62%),radial-gradient(760px 520px at -8% 108%,rgba(168,120,255,.11),transparent 62%),var(--bg);background-attachment:fixed}
 /* sidebar */
