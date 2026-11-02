@@ -4213,6 +4213,7 @@ firebase.initializeApp(firebaseConfig);
 const fbAuth = firebase.auth();
 const db = firebase.firestore();
 let currentUser = null;
+let p14MyOpt = false;   // owner-granted: this cluster manager gets “★ My assigned outlets” in the Sales Report Type list
 let isOwner = false;
 let isClusterManager = false;
 // Outlet-access rules: owner = everything. Cluster manager = ONLY the outlets the owner ticked for him,
@@ -4322,7 +4323,7 @@ fbAuth.onAuthStateChanged(async (user) => {
   if (!user) {
     currentUser = null; isOwner = false;
     // Wipe cluster-manager state so the next person to sign in on this page never inherits the tab or its data
-    isClusterManager = false; myAllAccess = false; myAllReq = ''; lastScopeSig = null; lastDashSig = null; p14MyOutlets = []; p14Assigned = []; odOutlets = []; odDocs = []; odExpanded = null;
+    isClusterManager = false; p14MyOpt = false; myAllAccess = false; myAllReq = ''; lastScopeSig = null; lastDashSig = null; p14MyOutlets = []; p14Assigned = []; odOutlets = []; odDocs = []; odExpanded = null;
     { const t = document.querySelector('.tab[data-tab="15"]'); if (t) t.remove();
       const w = document.getElementById('odOutletsWrap'); if (w) w.innerHTML = '';
       const b = document.getElementById('odBanner'); if (b) b.innerHTML = '';
@@ -4397,6 +4398,8 @@ fbAuth.onAuthStateChanged(async (user) => {
       p14MyOutlets = isClusterManager ? (myAllAccess ? null : (Array.isArray(ao) ? ao.map(c => String(c).replace(/\D/g, '').padStart(3, '0')) : []))
         : (staffCode ? [staffCode] : []);
       p14Assigned = isClusterManager ? (Array.isArray(ao) ? [...new Set(ao.map(c => String(c).replace(/\D/g, '').padStart(3, '0')))] : []) : [];
+      const wasOpt = p14MyOpt; p14MyOpt = !!(isClusterManager && d.myOutletsOption === true && p14Assigned.length);
+      if (wasOpt !== p14MyOpt) { try { if (p14Data) { p14FillSelect(true); p14Render(); } } catch (e) { } }
       const sig = JSON.stringify(p14MyOutlets);
       if (lastScopeSig !== null && sig !== lastScopeSig && p14Data) {
         // his access changed after he processed a file → wipe the old view so nothing out-of-scope stays on screen
@@ -5372,7 +5375,7 @@ function renderOwnerDashboard() {
       : `<button class="mini-btn mini-btn-ok" data-act="approved" data-uid="${u.uid}">Restore</button>`;
     const outletCell = u.isClusterManager ? '<span style="color:var(--muted)">— (cluster manager)</span>' : (u.myOutletName ? escHtml(u.myOutletName) : '<span style="color:#D6923B">not chosen yet</span>');
     const resetBtn = (!u.isClusterManager && u.myOutletName) ? `<button class="mini-btn oc-reset" style="border:1px solid var(--border);color:var(--muted)" data-uid="${u.uid}" title="Clears this person's outlet — they must pick one again">Reset outlet</button>` : '';
-    html += `<tr><td style="text-align:left">${escHtml(u.name || '—')}</td><td style="text-align:left">${escHtml(emailLabel(u.email))}</td><td style="text-align:left">${outletCell}</td><td>${pill}</td><td style="text-align:center">${u.loginCount || 1}</td><td>${fmtTs(u.lastLogin)}</td><td>${actionBtn} ${cmBtn} ${resetBtn} ${u.isClusterManager && u.status === 'approved' ? `<button class="mini-btn cm-outlets" style="border:1px solid #8B5CF6;color:#8B5CF6" data-uid="${u.uid}" data-codes="${(u.assignedOutlets || []).join(',')}">Outlets</button> <button class="mini-btn cm-all" style="border:1px solid ${u.allOutletsAccess ? '#E15C5C;color:#E15C5C' : '#3FB874;color:#3FB874'}" data-uid="${u.uid}" data-grant="${u.allOutletsAccess ? '0' : '1'}">${u.allOutletsAccess ? 'Revoke all-outlets' : 'Allow all outlets'}</button>` : ''}</td></tr>`;
+    html += `<tr><td style="text-align:left">${escHtml(u.name || '—')}</td><td style="text-align:left">${escHtml(emailLabel(u.email))}</td><td style="text-align:left">${outletCell}</td><td>${pill}</td><td style="text-align:center">${u.loginCount || 1}</td><td>${fmtTs(u.lastLogin)}</td><td>${actionBtn} ${cmBtn} ${resetBtn} ${u.isClusterManager && u.status === 'approved' ? `<button class="mini-btn cm-outlets" style="border:1px solid #8B5CF6;color:#8B5CF6" data-uid="${u.uid}" data-codes="${(u.assignedOutlets || []).join(',')}">Outlets</button> <button class="mini-btn cm-all" style="border:1px solid ${u.allOutletsAccess ? '#E15C5C;color:#E15C5C' : '#3FB874;color:#3FB874'}" data-uid="${u.uid}" data-grant="${u.allOutletsAccess ? '0' : '1'}">${u.allOutletsAccess ? 'Revoke all-outlets' : 'Allow all outlets'}</button> <button class="mini-btn cm-myopt" style="border:1px solid ${u.myOutletsOption ? '#E8A94F;color:#E8A94F' : '#8D97AB;color:#8D97AB'}" data-uid="${u.uid}" data-on="${u.myOutletsOption ? '0' : '1'}" title="Adds “★ My assigned outlets” to the Type list in his Sales Report, so he can download every report for only his own outlets">${u.myOutletsOption ? '★ My-outlets option: ON' : '☆ My-outlets option: OFF'}</button>` : ''}</td></tr>`;
   });
   if (!others.length) html += `<tr><td colspan="7" style="text-align:center;color:var(--muted)">No approved or blocked users yet</td></tr>`;
   html += `</tbody></table></div></div>`;
@@ -5413,6 +5416,10 @@ function renderOwnerDashboard() {
     setAllOutletsAccess(b.dataset.uid, b.dataset.grant === '1');
   }));
   wrap.querySelectorAll('.cm-toggle').forEach(b => b.addEventListener('click', () => setClusterManagerFlag(b.dataset.uid, b.dataset.cmact === '1')));
+  wrap.querySelectorAll('.cm-myopt').forEach(b => b.addEventListener('click', async () => {
+    b.disabled = true;
+    try { await db.collection('users').doc(b.dataset.uid).update({ myOutletsOption: b.dataset.on === '1', statusUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(), statusUpdatedBy: currentUser.email }); }
+    catch (e) { b.disabled = false; alert('Could not change it: ' + (e.message || e)); } }));
   wrap.querySelectorAll('.oc-reset').forEach(b => b.addEventListener('click', () => { if (confirm("Clear this person's outlet? They will have to pick an outlet again.")) resetUserOutlet(b.dataset.uid); }));
   wrap.querySelectorAll('.cm-outlets').forEach(b => b.addEventListener('click', async () => {
     if (!p14DirLoaded) await p14LoadDirectory();
@@ -6513,7 +6520,7 @@ function p14Picker({ title, note, list, selected, okLabel, allowEmpty, mine }) {
 function p14Relabel() {
   p14Data.outlets.forEach(o => { const d = p14Info(o.code); if (d && d.name) o.name = d.name; o.label = (o.code + ' ' + o.name).trim(); o.type = p14TypeOf(o.code); });
 }
-const p14Scope = () => p14Data.outlets.filter(o => p14TypePick === 'ALL' || (p14TypePick === 'none' ? !o.type : o.type === p14TypePick));
+const p14Scope = () => p14Data.outlets.filter(o => p14TypePick === 'ALL' || (p14TypePick === 'MINE' ? (p14MyOpt && p14Assigned.includes(o.code)) : (p14TypePick === 'none' ? !o.type : o.type === p14TypePick)));
 // Excel layout: month blocks stacked down the sheet — Sale (Value) on the left, Order (in Numbers) on the right.
 const P14_OFF = [0, 2, 1, 3, 5, 4];   // Offline, Zomato, Swiggy, Ownly, Tipplr, Web order  (internal order is Walk-in, Swiggy, Zomato, Ownly, Web, Tipplr)
 const P14_HEAD = ['Offline', 'Zomato', 'Swiggy', 'Ownly', 'Tipplr', 'Web order'];
@@ -6692,6 +6699,11 @@ function p14FillSelect(keep) {
   p14Relabel();
   const sel = $14('p14OutletSel'), prev = keep ? p14Pick : 'ALL';
   if (!keep) { p14TypePick = 'ALL'; $14('p14TypeSel').value = 'ALL'; }
+  // “★ My assigned outlets” appears in the Type list only for cluster managers the owner has chosen
+  { const ts = $14('p14TypeSel'); let mo = ts.querySelector('option[value="MINE"]'); const n = p14Data.outlets.filter(o => p14Assigned.includes(o.code)).length;
+    if (p14MyOpt && n) { if (!mo) { mo = document.createElement('option'); mo.value = 'MINE'; ts.insertBefore(mo, ts.children[1] || null); } mo.textContent = '★ My assigned outlets (' + n + ')'; }
+    else if (mo) { mo.remove(); if (p14TypePick === 'MINE') { p14TypePick = 'ALL'; ts.value = 'ALL'; } }
+    if (p14TypePick === 'MINE') ts.value = 'MINE'; }
   const sc = p14Scope();
   sel.innerHTML = `<option value="ALL">${hasAllOutlets() ? 'All Outlets' : 'All my outlets'} (${sc.length})</option>` + sc.map(o => `<option value="${o.code}">${escHtml(o.label)}${o.type ? ' · ' + P14_TYPE[o.type] : ''}</option>`).join('');
   p14Pick = sc.some(o => o.code === prev) ? prev : 'ALL'; sel.value = p14Pick;
@@ -7456,7 +7468,9 @@ $14('p14DownloadBtn').addEventListener('click', async () => {
     p14Relabel();
     const everyone = p14Data.outlets.map(o => o.code);
     let codes = everyone;
-    if (everyone.length > 1) {
+    const mineAll = p14MyOpt ? p14Assigned.filter(c => everyone.includes(c)) : [];
+    if (p14TypePick === 'MINE' && mineAll.length) codes = mineAll;   // “★ My assigned outlets” chosen: every report for his own outlets, no outlet picker
+    else if (everyone.length > 1) {
       // Cluster manager (not the owner): his own outlets that are in this file come ticked; he can switch to All or tick any others.
       const mine = (isClusterManager && !isOwner) ? p14Assigned.filter(c => everyone.includes(c)) : [];
       codes = await p14Picker({ title: 'Download Sales Report — which outlets?',
