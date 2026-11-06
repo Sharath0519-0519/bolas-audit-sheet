@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0B0D12">
+<title>Bolas — Billing</title>
+<style>
+:root{--bg:#0B0D12;--surface:#141922;--surface2:#1C222D;--border:#2E3645;--text:#F5F7FB;--muted:#AAB3C5;--blue:#6E8EF3;--green:#3FB874;--red:#F27676;--amber:#E8A94F}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:radial-gradient(900px 520px at 88% -8%,rgba(110,142,243,.16),transparent 62%),radial-gradient(760px 520px at -8% 108%,rgba(168,120,255,.11),transparent 62%),var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+[hidden]{display:none!important}
+button,input,select{font:inherit;color:var(--text)}
+button{cursor:pointer}
+.center{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center}
+.logo{width:68px;height:68px;border-radius:18px;background:linear-gradient(135deg,#6E8EF3,#A878FF);display:flex;align-items:center;justify-content:center;font-size:32px;box-shadow:0 10px 26px rgba(110,142,243,.45)}
+h1{font-size:23px;margin:0;letter-spacing:-.01em}h2{font-size:17px;margin:0}
+.muted{color:var(--muted);font-size:14px}
+.btn{border:2px solid var(--green);background:transparent;color:var(--green);border-radius:12px;padding:12px 18px;font-weight:700;font-size:15px;min-height:46px}
+.btn.fill{background:var(--green);color:#06210f}.btn.blue{border-color:var(--blue);color:var(--blue)}.btn.ghost{border-color:var(--border);color:var(--text)}.btn.red{border-color:var(--red);color:var(--red)}
+.btn:disabled{opacity:.55;cursor:default}
+.wide{width:100%;max-width:420px}
+input[type=text],input[type=number],input[type=password],input:not([type]),select{background:var(--surface2);border:1px solid #3A4355;border-radius:10px;padding:11px 12px;font-size:15px;width:100%}
+input:focus,select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(110,142,243,.28)}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px;max-width:1100px;margin:0 auto}
+header .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px}
+header .brand .logo{width:38px;height:38px;border-radius:11px;font-size:19px}
+header .who{font-size:13px;color:var(--muted);text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+main{max-width:1100px;margin:0 auto;padding:6px 18px 60px}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,0) 60%),var(--surface);border:1px solid var(--border);border-radius:18px;padding:20px;margin:0 0 16px;box-shadow:0 10px 30px rgba(0,0,0,.26)}
+.price{font-size:44px;font-weight:800;letter-spacing:-.02em}.price small{font-size:15px;font-weight:600;color:var(--muted);letter-spacing:0}
+.badge{display:inline-block;border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:700;border:1px solid var(--border)}
+.badge.ok{color:var(--green);border-color:var(--green);background:rgba(63,184,116,.1)}.badge.bad{color:var(--red);border-color:var(--red);background:rgba(242,118,118,.08)}.badge.wait{color:var(--amber);border-color:var(--amber)}
+.msg{font-weight:600;min-height:24px;margin:10px 0 0}.msg.bad{color:var(--red)}.msg.ok{color:var(--green)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.tabs{display:flex;gap:8px;margin:6px 0 16px;overflow-x:auto}.tabs .btn{flex:0 0 auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}
+.cust{margin:0}.cust .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.cust .nm{font-weight:700;word-break:break-word}.cust .em{color:var(--muted);font-size:13px;word-break:break-all}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.fields label{font-size:11.5px;letter-spacing:.07em;font-weight:600;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px}
+.chk{display:flex;gap:8px;align-items:center;margin:2px 0 12px;font-size:14px}.chk input{width:18px;height:18px}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:10px 8px;border-bottom:1px solid var(--border);text-align:left}th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:#C6CEDC}
+.tw{overflow-x:auto}
+.stat{display:flex;gap:14px;flex-wrap:wrap;margin:0 0 14px}.stat div{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 16px;min-width:140px}.stat b{display:block;font-size:22px}
+@media(max-width:560px){.price{font-size:38px}.fields{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<div id="boot" class="center"><div class="logo">💳</div><div class="muted">Opening…</div></div>
+
+<div id="login" class="center" hidden>
+  <div class="logo">💳</div>
+  <h1>Bolas Billing</h1>
+  <div class="muted">Sign in with the account you use in the Bolas app</div>
+  <button class="btn fill wide" id="gBtn">Continue with Google</button>
+  <div class="muted">or sign in with your ID</div>
+  <input id="idIn" class="wide" placeholder="Login ID" autocomplete="username" autocapitalize="none">
+  <input id="pwIn" class="wide" placeholder="Password" type="password" autocomplete="current-password">
+  <button class="btn wide" id="idBtn">Sign in</button>
+  <div id="loginMsg" class="msg bad"></div>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <div class="brand"><div class="logo">💳</div>Billing</div>
+    <div class="row"><span class="who" id="who"></span><a class="btn ghost" id="toolLink" href="index.html" style="text-decoration:none;display:none">Open the tool →</a><button class="btn ghost" id="outBtn">Sign out</button></div>
+  </header>
+  <main id="main"></main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-functions-compat.js"></script>
+<script>
+// ═════ Bolas Billing — customers pay the price the owner set; the owner sets prices. Same Firebase project and logins as the main app. ═════
+const firebaseConfig = {
+  apiKey: "AIzaSyChcHGFwjLZGPpb9v_e2SVkl3kyEv6QKqI", authDomain: "bolasxl.firebaseapp.com", projectId: "bolasxl",
+  storageBucket: "bolasxl.firebasestorage.app", messagingSenderId: "924756048399", appId: "1:924756048399:web:e3887c6ba2a501cd8f017a"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth(), db = firebase.firestore(), call = n => firebase.app().functions('asia-south1').httpsCallable(n);
+const OWNER_EMAIL = 'sharathkulal1919@gmail.com', LOGIN_ID_DOMAIN = 'bolas-staff.example.com';
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const inr = n => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+const dt = ms => ms ? new Date(ms).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+const fts = t => t && t.toDate ? t.toDate().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+const mail = e => String(e || '').endsWith('@' + LOGIN_ID_DOMAIN) ? 'ID: ' + e.split('@')[0] : (e || '');
+const extendUntil = (cur, now, days) => Math.max(Number(cur) || 0, now) + Math.round(days) * 86400000;
+const S = { user: null, owner: false, u: null, pricing: null, sub: null, pays: [], users: [], P: {}, B: {}, all: [], tab: 'cust' };
+
+// ───────── sign-in ─────────
+function show(id) { ['boot', 'login', 'app'].forEach(x => $(x).hidden = x !== id); }
+$('gBtn').onclick = async () => {
+  $('loginMsg').textContent = '';
+  try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
+  catch (e) { if (e.code === 'auth/popup-blocked') auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider()); else $('loginMsg').textContent = e.message || 'Sign-in failed'; }
+};
+$('idBtn').onclick = async () => {
+  const id = $('idIn').value.trim().toLowerCase(); $('loginMsg').textContent = '';
+  try { await auth.signInWithEmailAndPassword(id.includes('@') ? id : id + '@' + LOGIN_ID_DOMAIN, $('pwIn').value); $('pwIn').value = ''; } catch (e) { $('loginMsg').textContent = 'Wrong ID or password.'; }
+};
+$('outBtn').onclick = async () => { await auth.signOut(); location.reload(); };
+auth.onAuthStateChanged(async user => {
+  S.user = user; if (!user) return show('login');
+  S.owner = (user.email || '').toLowerCase() === OWNER_EMAIL; $('who').textContent = user.displayName || mail(user.email);
+  show('app');
+  try { await (S.owner ? loadOwner() : loadCust()); } catch (e) { $('main').innerHTML = '<div class="card"><h2>Could not load</h2><p class="muted">' + esc(e.message) + '</p><button class="btn" onclick="location.reload()">Try again</button></div>'; }
+});
+
+// ═══════════════ CUSTOMER ═══════════════
+async function loadCust() {
+  const uid = S.user.uid, g = (c, id) => db.collection(c).doc(id).get().catch(() => null);
+  const [u, pr, sb, pays] = await Promise.all([g('users', uid), g('pricing', uid), g('subscriptions', uid), db.collection('payments').where('uid', '==', uid).get().catch(() => null)]);
+  S.u = u && u.exists ? u.data() : null; S.pricing = pr && pr.exists ? pr.data() : null; S.sub = sb && sb.exists ? sb.data() : null;
+  S.pays = pays ? pays.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0) - (a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0)) : [];
+  renderCust();
+}
+function renderCust() {
+  const p = S.pricing, until = (S.sub && S.sub.paidUntil) || 0, active = until > Date.now(), req = !!(p && p.required === true), approved = S.u && S.u.status === 'approved';
+  $('toolLink').style.display = (!req || active) ? '' : 'none';
+  let h = '<div id="msg" class="msg"></div>';
+  if (!req) h += '<div class="card"><h2>No payment needed</h2><p class="muted">Nothing is due on your account. You can use the tool.</p><a class="btn fill" href="index.html" style="text-decoration:none;display:inline-block">Open the tool →</a></div>';
+  else {
+    h += '<div class="card"><div class="row" style="justify-content:space-between"><h2>Your plan</h2>' + (active ? '<span class="badge ok">✓ Active until ' + dt(until) + '</span>' : '<span class="badge bad">Payment due</span>') + '</div>'
+      + '<div class="price" style="margin:10px 0 2px">' + inr(p.amount) + ' <small>for ' + (p.days || 30) + ' days</small></div><div class="muted">This price is fixed for your account by the owner.</div>'
+      + (approved ? '' : '<p class="muted" style="margin:10px 0 0">⚠ Your account also needs the owner\u2019s approval before you can use the tool.</p>')
+      + '<div class="row" style="margin-top:16px"><button class="btn fill" id="payBtn">' + (active ? 'Renew now — ' : 'Pay ') + inr(p.amount) + '</button>' + (active ? '<a class="btn" href="index.html" style="text-decoration:none">Open the tool →</a>' : '') + '<button class="btn ghost" id="refBtn">Refresh</button></div>'
+      + '<div class="muted" style="margin-top:12px">🔒 Secure payment by Razorpay (UPI, cards, net banking, wallets). Access turns on as soon as the payment is confirmed.</div></div>';
+  }
+  if (S.pays.length) h += '<div class="card"><h2 style="margin-bottom:8px">Payment history</h2><div class="tw"><table><thead><tr><th>Date</th><th>Amount</th><th>Days</th><th>Status</th></tr></thead><tbody>' + S.pays.map(x => '<tr><td>' + fts(x.paidAt || x.createdAt) + '</td><td>' + inr(x.amount) + '</td><td>' + (x.days || '') + '</td><td>' + (x.status === 'paid' ? '<span class="badge ok">Paid</span>' : '<span class="badge wait">' + esc(x.status || '') + '</span>') + '</td></tr>').join('') + '</tbody></table></div></div>';
+  $('main').innerHTML = h;
+  if ($('payBtn')) $('payBtn').onclick = pay; if ($('refBtn')) $('refBtn').onclick = () => loadCust();
+}
+const say = (m, c) => { const e = $('msg'); if (e) { e.textContent = m || ''; e.className = 'msg ' + (c || ''); } };
+let rzLoad = null;
+const loadRazorpay = () => window.Razorpay ? Promise.resolve() : (rzLoad || (rzLoad = new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://checkout.razorpay.com/v1/checkout.js'; s.onload = res; s.onerror = () => { rzLoad = null; rej(new Error('Could not load the payment window — check your internet.')); }; document.head.appendChild(s); })));
+async function pay() {
+  const btn = $('payBtn'); btn.disabled = true; say('Starting payment…');
+  try {
+    await loadRazorpay(); const o = (await call('createOrder')({})).data;       // the amount comes from the owner's setting, decided on the server
+    const rz = new Razorpay({
+      key: o.keyId, amount: o.amount, currency: o.currency, order_id: o.orderId, name: 'Bolas', description: 'Access for ' + o.days + ' days',
+      prefill: { name: S.user.displayName || '', email: (S.user.email || '').endsWith(LOGIN_ID_DOMAIN) ? '' : (S.user.email || '') }, theme: { color: '#3FB874' },
+      handler: async r => {
+        say('Confirming your payment…');
+        try { await call('verifyPayment')(r); await loadCust(); say('✓ Payment received. You can use the tool now.', 'ok'); }
+        catch (e) { say('Payment received. Confirming it is taking a little longer — press Refresh in a minute.', 'ok'); btn.disabled = false; }
+      },
+      modal: { ondismiss: () => { say('Payment cancelled.'); btn.disabled = false; } }
+    });
+    rz.on('payment.failed', r => { say((r.error && r.error.description) || 'The payment failed. Please try again.', 'bad'); btn.disabled = false; });
+    rz.open();
+  } catch (e) { say(e.message || 'Could not start the payment.', 'bad'); btn.disabled = false; }
+}
+
+// ═══════════════ OWNER ═══════════════
+async function loadOwner() {
+  const [us, pr, sb] = await Promise.all([db.collection('users').get(), db.collection('pricing').get(), db.collection('subscriptions').get()]);
+  S.users = us.docs.map(d => ({ uid: d.id, ...d.data() })).filter(u => (u.email || '').toLowerCase() !== OWNER_EMAIL);
+  S.P = {}; pr.docs.forEach(d => S.P[d.id] = d.data()); S.B = {}; sb.docs.forEach(d => S.B[d.id] = d.data());
+  S.users.sort((a, b) => String(a.name || a.email).localeCompare(String(b.name || b.email)));
+  renderOwner();
+}
+function access(uid) {
+  const p = S.P[uid], u = (S.B[uid] && S.B[uid].paidUntil) || 0;
+  if (!p) return ['<span class="badge">No price set</span>', 'none'];
+  if (p.required !== true) return ['<span class="badge">Free</span>', 'free'];
+  return u > Date.now() ? ['<span class="badge ok">Active until ' + dt(u) + '</span>', 'active'] : ['<span class="badge bad">' + (u ? 'Expired ' + dt(u) : 'Unpaid') + '</span>', 'due'];
+}
+function renderOwner() {
+  $('toolLink').style.display = '';
+  const tab = S.tab, nDue = S.users.filter(u => access(u.uid)[1] === 'due').length;
+  $('main').innerHTML = '<div id="msg" class="msg"></div><div class="tabs"><button class="btn ' + (tab === 'cust' ? 'fill' : 'ghost') + '" data-t="cust">Customers (' + S.users.length + ')</button><button class="btn ' + (tab === 'pays' ? 'fill' : 'ghost') + '" data-t="pays">Payments received</button>' + (nDue ? '<span class="badge bad" style="align-self:center">' + nDue + ' payment' + (nDue > 1 ? 's' : '') + ' due</span>' : '') + '</div><div id="pane"></div>';
+  document.querySelectorAll('.tabs [data-t]').forEach(b => b.onclick = () => { S.tab = b.dataset.t; renderOwner(); });
+  tab === 'cust' ? custPane() : paysPane();
+}
+function custPane() {
+  const none = S.users.filter(u => !S.P[u.uid]).length;
+  $('pane').innerHTML = '<div class="card"><h2>Set one price for everyone who has none</h2><div class="muted" style="margin:4px 0 10px">Handy for a first setup. You can still change each customer separately below.</div><div class="row"><input id="bulkAmt" type="number" min="1" placeholder="Price ₹" style="max-width:140px"><input id="bulkDays" type="number" min="1" value="30" style="max-width:110px"><span class="muted">days</span><button class="btn" id="bulkBtn">Apply to ' + none + ' customer' + (none === 1 ? '' : 's') + '</button></div></div>'
+    + '<div class="row" style="margin:0 0 12px"><input id="find" placeholder="🔍 Search customer name or email" style="max-width:380px"></div><div class="grid" id="cards"></div>';
+  const paint = q => { $('cards').innerHTML = S.users.filter(u => !q || (String(u.name || '') + ' ' + String(u.email || '')).toLowerCase().includes(q)).map(card).join('') || '<div class="muted">No customers match.</div>'; bind(); };
+  $('find').oninput = e => paint(e.target.value.trim().toLowerCase()); paint('');
+  $('bulkBtn').onclick = bulk;
+}
+function card(u) {
+  const p = S.P[u.uid] || {}, a = access(u.uid);
+  return '<div class="card cust" data-u="' + esc(u.uid) + '"><div class="top"><div><div class="nm">' + esc(u.name || '—') + '</div><div class="em">' + esc(mail(u.email)) + '</div></div>' + a[0] + '</div>'
+    + '<div class="muted" style="margin-top:6px;font-size:13px">' + (u.status === 'approved' ? 'Approved' : 'Not approved yet') + (u.myOutletName ? ' · ' + esc(u.myOutletName) : '') + '</div>'
+    + '<div class="fields"><div><label>Price (₹)</label><input type="number" min="0" step="any" class="f-amt" value="' + (p.amount != null ? esc(p.amount) : '') + '" placeholder="e.g. 499"></div><div><label>Days of access</label><input type="number" min="1" class="f-days" value="' + esc(p.days || 30) + '"></div></div>'
+    + '<label class="chk"><input type="checkbox" class="f-req"' + (p.required === true ? ' checked' : '') + '> Payment required to use the tool</label>'
+    + '<div class="row"><button class="btn fill b-save">Save</button><button class="btn blue b-paid" title="Cash or bank transfer received outside Razorpay">+ Mark paid</button></div><div class="msg c-msg" style="margin-top:8px;min-height:0"></div></div>';
+}
+function bind() {
+  document.querySelectorAll('.cust').forEach(c => {
+    const uid = c.dataset.u, m = (t, k) => { const e = c.querySelector('.c-msg'); e.textContent = t; e.className = 'msg c-msg ' + (k || ''); };
+    c.querySelector('.b-save').onclick = async () => {
+      const amt = parseFloat(c.querySelector('.f-amt').value), days = parseInt(c.querySelector('.f-days').value, 10) || 30, req = c.querySelector('.f-req').checked;
+      if (req && !(amt >= 1)) return m('Enter a price of at least ₹1.', 'bad');
+      try { await db.collection('pricing').doc(uid).set({ required: req, amount: isFinite(amt) ? amt : 0, days, currency: 'INR', updatedBy: S.user.email, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }); S.P[uid] = { ...(S.P[uid] || {}), required: req, amount: isFinite(amt) ? amt : 0, days }; m('Saved ✓', 'ok'); c.querySelector('.top .badge').outerHTML = access(uid)[0]; } catch (e) { m(e.message, 'bad'); }
+    };
+    c.querySelector('.b-paid').onclick = async () => {
+      const days = parseInt(c.querySelector('.f-days').value, 10) || 30;
+      if (!confirm('Mark ' + days + ' days as paid (cash / bank transfer) for this customer?')) return;
+      try { const until = extendUntil((S.B[uid] || {}).paidUntil, Date.now(), days); await db.collection('subscriptions').doc(uid).set({ paidUntil: until, lastManual: { by: S.user.email, days, at: firebase.firestore.FieldValue.serverTimestamp() } }, { merge: true }); S.B[uid] = { ...(S.B[uid] || {}), paidUntil: until }; m('Marked paid until ' + dt(until) + ' ✓', 'ok'); c.querySelector('.top .badge').outerHTML = access(uid)[0]; } catch (e) { m(e.message, 'bad'); }
+    };
+  });
+}
+async function bulk() {
+  const amt = parseFloat($('bulkAmt').value), days = parseInt($('bulkDays').value, 10) || 30, list = S.users.filter(u => !S.P[u.uid]);
+  if (!(amt >= 1)) return say('Enter a price of at least ₹1.', 'bad'); if (!list.length) return say('Everyone already has a price.', 'bad');
+  if (!confirm('Set ' + inr(amt) + ' for ' + days + ' days and require payment from ' + list.length + ' customer(s)?')) return;
+  try { for (let i = 0; i < list.length; i += 400) { const b = db.batch(); list.slice(i, i + 400).forEach(u => b.set(db.collection('pricing').doc(u.uid), { required: true, amount: amt, days, currency: 'INR', updatedBy: S.user.email, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true })); await b.commit(); }
+    list.forEach(u => S.P[u.uid] = { required: true, amount: amt, days }); renderOwner(); say('Done ✓ — ' + list.length + ' customers now have a price.', 'ok'); } catch (e) { say(e.message, 'bad'); }
+}
+async function paysPane() {
+  $('pane').innerHTML = '<div class="muted">Loading…</div>';
+  const q = await db.collection('payments').orderBy('createdAt', 'desc').limit(200).get(), P = q.docs.map(d => ({ id: d.id, ...d.data() })), paid = P.filter(x => x.status === 'paid');
+  const m0 = new Date(); m0.setDate(1); m0.setHours(0, 0, 0, 0); const month = paid.filter(x => x.paidAt && x.paidAt.toMillis && x.paidAt.toMillis() >= m0.getTime()).reduce((s, x) => s + x.amount, 0);
+  $('pane').innerHTML = '<div class="stat"><div><span class="muted">Received this month</span><b>' + inr(month) + '</b></div><div><span class="muted">Payments listed</span><b>' + paid.length + '</b></div><div><span class="muted">Total of those</span><b>' + inr(paid.reduce((s, x) => s + x.amount, 0)) + '</b></div></div>'
+    + '<div class="row" style="margin-bottom:10px"><button class="btn ghost" id="csvBtn">⬇ Download CSV</button></div><div class="card tw"><table><thead><tr><th>Date</th><th>Customer</th><th>Amount</th><th>Days</th><th>Status</th><th>Razorpay payment</th></tr></thead><tbody>'
+    + (P.map(x => '<tr><td>' + fts(x.paidAt || x.createdAt) + '</td><td>' + esc(x.name || '') + '<br><span class="muted" style="font-size:12.5px">' + esc(mail(x.email)) + '</span></td><td>' + inr(x.amount) + '</td><td>' + (x.days || '') + '</td><td>' + (x.status === 'paid' ? '<span class="badge ok">Paid</span>' : '<span class="badge wait">' + esc(x.status || '') + '</span>') + '</td><td style="font-size:12.5px;word-break:break-all">' + esc(x.paymentId || '') + '</td></tr>').join('') || '<tr><td colspan="6" class="muted">No payments yet</td></tr>') + '</tbody></table></div>';
+  $('csvBtn').onclick = () => { const c = s => '"' + String(s == null ? '' : s).replace(/"/g, '""') + '"'; const csv = '\ufeffDate,Name,Email,Amount,Days,Status,Payment ID,Order ID\r\n' + P.map(x => [fts(x.paidAt || x.createdAt), x.name, x.email, x.amount, x.days, x.status, x.paymentId, x.orderId].map(c).join(',')).join('\r\n'); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'payments.csv'; a.click(); };
+}
+</script>
+</body>
+</html>
