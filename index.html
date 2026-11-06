@@ -1574,7 +1574,7 @@ textarea.ml-in{min-height:170px;resize:vertical;font-family:'DM Mono',monospace;
   // Settings: switch for fast mode
   addEventListener('DOMContentLoaded',()=>{ const p=document.getElementById('panel7'); if(!p)return; const d=document.createElement('div'); d.className='setup-card'; d.style.marginTop='14px';
     d.innerHTML='<label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:14px;letter-spacing:0;color:var(--text)"><input type="checkbox" id="liteToggle" style="margin-top:3px"><span><b>Fast mode</b> — smoother on older phones<br><span style="color:var(--muted);font-size:12.5px;font-weight:400">Turns off animations and some visual effects. It is switched on automatically on weaker phones.</span></span></label>';
-    p.appendChild(d); const c=document.getElementById('liteToggle'); c.checked=!!window.__lite; c.onchange=()=>{ try{ localStorage.setItem('bolasLite',c.checked?'1':'0'); }catch(e){} window.__lite=c.checked; document.documentElement.classList.toggle('lite',c.checked); }; });
+    p.appendChild(d); const bl=document.createElement('div'); bl.className='setup-card'; bl.style.marginTop='14px'; bl.innerHTML='<a href="pay.html" style="color:var(--text);text-decoration:none;font-weight:700">💳 Billing &amp; payments →</a><div style="color:var(--muted);font-size:12.5px;margin-top:4px">See your plan and pay. The owner sets customer prices and sees payments here.</div>'; p.appendChild(bl); const c=document.getElementById('liteToggle'); c.checked=!!window.__lite; c.onchange=()=>{ try{ localStorage.setItem('bolasLite',c.checked?'1':'0'); }catch(e){} window.__lite=c.checked; document.documentElement.classList.toggle('lite',c.checked); }; });
 })();
 </script>
 <script>
@@ -4355,6 +4355,9 @@ fbAuth.onAuthStateChanged(async (user) => {
   await touchUserDoc(user, isOwner);
   logActivity('login', '-', isOwner ? 'owner' : 'user');
 
+  // Customers the owner has priced must have paid before they can use the tool (price and days are set by the owner in pay.html)
+  if (!isOwner) { const pc = await payCheck(user); if (pc.blocked) { showPayGate(pc); return; } }
+
   if (isOwner) {
     addOwnerTab();
     isClusterManager = true; myAllAccess = true; p14MyOutlets = null; p14Assigned = []; addClusterDocsTab(); applyAccessTabs();
@@ -4493,6 +4496,28 @@ async function requestAllOutlets(btn) {
   } catch (e) { alert("Couldn't send the request: " + e.message); if (btn) btn.disabled = false; }
 }
 
+// ---- Payment gate ----
+// Reads the owner's price for this person and when their paid access ends. If anything fails it lets the person in — Firestore rules do the real enforcement.
+async function payCheck(user) {
+  try {
+    const [pr, sb] = await Promise.all([db.collection('pricing').doc(user.uid).get(), db.collection('subscriptions').doc(user.uid).get()]);
+    const p = pr.exists ? pr.data() : null; if (!p || p.required !== true) return { blocked: false };
+    const until = sb.exists ? (Number(sb.data().paidUntil) || 0) : 0;
+    return until > Date.now() ? { blocked: false, until } : { blocked: true, price: p.amount, days: p.days || 30, until };
+  } catch (e) { console.warn('payment check skipped', e); return { blocked: false }; }
+}
+function showPayGate(pc) {
+  ['authGate', 'pendingGate', 'outletGate', 'appShell'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = 'none'; });
+  let g = document.getElementById('payGate'); if (!g) { g = document.createElement('div'); g.id = 'payGate'; document.body.appendChild(g); }
+  g.style.cssText = 'position:fixed;inset:0;z-index:10001;display:flex;align-items:center;justify-content:center;padding:24px;overflow:auto;background:radial-gradient(900px 520px at 50% -12%,rgba(110,142,243,.3),transparent 62%),var(--bg)';
+  const when = pc.until ? 'Your access ended on ' + new Date(pc.until).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) + '.' : 'Pay once to start using the tool.';
+  g.innerHTML = '<div style="max-width:420px;width:100%;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;box-shadow:0 24px 70px rgba(0,0,0,.5)"><div style="font-size:40px">🔒</div><h2 style="margin:8px 0 4px">Payment needed to continue</h2><p style="color:var(--muted);margin:0 0 10px">' + when + '</p>'
+    + '<div style="font-size:38px;font-weight:800;letter-spacing:-.02em">₹' + Number(pc.price || 0).toLocaleString('en-IN') + ' <span style="font-size:14px;font-weight:600;color:var(--muted)">for ' + pc.days + ' days</span></div><p style="color:var(--muted);font-size:13px">This price is set for your account by the owner.</p>'
+    + '<a href="pay.html" style="display:block;text-decoration:none;background:#3FB874;color:#06210f;font-weight:800;border-radius:12px;padding:14px;margin:12px 0 10px">Pay now →</a>'
+    + '<div style="display:flex;gap:10px"><button id="payRecheck" class="mini-btn" style="flex:1">I have paid — check again</button><button id="paySignOut" class="mini-btn" style="flex:1">Sign out</button></div></div>';
+  document.getElementById('payRecheck').onclick = () => location.reload();
+  document.getElementById('paySignOut').onclick = () => fbAuth.signOut().then(() => location.reload());
+}
 // ---- Screen switching: authGate / pendingGate / app — always exactly one visible ----
 function showScreen(which) {
   document.getElementById('authGate').style.display = which === 'authGate' ? 'flex' : 'none';
@@ -9812,7 +9837,7 @@ async function outletList(){
 const VIEWS={me:staffView,recs:recsView,staff:staffAdminView,loc:locView,code:codeView};
 window.attView=v=>{view=v;stopCode();paintNav();VIEWS[v]().catch(e=>{$('attBody').innerHTML='<div style="color:#E15C5C;padding:12px">'+esc(e.message)+'</div>';});};
 function paintNav(){ const N=[['me','My attendance']].concat(isMgr()?[['recs','Records'],['staff','Registrations'],['loc','Outlet locations'],['code','On-site code']]:[]);
-  $('attNav').innerHTML=N.map(n=>'<button class="mini-btn" style="'+(n[0]===view?'background:var(--accent,#3FB874);color:#fff':'')+'" onclick="attView(\''+n[0]+'\')">'+n[1]+'</button>').join(''); }
+  $('attNav').innerHTML=N.map(n=>'<button class="mini-btn" style="'+(n[0]===view?'background:#3FB874;color:#06210f;border-color:#3FB874;font-weight:800':'')+'" onclick="attView(\''+n[0]+'\')">'+n[1]+'</button>').join(''); }
 let first=true;
 function open(){ if(!currentUser)return; if(first){first=false;if(isMgr())view='recs';} if(view==='code'&&!isMgr()&&!(reg&&reg.canShowCode))view='me'; attView(view); }
 const prev=switchTab; switchTab=function(n){prev(n); if(n===18)open(); else {stopCode();gpsStop();}};
@@ -10233,6 +10258,13 @@ input::placeholder,textarea::placeholder{color:#8D97AB;opacity:1}
 input:not([type=checkbox]):not([type=radio]):not([type=file]):focus,select:focus,textarea:focus{border-color:var(--t1);box-shadow:0 0 0 3px rgba(110,142,243,.28);outline:none}
 :focus-visible{outline:2px solid #8FA8F5;outline-offset:2px}
 
+/* buttons: plain buttons had no text colour, so they came out black on the dark page */
+button{color:var(--text)}
+.mini-btn:not(.mini-btn-ok):not(.mini-btn-no){color:var(--text);border:1px solid #3A4355;background:var(--surface2)}
+.mini-btn:not(.mini-btn-ok):not(.mini-btn-no):hover{border-color:var(--t1);background:#232B3A}
+.mini-btn-ok{background:rgba(63,184,116,.1)}
+button:disabled:not(.big){opacity:.72}   /* greyed-out buttons (e.g. Generate Audit Sheet before a file is chosen) stay readable */
+.mini-btn-no{background:rgba(242,118,118,.08)}
 /* buttons */
 button{transition:background-color .15s,border-color .15s,color .15s,box-shadow .15s,transform .05s}
 button:active{transform:translateY(1px)}
@@ -10298,7 +10330,7 @@ body{background:radial-gradient(900px 520px at 88% -8%,rgba(110,142,243,.16),tra
 .table-wrap tbody tr:hover td{background:rgba(110,142,243,.1)}
 /* buttons and chips */
 .download-btn:not([disabled]):hover,.modal-btn:not([disabled]):hover{box-shadow:0 10px 26px rgba(0,0,0,.4);transform:translateY(-1px)}
-.download-btn[disabled],.modal-btn[disabled]{opacity:.55}
+.download-btn[disabled],.modal-btn[disabled]{opacity:.7}
 .pill,.badge{border-radius:999px;font-weight:700}
 /* pop-up windows */
 .modal-box{border-radius:20px;border:1px solid #394154;box-shadow:0 34px 90px rgba(0,0,0,.6)}
