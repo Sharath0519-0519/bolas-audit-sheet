@@ -72,7 +72,6 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:10px 8px;
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-functions-compat.js"></script>
 <script>
 // ═════ Bolas Billing — customers pay the price the owner set; the owner sets prices. Same Firebase project and logins as the main app. ═════
 const firebaseConfig = {
@@ -80,7 +79,15 @@ const firebaseConfig = {
   storageBucket: "bolasxl.firebasestorage.app", messagingSenderId: "924756048399", appId: "1:924756048399:web:e3887c6ba2a501cd8f017a"
 };
 firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth(), db = firebase.firestore(), call = n => firebase.app().functions('asia-south1').httpsCallable(n);
+const auth = firebase.auth(), db = firebase.firestore();
+// The payment server is a free Google Apps Script (Code.gs). Its address is saved by the owner in the "Payment server" tab.
+async function api(action, data) {
+  if (!S.apiUrl) throw new Error('The owner has not connected the payment server yet.');
+  const idToken = await S.user.getIdToken();
+  const r = await fetch(S.apiUrl, { method: 'POST', body: JSON.stringify(Object.assign({ action, idToken }, data || {})) });   // plain text body: no browser pre-check needed
+  let j; try { j = await r.json(); } catch (e) { throw new Error('The payment server did not answer. Please try again.'); }
+  if (j.error) throw new Error(j.error); return j;
+}
 const OWNER_EMAIL = 'sharathkulal1919@gmail.com', LOGIN_ID_DOMAIN = 'bolas-staff.example.com';
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -89,7 +96,7 @@ const dt = ms => ms ? new Date(ms).toLocaleDateString('en-IN', { day: '2-digit',
 const fts = t => t && t.toDate ? t.toDate().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 const mail = e => String(e || '').endsWith('@' + LOGIN_ID_DOMAIN) ? 'ID: ' + e.split('@')[0] : (e || '');
 const extendUntil = (cur, now, days) => Math.max(Number(cur) || 0, now) + Math.round(days) * 86400000;
-const S = { user: null, owner: false, u: null, pricing: null, sub: null, pays: [], users: [], P: {}, B: {}, all: [], tab: 'cust' };
+const S = { apiUrl: '', user: null, owner: false, u: null, pricing: null, sub: null, pays: [], users: [], P: {}, B: {}, all: [], tab: 'cust' };
 
 // ───────── sign-in ─────────
 function show(id) { ['boot', 'login', 'app'].forEach(x => $(x).hidden = x !== id); }
@@ -113,9 +120,12 @@ auth.onAuthStateChanged(async user => {
 // ═══════════════ CUSTOMER ═══════════════
 async function loadCust() {
   const uid = S.user.uid, g = (c, id) => db.collection(c).doc(id).get().catch(() => null);
-  const [u, pr, sb, pays] = await Promise.all([g('users', uid), g('pricing', uid), g('subscriptions', uid), db.collection('payments').where('uid', '==', uid).get().catch(() => null)]);
+  const [u, pr, sb, pays, bc] = await Promise.all([g('users', uid), g('pricing', uid), g('subscriptions', uid), db.collection('payments').where('uid', '==', uid).get().catch(() => null), g('billing_config', 'server')]);
+  S.apiUrl = bc && bc.exists ? (bc.data().apiUrl || '') : '';
   S.u = u && u.exists ? u.data() : null; S.pricing = pr && pr.exists ? pr.data() : null; S.sub = sb && sb.exists ? sb.data() : null;
   S.pays = pays ? pays.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0) - (a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0)) : [];
+  // a payment that went through but was never confirmed (page closed, bad signal) is found and switched on here
+  if (!S.reconciled && S.apiUrl && S.pays.some(x => x.status === 'created')) { S.reconciled = true; try { const r = await api('reconcile'); if (r.paidUntil) return loadCust(); } catch (e) { } }
   renderCust();
 }
 function renderCust() {
@@ -140,13 +150,13 @@ const loadRazorpay = () => window.Razorpay ? Promise.resolve() : (rzLoad || (rzL
 async function pay() {
   const btn = $('payBtn'); btn.disabled = true; say('Starting payment…');
   try {
-    await loadRazorpay(); const o = (await call('createOrder')({})).data;       // the amount comes from the owner's setting, decided on the server
+    await loadRazorpay(); const o = await api('createOrder');       // the amount comes from the owner's setting, read on the server
     const rz = new Razorpay({
       key: o.keyId, amount: o.amount, currency: o.currency, order_id: o.orderId, name: 'Bolas', description: 'Access for ' + o.days + ' days',
       prefill: { name: S.user.displayName || '', email: (S.user.email || '').endsWith(LOGIN_ID_DOMAIN) ? '' : (S.user.email || '') }, theme: { color: '#3FB874' },
       handler: async r => {
         say('Confirming your payment…');
-        try { await call('verifyPayment')(r); await loadCust(); say('✓ Payment received. You can use the tool now.', 'ok'); }
+        try { await api('verify', r); await loadCust(); say('✓ Payment received. You can use the tool now.', 'ok'); }
         catch (e) { say('Payment received. Confirming it is taking a little longer — press Refresh in a minute.', 'ok'); btn.disabled = false; }
       },
       modal: { ondismiss: () => { say('Payment cancelled.'); btn.disabled = false; } }
@@ -158,7 +168,8 @@ async function pay() {
 
 // ═══════════════ OWNER ═══════════════
 async function loadOwner() {
-  const [us, pr, sb] = await Promise.all([db.collection('users').get(), db.collection('pricing').get(), db.collection('subscriptions').get()]);
+  const [us, pr, sb, bc] = await Promise.all([db.collection('users').get(), db.collection('pricing').get(), db.collection('subscriptions').get(), db.collection('billing_config').doc('server').get().catch(() => null)]);
+  S.apiUrl = bc && bc.exists ? (bc.data().apiUrl || '') : '';
   S.users = us.docs.map(d => ({ uid: d.id, ...d.data() })).filter(u => (u.email || '').toLowerCase() !== OWNER_EMAIL);
   S.P = {}; pr.docs.forEach(d => S.P[d.id] = d.data()); S.B = {}; sb.docs.forEach(d => S.B[d.id] = d.data());
   S.users.sort((a, b) => String(a.name || a.email).localeCompare(String(b.name || b.email)));
@@ -173,9 +184,9 @@ function access(uid) {
 function renderOwner() {
   $('toolLink').style.display = '';
   const tab = S.tab, nDue = S.users.filter(u => access(u.uid)[1] === 'due').length;
-  $('main').innerHTML = '<div id="msg" class="msg"></div><div class="tabs"><button class="btn ' + (tab === 'cust' ? 'fill' : 'ghost') + '" data-t="cust">Customers (' + S.users.length + ')</button><button class="btn ' + (tab === 'pays' ? 'fill' : 'ghost') + '" data-t="pays">Payments received</button>' + (nDue ? '<span class="badge bad" style="align-self:center">' + nDue + ' payment' + (nDue > 1 ? 's' : '') + ' due</span>' : '') + '</div><div id="pane"></div>';
+  $('main').innerHTML = '<div id="msg" class="msg"></div><div class="tabs"><button class="btn ' + (tab === 'cust' ? 'fill' : 'ghost') + '" data-t="cust">Customers (' + S.users.length + ')</button><button class="btn ' + (tab === 'pays' ? 'fill' : 'ghost') + '" data-t="pays">Payments received</button><button class="btn ' + (tab === 'srv' ? 'fill' : 'ghost') + '" data-t="srv">Payment server' + (S.apiUrl ? '' : ' ⚠') + '</button>' + (nDue ? '<span class="badge bad" style="align-self:center">' + nDue + ' payment' + (nDue > 1 ? 's' : '') + ' due</span>' : '') + '</div><div id="pane"></div>';
   document.querySelectorAll('.tabs [data-t]').forEach(b => b.onclick = () => { S.tab = b.dataset.t; renderOwner(); });
-  tab === 'cust' ? custPane() : paysPane();
+  tab === 'cust' ? custPane() : tab === 'pays' ? paysPane() : srvPane();
 }
 function custPane() {
   const none = S.users.filter(u => !S.P[u.uid]).length;
@@ -214,6 +225,14 @@ async function bulk() {
   if (!confirm('Set ' + inr(amt) + ' for ' + days + ' days and require payment from ' + list.length + ' customer(s)?')) return;
   try { for (let i = 0; i < list.length; i += 400) { const b = db.batch(); list.slice(i, i + 400).forEach(u => b.set(db.collection('pricing').doc(u.uid), { required: true, amount: amt, days, currency: 'INR', updatedBy: S.user.email, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true })); await b.commit(); }
     list.forEach(u => S.P[u.uid] = { required: true, amount: amt, days }); renderOwner(); say('Done ✓ — ' + list.length + ' customers now have a price.', 'ok'); } catch (e) { say(e.message, 'bad'); }
+}
+function srvPane() {
+  $('pane').innerHTML = '<div class="card"><h2>Payment server</h2><p class="muted" style="margin:6px 0 12px">The free Google Apps Script (Code.gs) that talks to Razorpay. Paste its web app address (ending in /exec) here. Steps are in PAYMENT_SETUP.md.</p>'
+    + '<input id="srvUrl" placeholder="https://script.google.com/macros/s/…/exec" value="' + esc(S.apiUrl) + '"><div class="row" style="margin-top:12px"><button class="btn fill" id="srvSave">Save</button><button class="btn blue" id="srvTest">Test connection</button></div><div class="msg" id="srvMsg"></div></div>';
+  const m = (t, k) => { const e = $('srvMsg'); e.textContent = t; e.className = 'msg ' + (k || ''); };
+  $('srvSave').onclick = async () => { const u = $('srvUrl').value.trim(); if (!/^https:\/\/script\.google\.com\/macros\/s\/[^\s]+\/exec$/.test(u)) return m('That does not look like a web app address (it should start with https://script.google.com/macros/s/ and end with /exec).', 'bad');
+    try { await db.collection('billing_config').doc('server').set({ apiUrl: u, updatedBy: S.user.email, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }); S.apiUrl = u; m('Saved ✓ — now press Test connection.', 'ok'); } catch (e) { m(e.message, 'bad'); } };
+  $('srvTest').onclick = async () => { m('Testing…'); try { const r = await api('ping'); m(r.ok ? (r.razorpaySecret && r.serviceAccount ? '✓ Connected. Razorpay and Firebase are both set up.' : '⚠ Connected, but missing: ' + [!r.razorpayKeyId && 'Razorpay key id', !r.razorpaySecret && 'Razorpay secret', !r.serviceAccount && 'service account'].filter(Boolean).join(', ') + '. Add them in the script\'s Script properties.') : 'Unexpected answer.', r.razorpaySecret && r.serviceAccount ? 'ok' : 'bad'); } catch (e) { m(e.message, 'bad'); } };
 }
 async function paysPane() {
   $('pane').innerHTML = '<div class="muted">Loading…</div>';
