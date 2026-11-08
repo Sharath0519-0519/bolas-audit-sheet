@@ -1,7 +1,0 @@
-{
-  "name": "bolas-payments",
-  "private": true,
-  "main": "index.js",
-  "engines": { "node": "20" },
-  "dependencies": { "firebase-admin": "^12.0.0", "firebase-functions": "^5.0.0" }
-}
