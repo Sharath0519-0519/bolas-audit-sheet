@@ -688,6 +688,9 @@ textarea.ml-in{min-height:170px;resize:vertical;font-family:'DM Mono',monospace;
     <button class="tab" data-tab="16" onclick="switchTab(16)">
       <span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/><path d="M13 7l3-3 3 3"/></svg></span><span class="tab-label">Sales Comparison</span>
     </button>
+    <button class="tab" data-tab="19" onclick="switchTab(19)" style="display:none">
+      <span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg></span><span class="tab-label">Reviews</span>
+    </button>
     <button class="tab" data-tab="3" onclick="switchTab(3)">
       <span class="tab-dot"></span><span class="tab-icon"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 011-1h4a1 1 0 011 1v1"/><path d="M9 12l2 2 4-4"/></svg></span><span class="tab-label">Stock Audit</span>
     </button>
@@ -1353,6 +1356,81 @@ textarea.ml-in{min-height:170px;resize:vertical;font-family:'DM Mono',monospace;
     <button class="download-btn" id="scShareBtn" onclick="scShareSummary()" style="margin-top:10px;border:2px solid var(--border);color:var(--text)">📋 Share summary</button>
     <div class="note-strip note-c1" style="margin-top:14px"><strong>In the Excel file:</strong> a “Comparison” sheet (your settings, the table with live formulas, and <strong>real Excel charts you can edit</strong> — they are linked to the table cells), an “Outlet x Month” sheet, and a “Details” sheet with every outlet × month × channel that you can filter or pivot.</div>
   </div>
+</div>
+<!-- ══ PANEL 19 — REVIEWS (Google + Zomato + Swiggy ratings of every outlet, Excel download) ══ -->
+<style>
+.rv-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:11px;margin:0 0 16px}
+.rv-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 13px}
+.rv-t{font-size:10.5px;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.6px}
+.rv-v{font-size:25px;font-weight:800;margin:4px 0 2px;line-height:1.1}
+.rv-s{font-size:11px;color:var(--muted)}
+.rv-in{width:62px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 6px;font:12px 'DM Mono',monospace;color:var(--text);outline:none}
+.rv-in:focus{border-color:#5B7FE0}
+.rv-cnt{width:84px}.rv-pid{width:230px;text-align:left}
+.rv-id{width:150px;text-align:left}.rv-open{margin-left:5px;text-decoration:none;color:#5B7FE0;font-weight:800}
+.rv-hi{border-color:#3FB874;color:#3FB874}.rv-ok{border-color:#D6923B;color:#D6923B}.rv-lo{border-color:#E15C5C;color:#E15C5C}
+.rv-live{background:rgba(66,133,244,.14)}
+#rvTable th{white-space:nowrap;padding:8px 9px;font-size:10.5px}
+#rvTable td{padding:5px 6px;text-align:center;vertical-align:top}
+#rvTable tr.rv-dirty td{background:rgba(214,146,59,.07)}
+.rv-d{font-size:9.5px;font-family:'DM Mono',monospace;margin-top:2px}
+.rv-upd{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;padding-top:11px!important}
+.rv-btn{width:auto!important;padding:9px 14px!important;font-size:12.5px!important;margin:0 8px 8px 0}
+.rv-tool{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.rv-tool input[type=text],.rv-tool select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font:13px 'DM Mono',monospace;color:var(--text);outline:none;min-width:0}
+</style>
+<div class="panel" id="panel19">
+  <div class="section-head">
+    <span class="dot" style="background:#F5B700"></span>
+    <div><h2>Reviews</h2><p>Google, Zomato and Swiggy ratings of every outlet — one table, download everything in Excel</p></div>
+  </div>
+  <div id="rvCards" class="rv-cards"></div>
+  <button class="download-btn dl-c1" id="rvDownloadBtn" style="margin-bottom:14px"><span>⬇</span> Download all outlets — Excel (.xlsx)</button>
+  <div class="sc-card">
+    <div class="rv-tool">
+      <input type="text" id="rvSearch" placeholder="Search outlet — 001 or a name" style="flex:1;min-width:170px" autocomplete="off">
+      <select id="rvFilter"><option value="all">All outlets</option><option value="low">Needs attention (below 4.0)</option><option value="miss">Missing a rating</option><option value="dirty">Not saved yet</option></select>
+      <span id="rvCount" style="font:11.5px 'DM Mono',monospace;color:var(--muted)"></span>
+    </div>
+  </div>
+  <div class="table-wrap"><div class="table-scroll"><table id="rvTable">
+    <thead><tr><th style="text-align:left">Outlet</th><th style="color:#4285F4">Google ★</th><th style="color:#4285F4">Google reviews</th><th style="color:#E23744">Zomato ★</th><th style="color:#FC8019">Swiggy ★</th><th>Google Place ID</th><th style="color:#E23744">Zomato ID / link</th><th style="color:#FC8019">Swiggy ID / link</th><th>Updated</th></tr></thead>
+    <tbody id="rvBody"></tbody>
+  </table></div></div>
+  <div style="margin:12px 0 4px">
+    <button class="download-btn rv-btn" id="rvSaveBtn" style="border:2px solid #5B7FE0;color:#5B7FE0;opacity:.55">💾 Save changes</button>
+    <button class="download-btn rv-btn" id="rvImportBtn" style="border:2px solid var(--border);color:var(--text)">⬆ Update from Excel</button>
+    <button class="download-btn rv-btn" id="rvGetBtn" style="border:2px solid #4285F4;color:#4285F4">☁ Get from Google</button>
+    <button class="download-btn rv-btn" id="rvRefreshBtn" style="border:2px solid var(--border);color:var(--muted)">↻ Refresh</button>
+    <input type="file" id="rvImportFile" accept=".xlsx,.xls,.csv" style="display:none">
+  </div>
+  <div id="rvMsg" style="margin:4px 0 12px;font-family:'DM Mono',monospace;font-size:11.5px;line-height:1.6;min-height:16px"></div>
+  <details id="rvZS" class="sc-card" style="margin-top:6px">
+    <summary style="cursor:pointer;font-weight:700">Zomato &amp; Swiggy <span style="font-weight:400;color:var(--muted);font-size:12px">— IDs, links and loading ratings from a file</span></summary>
+    <div style="font-size:12.5px;color:var(--muted);line-height:1.7;margin:10px 0">
+      Zomato and Swiggy do not give other apps any way to read their ratings (and Google only has Google’s own ratings), so this app cannot fetch those two by itself. What it does instead:<br>
+      1. Type each outlet’s <strong>Zomato ID / link</strong> and <strong>Swiggy ID / link</strong> in the table — or fill those two columns in the Excel and upload it with “Update from Excel”. A full link gets an ↗ button that opens the page.<br>
+      2. Download the ratings report from the Zomato / Swiggy partner app and upload it here. Each line is matched to its outlet by the ID and the rating is filled in.
+    </div>
+    <button class="download-btn rv-btn" id="rvZBtn" style="border:2px solid #E23744;color:#E23744;margin:0 8px 0 0">⬆ Zomato ratings file</button>
+    <button class="download-btn rv-btn" id="rvSBtn" style="border:2px solid #FC8019;color:#FC8019;margin:0">⬆ Swiggy ratings file</button>
+    <input type="file" id="rvZFile" accept=".xlsx,.xls,.csv" style="display:none"><input type="file" id="rvSFile" accept=".xlsx,.xls,.csv" style="display:none">
+  </details>
+  <details id="rvGoogle" class="sc-card" style="margin-top:6px">
+    <summary style="cursor:pointer;font-weight:700">Google setup <span style="font-weight:400;color:var(--muted);font-size:12px">— to fetch Google ratings &amp; review texts automatically</span></summary>
+    <div style="font-size:12.5px;color:var(--muted);line-height:1.7;margin:10px 0">
+      1. In Google Cloud turn on <strong>Places API (New)</strong> and create an API key (limit it to this website).<br>
+      2. Paste the key below — it stays on <strong>this device only</strong>.<br>
+      3. Tap <strong>Find Place IDs</strong> (or paste each outlet's Place ID in the table), check them, tap Save.<br>
+      4. Tap <strong>Get from Google</strong>, then <strong>Download</strong>.
+    </div>
+    <div class="rv-tool">
+      <input type="password" id="rvKey" placeholder="Google API key" style="flex:1;min-width:200px" autocomplete="off">
+      <button class="download-btn rv-btn" id="rvKeySave" style="border:2px solid #3FB874;color:#3FB874;margin:0">Save key</button>
+      <button class="download-btn rv-btn" id="rvFindBtn" style="border:2px solid #4285F4;color:#4285F4;margin:0">Find Place IDs</button>
+    </div>
+  </details>
+  <div class="note-strip note-c1"><strong>In the Excel file:</strong> a “Review Dashboard” sheet — every outlet with Google, Zomato and Swiggy rating, Google review count, average, lowest and status (colour-coded, live formulas) — and, after “Get from Google”, a “Google Reviews” sheet with the review texts. Fill the Excel in and upload it back with “Update from Excel” to change many outlets at once. <strong>Zomato and Swiggy have no service other apps can use to read ratings</strong>, so those two are typed in, filled in the Excel, or loaded from a ratings file downloaded from their partner apps (matched by Zomato / Swiggy ID). Google shares at most the 5 most relevant reviews of each outlet, and values fetched live from Google are used for the screen and Excel but are not saved.</div>
 </div>
 <!-- ══ PANEL 17 — EVENT DETAILS (stock taken to an event vs invoiced vs returned) ══ -->
 <style>
@@ -6665,11 +6743,12 @@ function p14BuildOneSheet(D, outs) {
 function p14BuildExcel(D, codes, fmt) {
   const outs = codes ? D.outlets.filter(o => codes.includes(o.code)) : D.outlets;
   p14Relabel();
-  return fmt === 'one' ? p14BuildOneSheet(D, outs) : p14BuildMonthSheets(D, outs);
+  return fmt === 'ia' ? p14BuildIA(D, outs) : fmt === 'one' ? p14BuildOneSheet(D, outs) : p14BuildMonthSheets(D, outs);
 }
 
 // ── Layout chooser: shows a small preview of each Excel layout (built from the person's own first selected outlet / month) ──
 function p14LayoutPreview(kind, o, m, D) {
+  if (kind === 'ia') return p14IAPreview(o, D);   // Format 3 preview
   const f = v => v ? Math.round(v).toLocaleString('en-IN') : '';
   const cell = (t, bg, fg, b, al) => `<div style="background:${bg};color:${fg || '#1F2937'};font-weight:${b ? 700 : 400};text-align:${al || 'center'};padding:2px 3px;border:.5px solid #c5ccd8;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${t}</div>`;
   const grid = cells => `<div style="display:grid;grid-template-columns:minmax(0,1.6fr) repeat(${P14_CH.length},minmax(0,1fr)) minmax(0,1.2fr);font-size:8.5px">${cells.join('')}</div>`;
@@ -6707,6 +6786,7 @@ function p14FormatPicker(D, codes) {
           nMonthSheets + 2 > 100 ? 'That is a lot of sheets — pick fewer outlets, or use Format 2.' : '')}
         ${card('one', 'Format 2 — All months in one sheet', 'Every month stacked down a single sheet (Oct-26, Nov-26 …). Sale (Value) on the left, Order (in Numbers) on the right.',
           nOut === 1 ? '1 sheet for this outlet' : `${nOneSheets} sheets — an All Outlets summary + one sheet per outlet`, '')}
+        ${D.ia ? card('ia', 'Format 3 — Sales Rep + all items', 'Format 1 layout with a Sales Rep column after Tipplr, showing the Rep’s name (Rep bills are not counted in Walk-in; Rep “Direct” = Walk-in) — plus every item with its No. of Packs and Quantity. One invoice number = 1 order.', p14IAPickInfo(D, outs), '') : ''}
       </div>
       <div style="display:flex;justify-content:flex-end;gap:8px"><button class="mini-btn" id="fmCancel" style="border:1px solid var(--border);color:var(--muted)">Cancel</button> <button class="mini-btn mini-btn-ok" id="fmOk">⬇ Download</button></div></div>`;
     document.body.appendChild(ov);
@@ -6718,6 +6798,331 @@ function p14FormatPicker(D, codes) {
     ov.querySelector('#fmOk').addEventListener('click', () => done(pick));
     paint();
   });
+}
+
+// ══ FORMAT 3 — Invoice Analysis (item-wise) report → Sales Rep column + every item with its packs and quantity ══
+// The “Invoice Analysis / Invoice Wise Shipped Item Details” report has one row per ITEM LINE (Invoice No, Item Name, No.Of Packs, Quantity, Total, Sales Rep …).
+//  • One invoice number = one order (one customer), however many item lines it has.
+//  • Channels come from the customer name exactly like the Invoice List (Swiggy / Zomato / Ownly / Tipplr / owner-added platforms).
+//  • A bill made by a named Sales Rep is NOT counted in Walk-in: it goes to its own “Sales Rep” column (right after Tipplr) and the Rep's name is shown.
+//    Sales Rep “Direct” (or “-”) means Walk-in.
+// Nothing here runs for an Invoice List: it only switches on when the uploaded file has the Invoice No + Item Name columns.
+const P14_REP_COL = ['7A8B1F', 'EEF3D0'];   // Sales Rep header colour + light tint
+const p14ColL = n => { let s = ''; for (; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + (n - 1) % 26) + s; return s; };
+const p14IANum = v => { if (typeof v === 'number') return isFinite(v) ? v : 0; const x = parseFloat(String(v == null ? '' : v).replace(/[^0-9.\-]/g, '')); return isNaN(x) ? 0 : x; };
+const p14IARepName = v => String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
+const p14IAIsWalk = n => !n || /^(-+|direct|none|nil|n\/a|na)$/i.test(n);   // no Rep, “-” or “Direct” → Walk-in
+const p14IAAdd = (a, b) => a.map((v, i) => v + b[i]);
+const p14IAMerge = (t, src) => { if (src) for (const k in src) { const x = src[k], y = t[k] || (t[k] = { name: x.name, s: 0, o: 0 }); y.s += x.s; y.o += x.o; } return t; };
+function p14IARepText(reps, cap) {   // “Manoj Kumar — ₹12,345 · 3 bills” one Rep per line
+  const L = Object.values(reps || {}).sort((a, b) => b.s - a.s), top = L.slice(0, cap || 8);
+  const t = top.map(x => `${x.name} — ₹${Math.round(x.s).toLocaleString('en-IN')} · ${x.o} bill${x.o > 1 ? 's' : ''}`);
+  if (L.length > top.length) t.push(`+ ${L.length - top.length} more Sales Rep${L.length - top.length > 1 ? 's' : ''}`);
+  return t.join('\n');
+}
+function p14IAHeader(rows) {
+  for (let i = 0; i < Math.min(rows.length, 30); i++) {
+    const r = Array.from(rows[i] || [], v => String(v == null ? '' : v).trim().toLowerCase()), f = re => r.findIndex(x => re.test(x));
+    const c = { inv: f(/^invoice\s*no/), date: f(/^date/), cust: f(/^customer\s*name/), item: f(/^item\s*name/), packs: f(/^no\.?\s*of\s*packs/), pack: f(/^pack\s*unit/), qty: f(/^quantity$/), unit: f(/^unit$/), total: f(/^total$/), rep: f(/^sales\s*rep/), est: f(/^est\.?\s*name/), wh: f(/^warehouse/) };
+    if (c.inv >= 0 && c.item >= 0 && c.date >= 0 && c.total >= 0) return { h: i, col: c };
+  }
+  return null;
+}
+// rows of one sheet; the real cell range is measured because some exports write a wrong sheet size
+function p14IARows(ws) {
+  let mr = 0, mc = 0;
+  const dense = Array.isArray(ws) ? ws : ws['!data'];
+  if (dense) { mr = dense.length - 1; for (let i = 0; i < dense.length; i++) { const r = dense[i]; if (r && r.length - 1 > mc) mc = r.length - 1; } }
+  else Object.keys(ws).forEach(k => { if (k[0] === '!') return; const a = XLSX.utils.decode_cell(k); if (a.r > mr) mr = a.r; if (a.c > mc) mc = a.c; });
+  ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: Math.max(mr, 0), c: Math.max(mc, 0) } });
+  return XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true });
+}
+const p14IAProbe = wb => { const ws = wb && wb.Sheets[wb.SheetNames[0]]; return !!ws && !!p14IAHeader(p14IARows(ws)); };
+function p14IANew() { return { inv: new Map(), items: {}, outlets: {}, lines: 0, skipped: 0, minD: '', maxD: '', dkC: new Map(), ouC: new Map() }; }
+// Reads the item lines of ONE sheet into the running totals (the Invoice Analysis often continues on a 2nd, 3rd … sheet — every sheet is fed in).
+function p14IAFeed(st, rows) {
+  const f = p14IAHeader(rows); if (!f) return;
+  const col = f.col, norm = v => String(v == null ? '' : v).trim();
+  const dayKey = dv => {
+    let k = st.dkC.get(dv); if (k !== undefined) return k; let y, m, d;
+    if (typeof dv === 'number') { const o = XLSX.SSF.parse_date_code(dv); if (!o) { st.dkC.set(dv, null); return null; } y = o.y; m = o.m; d = o.d; }
+    else { const t = norm(dv).match(/(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/); if (!t) { st.dkC.set(dv, null); return null; } d = +t[1]; m = +t[2]; y = +t[3]; }
+    k = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`; st.dkC.set(dv, k); return k;
+  };
+  for (let i = f.h + 1; i < rows.length; i++) {
+    const r = rows[i]; if (!r) continue;
+    const inv = norm(r[col.inv]); if (!inv || /^invoice\s*no/i.test(inv)) continue;   // blank line, or the header repeated on the next sheet
+    const day = dayKey(r[col.date]); if (day === null) continue;
+    const est = col.est >= 0 ? r[col.est] : (col.wh >= 0 ? r[col.wh] : ''), es = norm(est);
+    let ou = st.ouC.get(es); if (!ou) { ou = p14Outlet(est, inv, ''); if (/^\d{1,4}/.test(es)) st.ouC.set(es, ou); }
+    if (p14MyOutlets && !p14MyOutlets.includes(ou.code)) { st.skipped++; continue; }   // cluster managers only see their own outlets
+    if (!st.outlets[ou.code]) st.outlets[ou.code] = { code: ou.code, name: ou.name }; else if (!st.outlets[ou.code].name && ou.name) st.outlets[ou.code].name = ou.name;
+    const amt = p14IANum(r[col.total]);
+    const key = ou.code + '\u0001' + inv; let iv = st.inv.get(key);
+    if (!iv) { iv = { code: ou.code, day, cust: col.cust >= 0 ? norm(r[col.cust]) : '', rep: col.rep >= 0 ? p14IARepName(r[col.rep]) : '', amt: 0 }; st.inv.set(key, iv); }
+    iv.amt += amt; st.lines++;
+    if (!st.minD || day < st.minD) st.minD = day; if (day > st.maxD) st.maxD = day;
+    const it = norm(r[col.item]) || '(no item name)', pk = col.pack >= 0 ? norm(r[col.pack]) : '', un = col.unit >= 0 ? norm(r[col.unit]) : '';
+    const io = st.items[ou.code] || (st.items[ou.code] = new Map()), ik = it + '\u0001' + pk + '\u0001' + un;
+    let e = io.get(ik); if (!e) { e = { item: it, pack: pk, unit: un, packs: 0, qty: 0, amt: 0 }; io.set(ik, e); }
+    e.packs += col.packs >= 0 ? p14IANum(r[col.packs]) : 0; e.qty += col.qty >= 0 ? p14IANum(r[col.qty]) : 0; e.amt += amt;
+  }
+}
+// Turns the invoices into (a) the normal day-by-day totals every other part of the app uses and (b) the Format 3 totals with the extra Sales Rep slot.
+function p14IAFinish(st) {
+  const nC = P14_CH.length, legacy = {}, d3 = {}, reps = new Set(), uC = new Map(); let repBills = 0, repAmt = 0;
+  p14Unknown = {};
+  st.inv.forEach(iv => {
+    const k = p14Channel(iv.cust, '');
+    if (k === 0) {   // a “Sale Through <platform>” nobody added yet stays in Walk-in, but is remembered so the owner can add it with one tap
+      let u = uC.get(iv.cust); if (u === undefined) { const mt = /sale\s*through\s+([A-Za-z0-9 .&'\-]{2,30})/i.exec(iv.cust); u = mt ? mt[1].trim().replace(/\s+/g, ' ') : ''; uC.set(iv.cust, u); }
+      if (u) { const e = p14Unknown[u.toLowerCase()] || (p14Unknown[u.toLowerCase()] = { name: u, count: 0, total: 0 }); e.count++; e.total += iv.amt; }
+    }
+    // normal shape (screen, Format 1, Format 2, Sales Comparison): a Sales Rep bill is counted in Walk-in, like in the Invoice List
+    const ld = legacy[iv.code] || (legacy[iv.code] = {}), le = ld[iv.day] || (ld[iv.day] = { s: p14Zero(), o: p14Zero() });
+    le.s[k] += iv.amt; le.o[k] += 1;
+    // Format 3 shape: one extra slot at the END = Sales Rep.  Only a bill that would have been Walk-in AND has a named Rep goes there.
+    const rep = k === 0 && !p14IAIsWalk(iv.rep) ? iv.rep : '', k3 = rep ? nC : k;
+    const dd = d3[iv.code] || (d3[iv.code] = {}), de = dd[iv.day] || (dd[iv.day] = { s: new Array(nC + 1).fill(0), o: new Array(nC + 1).fill(0), r: {} });
+    de.s[k3] += iv.amt; de.o[k3] += 1;
+    if (rep) { const rk = rep.toLowerCase(), re = de.r[rk] || (de.r[rk] = { name: rep, s: 0, o: 0 }); re.s += iv.amt; re.o += 1; reps.add(rk); repBills++; repAmt += iv.amt; }
+  });
+  const list = Object.values(st.outlets).sort((x, y) => x.code.localeCompare(y.code));
+  const monthKeys = [...new Set(list.flatMap(o => Object.keys(legacy[o.code] || {}).map(k => k.slice(0, 7))))].sort();
+  const show = k => k.slice(8) + '-' + k.slice(5, 7) + '-' + k.slice(0, 4);
+  return { days: legacy, n: st.inv.size, outlets: list, monthKeys,
+    ia: { nC, days: d3, monthKeys, items: st.items, lines: st.lines, invoices: st.inv.size, reps: reps.size, repBills, repAmt, from: show(st.minD), to: show(st.maxD) } };
+}
+// Called first by “Process”. Returns null for anything that is not an Invoice Analysis report (the normal Invoice List reader then runs exactly as before).
+async function p14IAProcess(file, big) {
+  if (big) return null;   // big yearly Invoice List .xlsx files are streamed by the normal reader — never touched here
+  let buf;
+  try { buf = await file.arrayBuffer(); if (!p14IAProbe(XLSX.read(buf, { type: 'array', sheetRows: 12 }))) return null; }
+  catch (e) { return null; }
+  if (p14MyOutlets && p14MyOutlets.length === 0) throw new Error(isStaffUser() ? 'Your outlet is not set yet. Choose your outlet first (you are asked at sign-in), then try again.' : 'No outlets have been assigned to you yet. Ask the owner to assign your outlets.');
+  await p14Label('Reading the item-wise report…');
+  let wb;
+  try { wb = XLSX.read(buf, { type: 'array', dense: true, cellText: false, cellFormula: false, cellHTML: false, cellStyles: false, cellNF: false }); }
+  catch (e) { throw new Error('This item-wise report is too big to open here (' + (e.message || e) + '). Export a shorter date range and try again.'); }
+  buf = null;
+  const st = p14IANew(), names = wb.SheetNames.slice();
+  for (let i = 0; i < names.length; i++) {
+    const ws = wb.Sheets[names[i]]; if (!ws) continue;
+    await p14Label(names.length > 1 ? `Reading sheet ${i + 1} of ${names.length}…` : 'Reading…');
+    p14IAFeed(st, p14IARows(ws)); delete wb.Sheets[names[i]];   // each sheet is counted, then released
+  }
+  await p14Label('Calculating…');
+  if (!st.inv.size) throw new Error(st.skipped ? 'This file has no invoices for the outlets assigned to you.' : 'No invoice rows found in this file.');
+  const parsed = p14IAFinish(st);
+  return { rows: [[`Invoice Analysis from ${parsed.ia.from} to ${parsed.ia.to}`]], parsed };
+}
+// Day-by-day months for one outlet, with the extra Sales Rep slot and the Rep names
+function p14IAMonths(A, code) {
+  const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'], DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const days = A.days[code] || {}, nCh = A.nC + 1, zero = () => new Array(nCh).fill(0);
+  return A.monthKeys.map(k => {
+    const [y, m] = k.split('-').map(Number), last = new Date(y, m, 0).getDate(), rows = [], reps = {};
+    for (let d = 1; d <= last; d++) {
+      const e = days[`${k}-${String(d).padStart(2, '0')}`];
+      rows.push({ label: `${String(d).padStart(2, '0')}-${String(m).padStart(2, '0')}-${y}`, sub: DAY[new Date(y, m - 1, d).getDay()], s: e ? e.s : zero(), o: e ? e.o : zero(), reps: e ? e.r : null });
+      if (e) p14IAMerge(reps, e.r);
+    }
+    const tot = f => rows.reduce((a, r) => p14IAAdd(a, r[f]), zero());
+    return { name: `${MON[m - 1]} ${y}`, sheet: `${MON[m - 1].slice(0, 3)} ${y}`, rows, s: tot('s'), o: tot('o'), active: rows.filter(r => p14Sum(r.o) > 0).length, reps };
+  });
+}
+// ── Excel sheets of Format 3 ──
+const P14_NAVY = '1F2A44', P14_GOLD = 'F5B700', P14_SLATE = '374151', P14_AMT = '#,##0.00;-#,##0.00;"-"', P14_CNT = '0;-0;"-"';
+function p14IAPut(ws, box) {
+  return (r, c, v, o = {}) => {
+    const x = ws.getCell(r, c); x.value = v;
+    x.font = { name: 'Calibri', size: o.size || 10, bold: !!o.bold, italic: !!o.italic, color: { argb: 'FF' + (o.color || '1F2937') } };
+    if (o.fill) x.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + o.fill } };
+    x.alignment = { horizontal: o.h || 'center', vertical: 'middle', wrapText: !!o.wrap };
+    if (!o.nobox) x.border = box;
+    if (o.fmt) x.numFmt = o.fmt;
+  };
+}
+const p14IALine = { style: 'thin', color: { argb: 'FFC5CCD8' } }, p14IABox = { top: p14IALine, left: p14IALine, bottom: p14IALine, right: p14IALine };
+// Same look as the Format 1 sheet, plus a Sales Rep column (sales + orders) after the last platform, and a “Sales Rep name(s)” column at the end.
+function p14SheetIA(wb, name, title, period, labelHead, subHead, rows, totalLabel, w1, w2, heading) {
+  const chs = P14_CH.map(c => [c[1], c[2], c[3]]).concat([['Sales Rep', P14_REP_COL[0], P14_REP_COL[1]]]);
+  const nC = chs.length, cT = 3 + nC, cG = cT + 1, cO = cG + 1, cOT = cO + nC, cR = cOT + 1, LAST = cR, CL = p14ColL;   // sale cols, total, gap, order cols, total orders, Rep names
+  const ws = wb.addWorksheet(name, { views: [{ state: 'frozen', xSplit: 2, ySplit: 4, showGridLines: false }], pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
+  [w1 || 12, w2 || 9, ...chs.map(() => 13), 16, 2, ...chs.map(() => 10), 13, 36].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  const put = p14IAPut(ws, p14IABox);
+  ws.mergeCells(1, 1, 1, LAST); put(1, 1, heading || 'BOLAS AGRO PRIVATE LIMITED, Karkala', { size: 14, bold: true, color: 'FFFFFF', fill: P14_NAVY, nobox: true });
+  ws.mergeCells(2, 1, 2, LAST); put(2, 1, `Sales Report — ${title}${period ? '   ·   Invoice Analysis ' + period : ''}`, { size: 11, bold: true, fill: 'DCE3F0', nobox: true });
+  ws.getRow(1).height = 26; ws.getRow(2).height = 20;
+  put(3, 1, '', { fill: P14_SLATE }); put(3, 2, '', { fill: P14_SLATE });
+  ws.mergeCells(3, 3, 3, cT); put(3, 3, 'SALES (₹)', { bold: true, color: 'FFFFFF', fill: P14_SLATE });
+  ws.mergeCells(3, cG + 1, 3, cOT); put(3, cG + 1, 'ORDERS (number of invoices)', { bold: true, color: 'FFFFFF', fill: P14_SLATE });
+  put(3, cR, '', { fill: P14_SLATE });
+  put(4, 1, labelHead, { bold: true, color: 'FFFFFF', fill: P14_NAVY }); put(4, 2, subHead, { bold: true, color: 'FFFFFF', fill: P14_NAVY });
+  chs.forEach((c, i) => { const o = { bold: true, color: 'FFFFFF', fill: c[1], wrap: true }; put(4, 3 + i, c[0], o); put(4, cO + i, c[0], o); });
+  put(4, cT, 'TOTAL SALE', { bold: true, color: 'FFFFFF', fill: P14_NAVY }); put(4, cOT, 'TOTAL ORDERS', { bold: true, color: 'FFFFFF', fill: P14_NAVY });
+  put(4, cR, 'SALES REP NAME(S)', { bold: true, color: 'FFFFFF', fill: P14_REP_COL[0], wrap: true });
+  ws.getRow(4).height = 24;
+  const r0 = 5, rN = r0 + rows.length - 1, rT = rN + 1;
+  rows.forEach((row, k) => {
+    const r = r0 + k;
+    put(r, 1, row.label, { h: 'left' }); put(r, 2, row.sub);
+    chs.forEach((c, i) => { put(r, 3 + i, row.s[i], { h: 'right', fill: c[2], fmt: P14_AMT }); put(r, cO + i, row.o[i], { fill: c[2], fmt: P14_CNT }); });
+    put(r, cT, { formula: `SUM(C${r}:${CL(cT - 1)}${r})`, result: p14Sum(row.s) }, { bold: true, h: 'right', fill: 'EEF1F6', fmt: P14_AMT });
+    put(r, cOT, { formula: `SUM(${CL(cO)}${r}:${CL(cOT - 1)}${r})`, result: p14Sum(row.o) }, { bold: true, fill: 'EEF1F6', fmt: P14_CNT });
+    const txt = row.repText || '';
+    put(r, cR, txt, { h: 'left', wrap: true, size: 9, fill: txt ? P14_REP_COL[1] : undefined });
+    ws.getRow(r).height = Math.max(18, 12.5 * (txt ? txt.split('\n').length : 1) + 5);
+  });
+  ws.mergeCells(rT, 1, rT, 2); put(rT, 1, totalLabel, { bold: true, size: 11, color: 'FFFFFF', fill: P14_NAVY, h: 'left' });
+  for (let c = 3; c <= cOT; c++) {
+    if (c === cG) continue;
+    const L = CL(c), money = c <= cT, key = money ? 's' : 'o', i = c - (money ? 3 : cO);
+    const res = rows.reduce((a, row) => a + (i < nC ? row[key][i] : p14Sum(row[key])), 0), grand = c === cT || c === cOT;
+    put(rT, c, { formula: `SUM(${L}${r0}:${L}${rN})`, result: res }, { bold: true, size: grand ? 12 : 11, color: grand ? P14_NAVY : 'FFFFFF', fill: grand ? P14_GOLD : P14_NAVY, h: money ? 'right' : 'center', fmt: money ? P14_AMT : P14_CNT });
+  }
+  put(rT, cR, '', { fill: P14_NAVY });
+  ws.getRow(rT).height = 24;
+  ws.mergeCells(rT + 2, 1, rT + 2, LAST);
+  put(rT + 2, 1, 'Swiggy / Zomato / Ownly / Tipplr = customer name “Sale Through …”  ·  Sales Rep = bills made by a named Sales Rep (NOT counted in Walk-in; Rep “Direct” = Walk-in)  ·  Walk-in = all other bills  ·  Web Orders: this report has no payment mode, so online-payment bills stay in Walk-in  ·  Orders = number of invoices (one invoice number = one order)  ·  Total Sale = sum of all columns', { italic: true, size: 9, color: '6B7280', h: 'left', wrap: true, nobox: true });
+  ws.getRow(rT + 2).height = 42;
+  return ws;
+}
+// Every item sold: name, pack, number of packs, quantity (Kgs / Nos) and sales
+function p14ItemsSheet(wb, name, title, period, heading, rows, withOutlet) {
+  const heads = (withOutlet ? ['Outlet'] : []).concat(['Item Name', 'Pack', 'No. of Packs', 'Quantity', 'Unit', 'Sales (₹)']);
+  const nc = heads.length, c0 = withOutlet ? 2 : 1, cP = c0 + 2, cQ = cP + 1, cU = cQ + 1, cS = cU + 1, CL = p14ColL;
+  const ws = wb.addWorksheet(name, { views: [{ state: 'frozen', xSplit: 0, ySplit: 4, showGridLines: false }], pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
+  (withOutlet ? [34, 40, 46, 13, 13, 8, 16] : [40, 46, 13, 13, 8, 16]).forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  const put = p14IAPut(ws, p14IABox), r3 = v => Math.round(v * 1000) / 1000, r2 = v => Math.round(v * 100) / 100;
+  ws.mergeCells(1, 1, 1, nc); put(1, 1, heading || 'BOLAS AGRO PRIVATE LIMITED, Karkala', { size: 14, bold: true, color: 'FFFFFF', fill: P14_NAVY, nobox: true });
+  ws.mergeCells(2, 1, 2, nc); put(2, 1, `Items sold — ${title}${period ? '   ·   Invoice Analysis ' + period : ''}`, { size: 11, bold: true, fill: 'DCE3F0', nobox: true });
+  ws.mergeCells(3, 1, 3, nc); put(3, 1, 'Every item with the number of packs sold and the quantity.  Sales include GST.  Use the filter arrows on the header to sort or search.', { italic: true, size: 9, color: '6B7280', h: 'left', nobox: true });
+  ws.getRow(1).height = 26; ws.getRow(2).height = 20;
+  heads.forEach((t, i) => put(4, 1 + i, t, { bold: true, color: 'FFFFFF', fill: i === cP - 1 ? P14_REP_COL[0] : P14_NAVY, wrap: true }));
+  ws.getRow(4).height = 24;
+  const r0 = 5, rN = r0 + rows.length - 1, rT = rN + 1;
+  rows.forEach((x, k) => {
+    const r = r0 + k, tint = k % 2 ? 'F6F8FB' : undefined;
+    if (withOutlet) put(r, 1, x.outlet, { h: 'left', fill: tint });
+    put(r, c0, x.item, { h: 'left', fill: tint }); put(r, c0 + 1, x.pack, { h: 'left', fill: tint });
+    put(r, cP, r3(x.packs), { fill: tint, bold: true }); put(r, cQ, r3(x.qty), { fill: tint }); put(r, cU, x.unit, { fill: tint }); put(r, cS, r2(x.amt), { h: 'right', fill: tint, fmt: P14_AMT });
+  });
+  if (!rows.length) { ws.mergeCells(5, 1, 5, nc); put(5, 1, 'No items found.', { h: 'left', italic: true }); return ws; }
+  ws.autoFilter = { from: { row: 4, column: 1 }, to: { row: 4, column: nc } };
+  ws.mergeCells(rT, 1, rT, cP - 1); put(rT, 1, 'TOTAL', { bold: true, size: 11, color: 'FFFFFF', fill: P14_NAVY, h: 'left' });
+  put(rT, cP, { formula: `SUM(${CL(cP)}${r0}:${CL(cP)}${rN})`, result: r3(rows.reduce((a, x) => a + x.packs, 0)) }, { bold: true, size: 11, color: P14_NAVY, fill: P14_GOLD });
+  put(rT, cQ, '', { fill: P14_NAVY }); put(rT, cU, '', { fill: P14_NAVY });
+  put(rT, cS, { formula: `SUM(${CL(cS)}${r0}:${CL(cS)}${rN})`, result: r2(rows.reduce((a, x) => a + x.amt, 0)) }, { bold: true, size: 11, color: P14_NAVY, fill: P14_GOLD, h: 'right', fmt: P14_AMT });
+  ws.getRow(rT).height = 22;
+  return ws;
+}
+// Every Sales Rep: the name, the outlet, bills and sales
+function p14RepSheet(wb, name, title, period, heading, rows) {
+  const heads = ['No.', 'Sales Rep', 'Outlet', 'Orders (bills)', 'Sales (₹)', 'Average bill (₹)'], nc = heads.length, CL = p14ColL;
+  const ws = wb.addWorksheet(name, { views: [{ state: 'frozen', xSplit: 0, ySplit: 4, showGridLines: false }], pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
+  [6, 30, 44, 14, 17, 17].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  const put = p14IAPut(ws, p14IABox), r2 = v => Math.round(v * 100) / 100;
+  ws.mergeCells(1, 1, 1, nc); put(1, 1, heading || 'BOLAS AGRO PRIVATE LIMITED, Karkala', { size: 14, bold: true, color: 'FFFFFF', fill: P14_NAVY, nobox: true });
+  ws.mergeCells(2, 1, 2, nc); put(2, 1, `Sales Rep sales — ${title}${period ? '   ·   Invoice Analysis ' + period : ''}`, { size: 11, bold: true, fill: 'DCE3F0', nobox: true });
+  ws.mergeCells(3, 1, 3, nc); put(3, 1, 'Bills made by a named Sales Rep. These are NOT counted in Walk-in. Sales Rep “Direct” = Walk-in.', { italic: true, size: 9, color: '6B7280', h: 'left', nobox: true });
+  ws.getRow(1).height = 26; ws.getRow(2).height = 20;
+  heads.forEach((t, i) => put(4, 1 + i, t, { bold: true, color: 'FFFFFF', fill: i === 1 ? P14_REP_COL[0] : P14_NAVY, wrap: true }));
+  ws.getRow(4).height = 24;
+  if (!rows.length) { ws.mergeCells(5, 1, 5, nc); put(5, 1, 'No Sales Rep bills in this file / selection.', { h: 'left', italic: true }); return ws; }
+  const r0 = 5, rN = r0 + rows.length - 1, rT = rN + 1;
+  rows.forEach((x, k) => {
+    const r = r0 + k, tint = k % 2 ? 'F6F8FB' : undefined;
+    put(r, 1, k + 1, { fill: tint }); put(r, 2, x.rep, { h: 'left', bold: true, fill: tint }); put(r, 3, x.outlet, { h: 'left', fill: tint });
+    put(r, 4, x.o, { fill: tint, fmt: P14_CNT }); put(r, 5, r2(x.s), { h: 'right', fill: tint, fmt: P14_AMT });
+    put(r, 6, { formula: `IFERROR(E${r}/D${r},0)`, result: x.o ? r2(x.s / x.o) : 0 }, { h: 'right', fill: tint, fmt: P14_AMT });
+  });
+  ws.autoFilter = { from: { row: 4, column: 1 }, to: { row: 4, column: nc } };
+  const tO = rows.reduce((a, x) => a + x.o, 0), tS = rows.reduce((a, x) => a + x.s, 0);
+  ws.mergeCells(rT, 1, rT, 3); put(rT, 1, 'TOTAL', { bold: true, size: 11, color: 'FFFFFF', fill: P14_NAVY, h: 'left' });
+  put(rT, 4, { formula: `SUM(D${r0}:D${rN})`, result: tO }, { bold: true, size: 11, color: P14_NAVY, fill: P14_GOLD, fmt: P14_CNT });
+  put(rT, 5, { formula: `SUM(E${r0}:E${rN})`, result: r2(tS) }, { bold: true, size: 11, color: P14_NAVY, fill: P14_GOLD, h: 'right', fmt: P14_AMT });
+  put(rT, 6, { formula: `IFERROR(E${rT}/D${rT},0)`, result: tO ? r2(tS / tO) : 0 }, { bold: true, size: 11, color: 'FFFFFF', fill: P14_NAVY, h: 'right', fmt: P14_AMT });
+  ws.getRow(rT).height = 22;
+  return ws;
+}
+function p14BuildIA(D, outs) {
+  const A = D.ia;
+  if (A.nC !== P14_CH.length) throw new Error('The sales platforms changed after this file was read. Please process the file again.');
+  const wb = new ExcelJS.Workbook(); wb.creator = 'Bolas Stock Suite';
+  const multi = outs.length > 1, used = new Set(['summary', 'summary by month', 'day-wise summary', 'sales rep', 'items', 'items by outlet']), z = () => new Array(A.nC + 1).fill(0);
+  const per = outs.map(o => { const months = p14IAMonths(A, o.code), reps = {}; months.forEach(m => p14IAMerge(reps, m.reps)); return { o, months, s: months.reduce((a, m) => p14IAAdd(a, m.s), z()), oo: months.reduce((a, m) => p14IAAdd(a, m.o), z()), reps }; });
+  const nMon = A.monthKeys.length, per0 = per[0];
+  // 1. Summary — first, like Format 1
+  if (!multi) p14SheetIA(wb, 'Summary', 'Summary by month', D.period, 'Month', 'Days sold', per0.months.map(m => ({ label: m.sheet, sub: m.active, s: m.s, o: m.o, repText: p14IARepText(m.reps) })), 'GRAND TOTAL', 12, 9, per0.o.label);
+  else {
+    p14SheetIA(wb, 'Summary', 'Summary by outlet', D.period, 'Outlet', 'Days sold', per.map(p => ({ label: p.o.label, sub: p.months.reduce((a, m) => a + m.active, 0), s: p.s, o: p.oo, repText: p14IARepText(p.reps, 5) })), 'GRAND TOTAL', 46, 9, `${outs.length} outlets`);
+    const mrows = A.monthKeys.map((_, mi) => {
+      const days = per0.months[mi].rows.reduce((a, _r, k) => a + (per.some(p => p14Sum(p.months[mi].rows[k].o) > 0) ? 1 : 0), 0), reps = {};
+      per.forEach(p => p14IAMerge(reps, p.months[mi].reps));
+      return { label: per0.months[mi].sheet, sub: days, s: per.reduce((a, p) => p14IAAdd(a, p.months[mi].s), z()), o: per.reduce((a, p) => p14IAAdd(a, p.months[mi].o), z()), repText: p14IARepText(reps) };
+    });
+    p14SheetIA(wb, 'Summary by Month', 'Summary by month — all selected outlets', D.period, 'Month', 'Days sold', mrows, 'GRAND TOTAL', 12, 9, `${outs.length} outlets`);
+  }
+  // 2. Day-wise Summary — every day that had sales, all selected outlets added together
+  if (multi || nMon > 1) {
+    const drows = [];
+    per0.months.forEach((m0, mi) => m0.rows.forEach((r, k) => {
+      const s = per.reduce((a, p) => p14IAAdd(a, p.months[mi].rows[k].s), z()), o = per.reduce((a, p) => p14IAAdd(a, p.months[mi].rows[k].o), z()), reps = {};
+      if (p14Sum(o) > 0) { per.forEach(p => p14IAMerge(reps, p.months[mi].rows[k].reps)); drows.push({ label: r.label, sub: r.sub, s, o, repText: p14IARepText(reps) }); }
+    }));
+    p14SheetIA(wb, 'Day-wise Summary', multi ? 'Day-wise summary — all selected outlets' : 'Day-wise summary', D.period, 'Date', 'Day', drows, 'TOTAL', 12, 9, multi ? `${outs.length} outlets` : per0.o.label);
+  }
+  // 3. Sales Rep sheet — who sold what, per outlet
+  const repRows = [];
+  per.forEach(p => { const byRep = {}; Object.values(A.days[p.o.code] || {}).forEach(de => p14IAMerge(byRep, de.r)); Object.values(byRep).forEach(x => repRows.push({ rep: x.name, outlet: p.o.label, o: x.o, s: x.s })); });
+  repRows.sort((a, b) => a.rep.localeCompare(b.rep) || b.s - a.s);
+  p14RepSheet(wb, 'Sales Rep', multi ? 'all selected outlets' : per0.o.label, D.period, multi ? `${outs.length} outlets` : per0.o.label, repRows);
+  // 4. Items — every item with its number of packs and quantity
+  const byPacks = (a, b) => b.packs - a.packs || a.item.localeCompare(b.item);
+  if (!multi) p14ItemsSheet(wb, 'Items', per0.o.label, D.period, per0.o.label, [...(A.items[per0.o.code] || new Map()).values()].sort(byPacks), false);
+  else {
+    const all = new Map();
+    per.forEach(p => (A.items[p.o.code] || new Map()).forEach((x, k) => { const e = all.get(k) || { item: x.item, pack: x.pack, unit: x.unit, packs: 0, qty: 0, amt: 0 }; e.packs += x.packs; e.qty += x.qty; e.amt += x.amt; all.set(k, e); }));
+    p14ItemsSheet(wb, 'Items', 'all selected outlets', D.period, `${outs.length} outlets`, [...all.values()].sort(byPacks), false);
+    const byOut = []; per.forEach(p => [...(A.items[p.o.code] || new Map()).values()].sort(byPacks).forEach(x => byOut.push({ ...x, outlet: p.o.label })));
+    p14ItemsSheet(wb, 'Items by Outlet', 'outlet by outlet', D.period, `${outs.length} outlets`, byOut, true);
+  }
+  // 5. One sheet per month (per outlet), day by day — same as Format 1 plus the Sales Rep column
+  per.forEach(p => p.months.forEach(m => {
+    const nm = p14UniqName(used, multi ? p14TabName(p.o, p14MonShort(m)) : p14SheetSafe(m.sheet));
+    p14SheetIA(wb, nm, m.name, p14MonthPeriod(D, m), 'Date', 'Day', m.rows.map(r => ({ ...r, repText: p14IARepText(r.reps) })), 'MONTH TOTAL', 12, 9, p.o.label);
+  }));
+  return wb;
+}
+// ── Format 3 preview card + on-screen note ──
+function p14IAPreview(o, D) {
+  const A = D.ia, m = p14IAMonths(A, o.code)[0], f = v => v ? Math.round(v).toLocaleString('en-IN') : '';
+  const chs = P14_CH.map(c => [c[1], c[2], c[3]]).concat([['Sales Rep', P14_REP_COL[0], P14_REP_COL[1]]]);
+  const cell = (t, bg, fg, b, al) => `<div style="background:${bg};color:${fg || '#1F2937'};font-weight:${b ? 700 : 400};text-align:${al || 'center'};padding:2px 3px;border:.5px solid #c5ccd8;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${t}</div>`;
+  const box = 'background:#fff;border:1px solid #c5ccd8;border-radius:6px;overflow:hidden;font-family:Calibri,Arial,sans-serif;color:#1F2937';
+  const act = m.rows.filter(r => p14Sum(r.o) > 0), rep = act.filter(r => r.s[A.nC] > 0).slice(0, 2);
+  const pick = rep.concat(act.filter(r => !rep.includes(r)).slice(0, 4 - rep.length)).sort((a, b) => m.rows.indexOf(a) - m.rows.indexOf(b));
+  const c = [cell('Date', '#1F2A44', '#fff', 1)].concat(chs.map(x => cell(escHtml(x[0].replace(' Orders', '')), '#' + x[1], '#fff', 1)), [cell('TOTAL', '#1F2A44', '#fff', 1)]);
+  pick.forEach(r => { c.push(cell(r.label, '#fff', null, 0, 'left')); chs.forEach((x, i) => c.push(cell(f(r.s[i]), '#' + x[2], null, i === chs.length - 1, 'right'))); c.push(cell(f(p14Sum(r.s)), '#EEF1F6', null, 1, 'right')); });
+  const tabs = ['Summary', 'Sales Rep', 'Items', m.sheet].map((n, i) => `<span style="padding:1px 7px;border-radius:3px 3px 0 0;background:${i === 3 ? '#fff' : '#d4d8e0'};font-weight:${i === 3 ? 700 : 400};font-size:8.5px">${escHtml(n)}</span>`).join('');
+  return `<div style="${box}"><div style="background:#1F2A44;color:#fff;text-align:center;font-weight:700;padding:5px 4px;font-size:10px">${escHtml(o.label)}</div><div style="background:#DCE3F0;text-align:center;padding:2px;font-size:8.5px;font-weight:600">Sales Report — ${escHtml(m.name)}</div><div style="display:grid;grid-template-columns:minmax(0,1.5fr) repeat(${chs.length},minmax(0,1fr)) minmax(0,1.1fr);font-size:8px">${c.join('')}</div><div style="font-size:8px;color:#6b7280;padding:3px 5px;font-style:italic">… Orders and the Sales Rep name(s) sit beside it · Items = every item with packs &amp; quantity</div><div style="display:flex;gap:2px;background:#e5e7eb;padding:3px 4px 0">${tabs}</div></div>`;
+}
+function p14IAInfo() {
+  const cards = $14('p14CardsArea'); if (!cards) return;
+  let box = document.getElementById('p14IAInfo');
+  const A = p14Data && p14Data.ia;
+  if (!A) { if (box) box.remove(); return; }
+  if (!box) { box = document.createElement('div'); box.id = 'p14IAInfo'; cards.parentNode.insertBefore(box, cards); }
+  const n = x => x.toLocaleString('en-IN'), inr = x => '₹' + Math.round(x).toLocaleString('en-IN');
+  box.innerHTML = `<div class="note-strip note-c1" style="margin:0 0 14px"><strong>Item-wise report (Invoice Analysis) found — Format 3 is ready.</strong> ${n(A.lines)} item lines = ${n(A.invoices)} invoices (same invoice number = 1 order). Sales Rep bills: ${n(A.repBills)} bills · ${inr(A.repAmt)} · ${n(A.reps)} Rep${A.reps === 1 ? '' : 's'}. This summary and Formats 1 &amp; 2 count them inside Walk-in; <b>Download → Format 3</b> puts them in their own Sales Rep column after Tipplr (with the Rep’s name) and adds every item with its packs and quantity. Rep “Direct” = Walk-in. This report has no payment mode, so online-payment (Web Orders) bills stay in Walk-in.</div>`;
+}
+function p14IAPickInfo(D, outs) {   // sheet list + Sales Rep / item counts for the Format 3 card, from the outlets ticked for download
+  const A = D.ia, nOut = outs.length, nMon = A.monthKeys.length; let bills = 0, amt = 0; const reps = new Set(), items = new Set();
+  outs.forEach(o => { Object.values(A.days[o.code] || {}).forEach(de => Object.keys(de.r).forEach(k => { const x = de.r[k]; bills += x.o; amt += x.s; reps.add(k); })); (A.items[o.code] || new Map()).forEach((_, k) => items.add(k)); });
+  const sheets = nOut === 1 ? `${3 + nMon + (nMon > 1 ? 1 : 0)} sheets: Summary, ${nMon > 1 ? 'Day-wise Summary, ' : ''}Sales Rep, Items, ${A.monthKeys.length > 1 ? 'one per month' : 'the month day by day'}`
+    : `Summary, Summary by Month, Sales Rep, Items, Items by Outlet + one sheet per outlet per month (${nOut * nMon} day-by-day sheets)`;
+  return `${sheets}<br>In your selection: ${reps.size} Sales Rep${reps.size === 1 ? '' : 's'} · ${bills.toLocaleString('en-IN')} bills · ₹${Math.round(amt).toLocaleString('en-IN')} · ${items.size.toLocaleString('en-IN')} items`;
 }
 
 function p14FillSelect(keep) {
@@ -7447,7 +7852,9 @@ $14('p14ProcessBtn').addEventListener('click', async () => {
     // Big yearly .xlsx files (20 MB+) are streamed; SheetJS silently returns an empty sheet on them.
     const isX = /\.xlsx$/i.test(p14File.name), big = isX && p14File.size > 20 * 1024 * 1024;
     let rows, parsed;
-    if (big) {
+    const ia = await p14IAProcess(p14File, big);   // Invoice Analysis (item-wise) report → Format 3; null for a normal Invoice List
+    if (ia) { rows = ia.rows; parsed = ia.parsed; }
+    else if (big) {
       try { rows = await p14StreamRows(p14File); }
       catch (se) { console.warn('Streaming read failed, trying the normal reader', se); try { rows = p14ReadRows(await p14File.arrayBuffer()); } catch (e2) { throw se; } }
       await p14Label('Calculating…'); parsed = p14Parse(rows);
@@ -7463,8 +7870,8 @@ $14('p14ProcessBtn').addEventListener('click', async () => {
     const months = outlets[0].months;
     const pm = String((rows[0] && rows[0][0]) || '').match(/from\s+(\S+)\s+to\s+(\S+)/i);
     const label = (months.length === 1 ? months[0].sheet : `${months[0].sheet} to ${months[months.length - 1].sheet}`).replace(/[^a-z0-9]+/gi, '_');
-    p14Data = { outlets, months, n: parsed.n, period: pm ? `${pm[1]} to ${pm[2]}` : '', file: `Sales_Report_${label}.xlsx` };
-    await p14Label('Building the report…'); p14FillSelect(); p14Render(); p14ShowNewPlatforms();
+    p14Data = { outlets, months, n: parsed.n, period: pm ? `${pm[1]} to ${pm[2]}` : '', file: `Sales_Report_${label}.xlsx`, ia: parsed.ia };
+    await p14Label('Building the report…'); p14FillSelect(); p14Render(); p14ShowNewPlatforms(); p14IAInfo();
     logActivity('process_file', 14, p14File.name);
   } catch (e) { console.error(e); p14Err(e.message || 'Processing failed.'); }
   { const b = $14('p14ProcessBtn'); b.disabled = false; if (window.__p14BtnTxt) b.textContent = window.__p14BtnTxt; window.__p14BtnTxt = null; }
@@ -7506,7 +7913,7 @@ $14('p14DownloadBtn').addEventListener('click', async () => {
     }
     const fmt = await p14FormatPicker(p14Data, codes);   // Format 1 (month-wise sheets) or Format 2 (all months in one sheet)
     if (!fmt) return;
-    const suffix = (codes.length === everyone.length ? '' : codes.length === 1 ? '_' + codes[0] : `_${codes.length}_outlets`) + (fmt === 'one' ? '_AllMonthsOneSheet' : '_MonthWise');
+    const suffix = (codes.length === everyone.length ? '' : codes.length === 1 ? '_' + codes[0] : `_${codes.length}_outlets`) + (fmt === 'one' ? '_AllMonthsOneSheet' : fmt === 'ia' ? '_Format3_RepAndItems' : '_MonthWise');
     const buf = await p14BuildExcel(p14Data, codes, fmt).xlsx.writeBuffer();
     const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
     const fname = p14Data.file.replace(/\.xlsx$/, suffix + '.xlsx');
@@ -10340,4 +10747,350 @@ body{background:radial-gradient(900px 520px at 88% -8%,rgba(110,142,243,.16),tra
 @keyframes panelIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .panel.active{animation:panelIn .3s ease both}
 </style>
+<script>
+// ══════════════════════════════════════════════════════════════
+// PANEL 19 — REVIEWS: Google + Zomato + Swiggy ratings of every outlet, Excel download (and upload to update many outlets at once)
+// Self-contained: only reads existing helpers (db, currentUser, escHtml, obAll, outletBareName, odCode, outletLeadCode, canUseOutletTools, hasAllOutlets, p14MyOutlets, logActivity).
+// Firestore: collection "outlet_reviews", one document per outlet code (needs a rule like outlet_directory — owner + cluster managers write, signed-in read).
+// Google (optional): "Get from Google" uses Places API (New) with YOUR API key (kept only on this device). Google gives rating, number of reviews and at most the 5 most relevant
+// review texts per place — it is not possible to download every single review that way. Values/reviews fetched live from Google are used in the screen and the Excel file
+// but are NOT saved to Firestore (Google's terms do not allow storing them); only Place IDs and the numbers someone types in are saved.
+// ══════════════════════════════════════════════════════════════
+(function () {
+const $ = id => document.getElementById(id), esc = s => escHtml(s == null ? '' : s);
+PANEL_NAMES[19] = 'Reviews';
+const COLL = 'outlet_reviews', LOW = 4.0, KEYSTORE = 'rv_google_key', PLACES = 'https://places.googleapis.com/v1/';
+const FIELDS = ['g', 'gc', 'z', 's', 'pid', 'zid', 'sid'];     // google rating · google review count · zomato · swiggy · google place id · zomato id/link · swiggy id/link
+const FIELD_DB = { g: 'googleRating', gc: 'googleCount', z: 'zomatoRating', s: 'swiggyRating', pid: 'placeId', zid: 'zomatoId', sid: 'swiggyId' };
+const IDF = ['pid', 'zid', 'sid'];                                // text fields (ids / links)
+let rows = [], loaded = false, loadMsg = '', reviews = {}, busy = false;
+
+const num = v => { if (v == null || v === '') return null; const n = parseFloat(String(v).replace(/,/g, '').trim()); return isFinite(n) ? n : null; };
+const rating = v => { const n = num(v); return n == null || n < 0 || n > 5 ? null : Math.round(n * 100) / 100; };
+const count = v => { const n = num(v); return n == null || n < 0 ? null : Math.round(n); };
+const clean = (f, v) => f === 'pid' ? String(v == null ? '' : v).trim().replace(/^places\//, '') : IDF.includes(f) ? String(v == null ? '' : v).trim() : (f === 'gc' ? count(v) : rating(v));
+const f1 = v => v == null ? '' : String(Math.round(v * 100) / 100);
+const cls = v => v == null ? '' : v >= 4.5 ? 'rv-hi' : v >= LOW ? 'rv-ok' : 'rv-lo';
+const inScope = c => !p14MyOutlets || p14MyOutlets.includes(c);
+const today = () => { const d = new Date(); return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`; };
+const stamp = t => { try { const d = t && t.toDate ? t.toDate() : (t ? new Date(t) : null); return d && !isNaN(d) ? `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}` : ''; } catch (e) { return ''; } };
+const getKey = () => { try { return localStorage.getItem(KEYSTORE) || ''; } catch (e) { return ''; } };
+const setKey = v => { try { v ? localStorage.setItem(KEYSTORE, v) : localStorage.removeItem(KEYSTORE); } catch (e) { /* private mode */ } };
+const say = (t, ok) => { const m = $('rvMsg'); if (m) { m.textContent = t || ''; m.style.color = ok === false ? '#E15C5C' : ok === true ? '#3FB874' : 'var(--muted)'; } };
+const blocked = e => e && (e.code === 'permission-denied' || /permission/i.test(e.message || '')) ? `Firestore rules don’t allow the collection “${COLL}” yet — add the same rule you gave outlet_directory for “${COLL}”, then try again.` : (e && e.message) || String(e);
+
+// ── rows ──
+function mkRow(o, d) {
+  d = d || {}; const r = { code: o.code, name: o.name, bare: (typeof outletBareName === 'function' ? outletBareName(o.name) : o.name) || o.name, live: {}, dirty: false, prev: d.prev || {}, at: d.updatedAt || null, by: d.updatedBy || '', gname: '', gaddr: '' };
+  r.base = { g: rating(d.googleRating), gc: count(d.googleCount), z: rating(d.zomatoRating), s: rating(d.swiggyRating), pid: String(d.placeId || ''), zid: String(d.zomatoId || ''), sid: String(d.swiggyId || '') };
+  FIELDS.forEach(f => { r[f] = r.base[f]; });
+  return r;
+}
+async function ensureOutlets() {
+  try { if (!obFire || !obFire.length || Date.now() - obLoadedAt > 120000) { const s = await db.collection('outlets').limit(1000).get(); obFire = s.docs.map(d => ({ id: d.id, ...d.data() })); obLoadedAt = Date.now(); } } catch (e) { console.warn('reviews: outlets not refreshed', e); }
+  try { if (!p14DirLoaded) await p14LoadDirectory(); } catch (e) { /* the built-in list is still there */ }
+}
+async function load(force) {
+  if (loaded && !force) { render(); return; }
+  say('Loading outlets…'); loadMsg = '';
+  await ensureOutlets();
+  let docs = {};
+  try { (await db.collection(COLL).get()).docs.forEach(d => { docs[d.id] = d.data(); }); }
+  catch (e) { console.warn('outlet_reviews load failed', e); loadMsg = blocked(e); }
+  const keep = {}; rows.forEach(r => { if (r.dirty || Object.keys(r.live).length) keep[r.code] = r; });   // unsaved typing / live Google values survive a refresh
+  rows = obAll().filter(o => o.code && inScope(o.code)).map(o => keep[o.code] || mkRow(o, docs[o.code]));
+  loaded = true; render(); say(loadMsg, false);
+}
+
+// ── summary + table ──
+const present = r => [r.g, r.z, r.s].filter(v => v != null);
+const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+function summary() {
+  const col = f => avg(rows.map(r => r[f]).filter(v => v != null)), lowN = rows.filter(r => present(r).some(v => v < LOW)).length, miss = rows.filter(r => r.g == null || r.z == null || r.s == null).length;
+  const card = (t, v, sub, c) => `<div class="rv-card"><div class="rv-t">${t}</div><div class="rv-v" style="color:${c || 'var(--text)'}">${v}</div><div class="rv-s">${sub}</div></div>`;
+  const a = f => { const v = col(f); return v == null ? '–' : (Math.round(v * 100) / 100).toFixed(2); };
+  const nOf = f => rows.filter(r => r[f] != null).length;
+  $('rvCards').innerHTML = card('Outlets', rows.length, 'in your list') + card('Google ★ avg', a('g'), nOf('g') + ' outlets rated', '#4285F4') + card('Zomato ★ avg', a('z'), nOf('z') + ' outlets rated', '#E23744') + card('Swiggy ★ avg', a('s'), nOf('s') + ' outlets rated', '#FC8019')
+    + card('Needs attention', lowN, 'a rating below ' + LOW.toFixed(1), lowN ? '#E15C5C' : '#3FB874') + card('Missing a rating', miss, 'Google, Zomato or Swiggy empty', miss ? '#D6923B' : '#3FB874');
+}
+const openLink = v => /^https?:\/\//i.test(v || '') ? `<a class="rv-open" href="${esc(v)}" target="_blank" rel="noopener noreferrer" title="Open the listing">↗</a>` : '<a class="rv-open" target="_blank" rel="noopener noreferrer" style="display:none">↗</a>';
+const inp = (r, f) => {
+  const id = IDF.includes(f), val = id ? r[f] : f === 'gc' ? (r.gc == null ? '' : r.gc) : f1(r[f]);
+  return `<input class="rv-in ${f === 'pid' ? 'rv-pid' : id ? 'rv-id' : f === 'gc' ? 'rv-cnt' : cls(r[f])}${r.live[f] ? ' rv-live' : ''}" data-c="${esc(r.code)}" data-f="${f}" value="${esc(val)}" `
+    + (f === 'pid' ? 'placeholder="ChIJ…" autocomplete="off" spellcheck="false"' : id ? 'placeholder="ID or link" autocomplete="off" spellcheck="false"' : 'inputmode="decimal" autocomplete="off"')
+    + (f === 'pid' && r.gname ? ` title="${esc(r.gname + (r.gaddr ? ' — ' + r.gaddr : ''))}"` : '') + '>';
+};
+const delta = (r, f) => { const p = r.prev && r.prev[f]; if (p == null || r[f] == null || r[f] !== r.base[f]) return ''; const d = Math.round((r[f] - p) * 100) / 100; return d ? `<div class="rv-d" style="color:${d > 0 ? '#3FB874' : '#E15C5C'}">${d > 0 ? '▲' : '▼'}${Math.abs(d)}</div>` : ''; };
+function visible() {
+  const q = ($('rvSearch').value || '').trim().toLowerCase(), m = $('rvFilter').value;
+  return rows.filter(r => (!q || (r.code + ' ' + r.name).toLowerCase().includes(q))
+    && (m === 'all' || (m === 'low' && present(r).some(v => v < LOW)) || (m === 'miss' && (r.g == null || r.z == null || r.s == null)) || (m === 'dirty' && r.dirty)));
+}
+function render() {
+  if (!$('rvBody')) return;
+  summary();
+  const v = visible();
+  $('rvBody').innerHTML = v.map(r => `<tr data-c="${esc(r.code)}"${r.dirty ? ' class="rv-dirty"' : ''}><td style="text-align:left;white-space:nowrap"><b>${esc(r.code)}</b> ${esc(r.bare)}</td>`
+    + `<td>${inp(r, 'g')}${delta(r, 'g')}</td><td>${inp(r, 'gc')}</td><td>${inp(r, 'z')}${delta(r, 'z')}</td><td>${inp(r, 's')}${delta(r, 's')}</td><td>${inp(r, 'pid')}</td><td style="white-space:nowrap">${inp(r, 'zid')}${openLink(r.zid)}</td><td style="white-space:nowrap">${inp(r, 'sid')}${openLink(r.sid)}</td>`
+    + `<td class="rv-upd">${r.dirty ? '<span style="color:#D6923B">not saved</span>' : (r.live.g ? '<span style="color:#3FB874">Google live</span>' : esc(stamp(r.at)))}</td></tr>`).join('')
+    || `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:18px">${rows.length ? 'No outlet matches.' : 'No outlets found.'}</td></tr>`;
+  $('rvCount').textContent = v.length === rows.length ? `${rows.length} outlets` : `${v.length} of ${rows.length} outlets`;
+  saveLabel();
+}
+function saveLabel() { const nd = rows.filter(r => r.dirty).length, b = $('rvSaveBtn'); b.textContent = nd ? `💾 Save ${nd} change${nd > 1 ? 's' : ''}` : '💾 Save changes'; b.style.opacity = nd ? '1' : '.55'; }
+function onInput(e) {
+  const t = e.target; if (!t.classList || !t.classList.contains('rv-in')) return;
+  const r = rows.find(x => x.code === t.dataset.c), f = t.dataset.f; if (!r) return;
+  const v = clean(f, t.value); r[f] = v; delete r.live[f]; t.classList.remove('rv-live');
+  if (f === 'zid' || f === 'sid') { const a = t.parentNode && t.parentNode.querySelector ? t.parentNode.querySelector('.rv-open') : null; if (a) { const ok = /^https?:\/\//i.test(v); a.style.display = ok ? '' : 'none'; if (ok) a.href = v; } }   // ↗ appears for a full link
+  r.dirty = FIELDS.some(k => r[k] !== r.base[k] && !r.live[k]);
+  if (!IDF.includes(f) && f !== 'gc') { t.classList.remove('rv-hi', 'rv-ok', 'rv-lo'); const c = cls(v); if (c) t.classList.add(c); }
+  const tr = t.closest('tr'); if (tr) { tr.classList.toggle('rv-dirty', r.dirty); const u = tr.querySelector('.rv-upd'); if (u) u.innerHTML = r.dirty ? '<span style="color:#D6923B">not saved</span>' : esc(stamp(r.at)); }
+  summary(); saveLabel();
+}
+
+// ── save (only what a person typed — never the values fetched live from Google) ──
+const nextPrev = r => { const p = Object.assign({}, r.prev); ['g', 'z', 's'].forEach(f => { if (!r.live[f] && r.base[f] != null && r[f] != null && r[f] !== r.base[f]) p[f] = r.base[f]; }); return p; };   // remember the rating before a change
+async function save() {
+  const d = rows.filter(r => r.dirty); if (!d.length) { say('Nothing to save.', null); return; }
+  $('rvSaveBtn').disabled = true; say('Saving…');
+  try {
+    for (let i = 0; i < d.length; i += 400) {
+      const b = db.batch();
+      d.slice(i, i + 400).forEach(r => {
+        const doc = { code: r.code, name: r.name, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: (currentUser && currentUser.email) || '' };
+        FIELDS.forEach(f => { if (!r.live[f]) doc[FIELD_DB[f]] = r[f] == null || r[f] === '' ? null : r[f]; });   // values fetched live from Google are not stored
+        doc.prev = nextPrev(r); b.set(db.collection(COLL).doc(r.code), doc, { merge: true });
+      });
+      await b.commit();
+    }
+    d.forEach(r => { r.prev = nextPrev(r); FIELDS.forEach(f => { if (!r.live[f]) r.base[f] = r[f]; }); r.dirty = false; r.at = new Date(); });
+    await load(true);
+    say(`Saved ${d.length} outlet${d.length > 1 ? 's' : ''}.`, true);
+    if (typeof logActivity === 'function') logActivity('save_reviews', 19, d.length + ' outlets');
+  } catch (e) { console.error(e); say('Couldn’t save: ' + blocked(e), false); }
+  $('rvSaveBtn').disabled = false;
+}
+
+// ── Excel (the same headers are read back by “Update from Excel”, so a downloaded file can be filled in and uploaded) ──
+const NAVY = '1F2A44', GOLD = 'F5B700', LINE = { style: 'thin', color: { argb: 'FFC5CCD8' } }, BOX = { top: LINE, left: LINE, bottom: LINE, right: LINE };
+function putter(ws) {
+  return (r, c, v, o = {}) => {
+    const x = ws.getCell(r, c); x.value = v;
+    x.font = { name: 'Calibri', size: o.size || 10, bold: !!o.bold, italic: !!o.italic, color: { argb: 'FF' + (o.color || '1F2937') } };
+    if (o.fill) x.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + o.fill } };
+    x.alignment = { horizontal: o.h || 'center', vertical: 'middle', wrapText: !!o.wrap };
+    if (!o.nobox) x.border = BOX; if (o.fmt) x.numFmt = o.fmt;
+  };
+}
+const tint = v => v == null ? undefined : v >= 4.5 ? 'D9F2E3' : v >= LOW ? 'FFF4CC' : 'FADBD8';
+function buildExcel() {
+  const wb = new ExcelJS.Workbook(); wb.creator = 'Bolas Stock Suite';
+  const ws = wb.addWorksheet('Review Dashboard', { views: [{ state: 'frozen', xSplit: 3, ySplit: 4, showGridLines: false }], pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
+  [6, 11, 44, 13, 13, 13, 13, 13, 13, 17, 30, 26, 26, 13].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  const put = putter(ws), N = 14, heads = ['S.No', 'Outlet Code', 'Outlet', 'Google Rating', 'Google Reviews', 'Zomato Rating', 'Swiggy Rating', 'Average Rating', 'Lowest Rating', 'Status', 'Google Place ID', 'Zomato ID', 'Swiggy ID', 'Last Updated'];
+  ws.mergeCells(1, 1, 1, N); put(1, 1, 'BOLAS AGRO PRIVATE LIMITED, Karkala', { size: 14, bold: true, color: 'FFFFFF', fill: NAVY, nobox: true });
+  ws.mergeCells(2, 1, 2, N); put(2, 1, `Outlet Reviews & Ratings — Google, Zomato, Swiggy   ·   as on ${today()}   ·   ${rows.length} outlets`, { size: 11, bold: true, fill: 'DCE3F0', nobox: true });
+  ws.mergeCells(3, 1, 3, N); put(3, 1, 'Fill in or correct the ratings and upload this file back in Bolas Stock Suite → Reviews → “Update from Excel”. Colours: green 4.5 and above · yellow 4.0–4.4 · red below 4.0.', { italic: true, size: 9, color: '6B7280', h: 'left', nobox: true });
+  ws.getRow(1).height = 26; ws.getRow(2).height = 20;
+  const HC = ['', '', '', '4285F4', '4285F4', 'E23744', 'FC8019'];
+  heads.forEach((t, i) => put(4, i + 1, t, { bold: true, color: 'FFFFFF', fill: HC[i] || NAVY, wrap: true })); ws.getRow(4).height = 30;
+  const r0 = 5, rN = r0 + Math.max(rows.length, 1) - 1;
+  rows.forEach((r, k) => {
+    const x = r0 + k, p = present(r), a = p.length ? Math.round(avg(p) * 100) / 100 : '', lo = p.length ? Math.min(...p) : '', st = a === '' ? 'No data' : lo < LOW ? 'Needs attention' : 'Good';
+    put(x, 1, k + 1); put(x, 2, r.code); put(x, 3, r.bare, { h: 'left' });
+    put(x, 4, r.g, { fill: tint(r.g), fmt: '0.0#', bold: true }); put(x, 5, r.gc, { fmt: '#,##0' }); put(x, 6, r.z, { fill: tint(r.z), fmt: '0.0#', bold: true }); put(x, 7, r.s, { fill: tint(r.s), fmt: '0.0#', bold: true });
+    put(x, 8, { formula: `IFERROR(AVERAGE(D${x},F${x},G${x}),"")`, result: a }, { fmt: '0.00', bold: true, fill: 'EEF1F6' });
+    put(x, 9, { formula: `IF(H${x}="","",MIN(D${x},F${x},G${x}))`, result: lo }, { fmt: '0.0#' });
+    put(x, 10, { formula: `IF(H${x}="","No data",IF(I${x}<${LOW},"Needs attention","Good"))`, result: st }, { color: st === 'Needs attention' ? 'B3261E' : st === 'Good' ? '1E8449' : '6B7280', bold: true });
+    put(x, 11, r.pid, { h: 'left', size: 9 }); put(x, 12, r.zid, { h: 'left', size: 9 }); put(x, 13, r.sid, { h: 'left', size: 9 }); put(x, 14, r.live.g ? 'Google live' : stamp(r.at), { size: 9 });
+  });
+  if (!rows.length) { ws.mergeCells(5, 1, 5, N); put(5, 1, 'No outlets.', { h: 'left', italic: true }); return wb; }
+  const a2 = f => { const v = rows.map(r => r[f]).filter(x => x != null); return v.length ? Math.round(avg(v) * 100) / 100 : ''; };
+  const rA = rN + 1, rC = rN + 2, tr = (r, label) => { ws.mergeCells(r, 1, r, 3); put(r, 1, label, { bold: true, size: 11, color: 'FFFFFF', fill: NAVY, h: 'left' }); };
+  tr(rA, 'AVERAGE  /  TOTAL REVIEWS'); tr(rC, 'OUTLETS WITH A RATING');
+  const gold = { bold: true, size: 11, color: NAVY, fill: GOLD };
+  [[4, 'D', 'g'], [6, 'F', 'z'], [7, 'G', 's']].forEach(([c, L, f]) => { put(rA, c, { formula: `IFERROR(AVERAGE(${L}${r0}:${L}${rN}),"")`, result: a2(f) }, { ...gold, fmt: '0.00' }); put(rC, c, { formula: `COUNT(${L}${r0}:${L}${rN})`, result: rows.filter(r => r[f] != null).length }, { bold: true, color: 'FFFFFF', fill: NAVY }); });
+  put(rA, 5, { formula: `SUM(E${r0}:E${rN})`, result: rows.reduce((s, r) => s + (r.gc || 0), 0) }, { ...gold, fmt: '#,##0' }); put(rC, 5, { formula: `COUNT(E${r0}:E${rN})`, result: rows.filter(r => r.gc != null).length }, { bold: true, color: 'FFFFFF', fill: NAVY });
+  const allA = rows.map(r => present(r).length ? avg(present(r)) : null).filter(v => v != null);
+  put(rA, 8, { formula: `IFERROR(AVERAGE(H${r0}:H${rN}),"")`, result: allA.length ? Math.round(avg(allA) * 100) / 100 : '' }, { ...gold, fmt: '0.00' }); put(rC, 8, { formula: `COUNT(H${r0}:H${rN})`, result: allA.length }, { bold: true, color: 'FFFFFF', fill: NAVY });
+  [9, 10, 11, 12, 13, 14].forEach(c => { put(rA, c, '', { fill: NAVY }); put(rC, c, '', { fill: NAVY }); });
+  ws.getRow(rA).height = 22; ws.getRow(rC).height = 20;
+  ws.autoFilter = { from: { row: 4, column: 1 }, to: { row: 4, column: N } };
+  // Google review texts fetched in this session (Google returns at most the 5 most relevant per outlet)
+  const rv = rows.filter(r => reviews[r.code] && reviews[r.code].length);
+  if (rv.length) {
+    const w2 = wb.addWorksheet('Google Reviews', { views: [{ state: 'frozen', xSplit: 0, ySplit: 4, showGridLines: false }], pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
+    [11, 38, 9, 26, 16, 90].forEach((w, i) => { w2.getColumn(i + 1).width = w; });
+    const q = putter(w2);
+    w2.mergeCells(1, 1, 1, 6); q(1, 1, 'BOLAS AGRO PRIVATE LIMITED, Karkala', { size: 14, bold: true, color: 'FFFFFF', fill: NAVY, nobox: true });
+    w2.mergeCells(2, 1, 2, 6); q(2, 1, `Google reviews — fetched live on ${today()}`, { size: 11, bold: true, fill: 'DCE3F0', nobox: true });
+    w2.mergeCells(3, 1, 3, 6); q(3, 1, 'Google shares at most the 5 most relevant reviews of each place. Review text belongs to the reviewers.', { italic: true, size: 9, color: '6B7280', h: 'left', nobox: true });
+    ['Outlet Code', 'Outlet', 'Rating', 'Reviewer', 'Posted', 'Review'].forEach((t, i) => q(4, i + 1, t, { bold: true, color: 'FFFFFF', fill: '4285F4' }));
+    let x = 5; rv.forEach(r => reviews[r.code].forEach(v => { q(x, 1, r.code); q(x, 2, r.bare, { h: 'left' }); q(x, 3, v.rating, { fill: tint(v.rating), bold: true }); q(x, 4, v.author, { h: 'left' }); q(x, 5, v.when); q(x, 6, v.text, { h: 'left', wrap: true }); w2.getRow(x).height = Math.max(18, 13 * Math.ceil((v.text || '').length / 100) + 5); x++; }));
+    w2.autoFilter = { from: { row: 4, column: 1 }, to: { row: 4, column: 6 } };
+  }
+  return wb;
+}
+async function download() {
+  if (!rows.length) { say('No outlets to download yet.', false); return; }
+  try {
+    say('Building the Excel file…');
+    const buf = await buildExcel().xlsx.writeBuffer(), url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    const d = new Date(), name = `Outlet_Reviews_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.xlsx`, a = document.createElement('a');
+    a.href = url; a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+    say(`Downloaded ${name} — ${rows.length} outlets.`, true);
+    if (typeof logActivity === 'function') logActivity('download_file', 19, name, rows.length + ' outlets');
+  } catch (e) { console.error(e); say('Couldn’t build the Excel file: ' + e.message, false); }
+}
+
+// ── Update from Excel / CSV: matches each line by outlet code (or the number at the start of the outlet name) ──
+const hdrCells = row => (row || []).map(v => { const t = String(v == null ? '' : v).trim().toLowerCase(); return t.length > 40 ? '' : t; });   // long cells are titles/notes, never column headers
+function readSheet(aoa) {
+  for (let i = 0; i < Math.min(aoa.length, 30); i++) {
+    const h = hdrCells(aoa[i]), at = re => h.findIndex(x => re.test(x));
+    const c = { code: at(/^(outlet\s*(code|no\.?|number)|code)$/), name: at(/^outlet(\s*name)?$/), g: h.findIndex(x => /google/.test(x) && !/review|count|vote|place|\bid\b|link/.test(x)), gc: h.findIndex(x => /google/.test(x) && /review|count|vote/.test(x)),
+      z: h.findIndex(x => /zomato/.test(x) && !/\bid\b|link|url/.test(x)), s: h.findIndex(x => /swiggy/.test(x) && !/\bid\b|link|url/.test(x)), pid: at(/place\s*id/), zid: at(/zomato.*(\bid\b|link|url)/), sid: at(/swiggy.*(\bid\b|link|url)/) };
+    if ((c.code >= 0 || c.name >= 0 || c.zid >= 0 || c.sid >= 0) && (c.g >= 0 || c.z >= 0 || c.s >= 0 || c.gc >= 0 || c.pid >= 0 || c.zid >= 0 || c.sid >= 0)) return { h: i, c };
+  }
+  return null;
+}
+// An ID can be typed as a number, a restaurant link, or a link ending in /info or /order — all of these are compared on the part that identifies the restaurant
+function idKeys(v) {
+  const t = String(v == null ? '' : v).trim().toLowerCase(); if (!t) return [];
+  const ks = new Set(), parts = t.replace(/[?#].*$/, '').replace(/\/+$/, '').split('/');
+  while (parts.length > 1 && /^(info|order|reviews?|menu|photos|overview|book)$/.test(parts[parts.length - 1])) parts.pop();
+  ks.add(parts.join('/')); const seg = parts[parts.length - 1];
+  if (seg && seg.length >= 4) { ks.add(seg); const m = seg.match(/(\d{4,})$/); if (m) ks.add(m[1]); }
+  if (/^\d+(\.0+)?$/.test(t)) ks.add(t.replace(/\.0+$/, ''));
+  return [...ks];
+}
+const idMap = f => { const m = {}; rows.forEach(r => idKeys(r[f]).forEach(k => { if (!m[k]) m[k] = r; })); return m; };
+const idHit = (m, v) => { for (const k of idKeys(v)) if (m[k]) return m[k]; return null; };
+function applyRows(aoa) {
+  const hd = readSheet(aoa); if (!hd) return null;
+  const by = {}; rows.forEach(r => { by[r.code] = r; }); const zmap = idMap('zid'), smap = idMap('sid'), out = { found: 0, changed: 0, skipped: [] };
+  for (let i = hd.h + 1; i < aoa.length; i++) {
+    const L = aoa[i] || [], cell = k => (hd.c[k] >= 0 ? L[hd.c[k]] : ''), raw = String(cell('code') || '').trim() || String(cell('name') || '');
+    const code = (typeof odCode === 'function' && /^\s*#?\d+\s*$/.test(raw)) ? odCode(raw) : (typeof outletLeadCode === 'function' ? outletLeadCode(raw) : '');
+    let r = null, byId = false;
+    if (code) { r = by[code]; if (!r) { out.skipped.push(code); continue; } }
+    else {                                                                                     // no outlet code in the file → match by the Zomato / Swiggy ID
+      const zc = cell('zid'), sc = cell('sid'); r = idHit(zmap, zc) || idHit(smap, sc); byId = true;
+      if (!r) { const x = String(zc || sc || '').trim(); if (x && /\d|\//.test(x)) out.skipped.push('ID ' + x.slice(0, 18)); continue; }   // blank lines, totals and notes are ignored
+    }
+    out.found++; let ch = false;
+    FIELDS.forEach(f => { if (byId && (f === 'zid' || f === 'sid')) return; const v = hd.c[f] >= 0 ? clean(f, cell(f)) : null, empty = cell(f) === '' || cell(f) == null; if (hd.c[f] < 0 || empty || v == null || v === '') return; if (r[f] !== v || r.live[f]) { r[f] = v; delete r.live[f]; ch = true; } });
+    if (ch) { r.dirty = FIELDS.some(k => r[k] !== r.base[k] && !r.live[k]); out.changed++; }
+  }
+  return out;
+}
+// A ratings file downloaded from the Zomato / Swiggy partner side: needs an ID column and a Rating column; each line is matched to its outlet by the ID typed in the table
+function applyPlat(aoa, plat) {
+  const idf = plat === 'z' ? 'zid' : 'sid'; let hd = null;
+  for (let i = 0; i < Math.min(aoa.length, 30) && !hd; i++) {
+    const h = hdrCells(aoa[i]), ic = h.findIndex(x => /\b(id|code)\b|\burl\b|\blink\b/.test(x) && !/rating|order|pin|postal|zip|promo/.test(x)), rc = h.findIndex(x => /rating/.test(x) && !/count|number|total|review|votes|\bnos?\b/.test(x));
+    if (ic >= 0 && rc >= 0) hd = { h: i, ic, rc, idName: String(aoa[i][ic]), rName: String(aoa[i][rc]) };
+  }
+  if (!hd) return null;
+  const map = idMap(idf), out = { matched: 0, changed: 0, unmatched: [], idName: hd.idName, rName: hd.rName };
+  for (let i = hd.h + 1; i < aoa.length; i++) {
+    const L = aoa[i] || [], idv = L[hd.ic]; if (idv == null || String(idv).trim() === '') continue;
+    const r = idHit(map, idv); if (!r) { out.unmatched.push(String(idv).trim().slice(0, 24)); continue; }
+    out.matched++; const v = rating(L[hd.rc]); if (v == null) continue;
+    if (r[plat] !== v) { r[plat] = v; r.dirty = FIELDS.some(k => r[k] !== r.base[k] && !r.live[k]); out.changed++; }
+  }
+  return out;
+}
+async function importPlat(file, plat) {
+  const nm = plat === 'z' ? 'Zomato' : 'Swiggy', idf = plat === 'z' ? 'zid' : 'sid';
+  try {
+    if (!rows.some(r => r[idf])) { say(`No outlet has a ${nm} ID yet. Type the IDs in the table first (or fill the “${nm} ID” column in the Excel and upload it with “Update from Excel”).`, false); return; }
+    say('Reading ' + file.name + '…');
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' }); let res = null;
+    for (const n of wb.SheetNames) { res = applyPlat(XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '', raw: true }), plat); if (res) break; }
+    if (!res) { say(`Couldn’t find an ID column and a Rating column in that file (the headers need the words “ID” and “Rating”).`, false); return; }
+    render();
+    say(`${nm}: ${res.changed} rating${res.changed === 1 ? '' : 's'} changed · ${res.matched} outlet${res.matched === 1 ? '' : 's'} matched by “${res.idName}”, rating read from “${res.rName}”${res.unmatched.length ? ` · ${res.unmatched.length} line${res.unmatched.length === 1 ? '' : 's'} not matched (${res.unmatched.slice(0, 4).join(', ')}${res.unmatched.length > 4 ? '…' : ''})` : ''}. Tap “Save” to keep them.`, res.changed ? true : null);
+  } catch (e) { console.error(e); say('Couldn’t read that file: ' + e.message, false); }
+}
+async function importFile(file) {
+  try {
+    say('Reading ' + file.name + '…');
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' }); let res = null;
+    for (const n of wb.SheetNames) { res = applyRows(XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '', raw: true })); if (res) break; }
+    if (!res) { say('Couldn’t find the columns. The file needs “Outlet Code” (or “Outlet”) and at least one of “Google Rating”, “Zomato Rating”, “Swiggy Rating”. Download the Excel from here, fill it in, and upload it again.', false); return; }
+    render();
+    say(`${res.changed} outlet${res.changed === 1 ? '' : 's'} changed from ${res.found} matched in the file${res.skipped.length ? ` · ${res.skipped.length} not in your list (${res.skipped.slice(0, 5).join(', ')}${res.skipped.length > 5 ? '…' : ''})` : ''}. Tap “Save” to keep them.`, res.changed ? true : null);
+  } catch (e) { console.error(e); say('Couldn’t read that file: ' + e.message, false); }
+}
+
+// ── Google (Places API New): optional ──
+const pool = async (list, n, fn) => { let i = 0; await Promise.all(Array.from({ length: Math.min(n, list.length) }, async () => { while (i < list.length) { const x = list[i++]; await fn(x); } })); };
+const gErr = (r, j) => { const m = (j && j.error && j.error.message) || ('HTTP ' + r.status); return r.status === 403 ? m + ' — check that “Places API (New)” is enabled for this key and the key is allowed for this website' : r.status === 400 && /API key/i.test(m) ? 'The API key is not valid' : m; };
+async function gDetails(id, key) {
+  const r = await fetch(PLACES + 'places/' + encodeURIComponent(id), { headers: { 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': 'id,displayName,rating,userRatingCount,reviews,googleMapsUri' } });
+  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(gErr(r, j)); return j;
+}
+async function gSearch(q, key) {
+  const r = await fetch(PLACES + 'places:searchText', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress' }, body: JSON.stringify({ textQuery: q, languageCode: 'en', regionCode: 'IN', pageSize: 3 }) });
+  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(gErr(r, j)); return j.places || [];
+}
+const need = () => { const k = getKey(); if (!k) { const d = $('rvGoogle'); if (d) d.open = true; say('Paste your Google API key first (Google setup below), then try again.', false); return ''; } return k; };
+async function fetchGoogle() {
+  const key = need(); if (!key || busy) return;
+  const list = rows.filter(r => r.pid); if (!list.length) { say('No outlet has a Google Place ID yet. Use “Find Place IDs” or paste the IDs in the table first.', false); return; }
+  busy = true; let ok = 0, bad = 0, first = '', done = 0;
+  await pool(list, 4, async r => {
+    try {
+      const j = await gDetails(r.pid, key); r.g = rating(j.rating); r.gc = count(j.userRatingCount); r.live.g = true; r.live.gc = true;
+      r.gname = (j.displayName && j.displayName.text) || '';
+      reviews[r.code] = (j.reviews || []).map(v => ({ rating: v.rating, author: (v.authorAttribution && v.authorAttribution.displayName) || '', when: (v.publishTime || '').slice(0, 10).split('-').reverse().join('-') || v.relativePublishTimeDescription || '', text: (v.text && v.text.text) || (v.originalText && v.originalText.text) || '' }));
+      r.dirty = FIELDS.some(k => r[k] !== r.base[k] && !r.live[k]); ok++;
+    } catch (e) { bad++; if (!first) first = r.code + ': ' + e.message; }
+    say(`Getting Google ratings… ${++done} of ${list.length}`);
+  });
+  busy = false; render();
+  say(`Google: ${ok} outlet${ok === 1 ? '' : 's'} updated${bad ? `, ${bad} failed (${first})` : ''}. These are live values — they go into the Excel file but are not saved. ${ok ? 'Tap “Download Excel” now.' : ''}`, bad && !ok ? false : true);
+}
+async function findIds() {
+  const key = need(); if (!key || busy) return;
+  const list = rows.filter(r => !r.pid); if (!list.length) { say('Every outlet already has a Place ID.', true); return; }
+  busy = true; let ok = 0, miss = [], err = '', done = 0;
+  await pool(list, 3, async r => {
+    try {
+      const q = /bolas/i.test(r.bare) ? r.bare : 'Bolas ' + r.bare, hit = (await gSearch(q, key)).find(p => /bolas/i.test((p.displayName && p.displayName.text) || ''));
+      if (hit) { r.pid = hit.id; r.gname = hit.displayName.text; r.gaddr = hit.formattedAddress || ''; r.dirty = true; ok++; } else miss.push(r.code);
+    } catch (e) { if (!err) err = e.message; miss.push(r.code); }
+    say(`Finding Google places… ${++done} of ${list.length}`);
+  });
+  busy = false; render();
+  say(`Found ${ok} of ${list.length} Place IDs${miss.length ? ` — not found: ${miss.slice(0, 8).join(', ')}${miss.length > 8 ? '…' : ''}` : ''}${err ? ` (${err})` : ''}. Hover a Place ID to see the Google name; check them, paste the missing ones, then tap Save.`, ok ? true : false);
+}
+
+// ── wiring ──
+function wire() {
+  if (!$('panel19') || wire.done) return; wire.done = true;
+  $('rvBody').addEventListener('input', onInput);
+  ['rvSearch', 'rvFilter'].forEach(id => $(id).addEventListener('input', render));
+  $('rvSaveBtn').addEventListener('click', save); $('rvDownloadBtn').addEventListener('click', download); $('rvRefreshBtn').addEventListener('click', () => load(true));
+  $('rvImportBtn').addEventListener('click', () => $('rvImportFile').click());
+  $('rvImportFile').addEventListener('change', () => { const f = $('rvImportFile').files[0]; if (f) importFile(f); $('rvImportFile').value = ''; });
+  $('rvZBtn').addEventListener('click', () => $('rvZFile').click()); $('rvSBtn').addEventListener('click', () => $('rvSFile').click());
+  $('rvZFile').addEventListener('change', () => { const f = $('rvZFile').files[0]; if (f) importPlat(f, 'z'); $('rvZFile').value = ''; });
+  $('rvSFile').addEventListener('change', () => { const f = $('rvSFile').files[0]; if (f) importPlat(f, 's'); $('rvSFile').value = ''; });
+  $('rvGetBtn').addEventListener('click', fetchGoogle); $('rvFindBtn').addEventListener('click', findIds);
+  $('rvKey').value = getKey();
+  $('rvKeySave').addEventListener('click', () => { setKey($('rvKey').value.trim()); say($('rvKey').value.trim() ? 'Google API key saved on this device.' : 'Google API key removed from this device.', true); });
+}
+function tabVis() { const t = document.querySelector('.tab[data-tab="19"]'); if (t) t.style.display = canUseOutletTools() ? '' : 'none'; }
+const prevAccess = applyAccessTabs; applyAccessTabs = function () { prevAccess.apply(this, arguments); tabVis(); };
+const prevSwitch = switchTab; switchTab = function (n) {
+  if (n === 19 && !canUseOutletTools()) n = 5;                  // owner + cluster managers only
+  prevSwitch(n); if (n === 19) { wire(); load(false); }
+};
+window.rvApi = { rows: () => rows, setRows: r => { rows = r; }, buildExcel, applyRows, applyPlat, idKeys, readSheet, summary, mkRow, clean, fetchGoogle, findIds, setReviews: r => { reviews = r; } };   // handy for tests
+tabVis(); setTimeout(tabVis, 1500);
+})();
+</script>
 </body>
